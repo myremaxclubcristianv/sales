@@ -16,18 +16,14 @@ export async function getLeads(filters?: LeadFilterParams) {
     .from('leads')
     .select(`
       *,
-      campaign:campaigns!leads_campaign_id_fkey (
-        id,
-        name
-      ),
-      property:properties!leads_property_id_fkey (
+      property:properties (
         id,
         title,
         slug,
         price,
         currency
       ),
-      request:requests!leads_request_id_fkey (
+      request:requests (
         id,
         title
       )
@@ -46,7 +42,22 @@ export async function getLeads(filters?: LeadFilterParams) {
 
   const { data, error } = await query
   if (error) throw error
-  return data
+  if (!data || data.length === 0) return []
+
+  const campaignIds = Array.from(new Set(data.map((l) => l.campaign_id).filter(Boolean))) as string[]
+  if (campaignIds.length > 0) {
+    const { data: campaigns } = await supabase
+      .from('campaigns')
+      .select('id, name')
+      .in('id', campaignIds)
+    const campaignMap = new Map((campaigns || []).map((c) => [c.id, c]))
+    return data.map((l) => ({
+      ...l,
+      campaign: l.campaign_id ? campaignMap.get(l.campaign_id) || null : null,
+    }))
+  }
+
+  return data.map((l) => ({ ...l, campaign: null }))
 }
 
 export async function getLeadById(id: string) {
@@ -55,11 +66,7 @@ export async function getLeadById(id: string) {
     .from('leads')
     .select(`
       *,
-      campaign:campaigns!leads_campaign_id_fkey (
-        id,
-        name
-      ),
-      property:properties!leads_property_id_fkey (
+      property:properties (
         id,
         title,
         slug,
@@ -68,7 +75,7 @@ export async function getLeadById(id: string) {
         price,
         currency
       ),
-      request:requests!leads_request_id_fkey (
+      request:requests (
         id,
         title
       )
@@ -77,7 +84,19 @@ export async function getLeadById(id: string) {
     .single()
 
   if (error) throw error
-  return data
+  if (!data) return null
+
+  let campaign = null
+  if (data.campaign_id) {
+    const { data: camp } = await supabase
+      .from('campaigns')
+      .select('id, name')
+      .eq('id', data.campaign_id)
+      .single()
+    campaign = camp || null
+  }
+
+  return { ...data, campaign }
 }
 
 export async function createLead(lead: LeadInsert) {
