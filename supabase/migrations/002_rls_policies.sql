@@ -30,6 +30,41 @@ ALTER TABLE public.audit_logs ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.public_metrics ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.settings ENABLE ROW LEVEL SECURITY;
 
+-- HELPER FUNCTIONS (SECURITY DEFINER to prevent RLS recursion)
+CREATE OR REPLACE FUNCTION public.get_current_user_role()
+RETURNS text
+LANGUAGE sql
+SECURITY DEFINER
+SET search_path = public
+STABLE
+AS $$
+  SELECT role FROM public.profiles WHERE id = auth.uid();
+$$;
+
+CREATE OR REPLACE FUNCTION public.is_admin()
+RETURNS boolean
+LANGUAGE sql
+SECURITY DEFINER
+SET search_path = public
+STABLE
+AS $$
+  SELECT EXISTS (
+    SELECT 1 FROM public.profiles WHERE id = auth.uid() AND role = 'ADMIN'
+  );
+$$;
+
+CREATE OR REPLACE FUNCTION public.is_admin_or_agent()
+RETURNS boolean
+LANGUAGE sql
+SECURITY DEFINER
+SET search_path = public
+STABLE
+AS $$
+  SELECT EXISTS (
+    SELECT 1 FROM public.profiles WHERE id = auth.uid() AND role IN ('ADMIN', 'AGENT')
+  );
+$$;
+
 -- PROFILES POLICIES
 -- Users can view their own profile
 CREATE POLICY "Users can view own profile" ON public.profiles
@@ -41,11 +76,7 @@ CREATE POLICY "Users can update own profile" ON public.profiles
 
 -- Admins can view all profiles
 CREATE POLICY "Admins can view all profiles" ON public.profiles
-  FOR SELECT USING (
-    EXISTS (
-      SELECT 1 FROM public.profiles WHERE id = auth.uid() AND role = 'ADMIN'
-    )
-  );
+  FOR SELECT USING (public.is_admin());
 
 -- Service role can manage profiles (for auth triggers)
 CREATE POLICY "Service role can manage profiles" ON public.profiles
