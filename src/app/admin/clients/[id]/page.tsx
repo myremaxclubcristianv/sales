@@ -14,9 +14,11 @@ import { getInsurancePolicies } from '@/lib/db/insurance'
 import { getCreditCases } from '@/lib/db/credit'
 import { getRequests } from '@/lib/db/requests'
 import { getViewings } from '@/lib/db/viewings'
+import { getOpportunities } from '@/lib/db/opportunities'
+import { getOffers } from '@/lib/db/offers'
 import { calculateRelationshipHealth, getHealthIcon, type RelationshipHealth } from '@/lib/utils/relationship-health'
 import { getNextBestActions } from '@/lib/utils/next-best-action'
-import { Shield, Landmark, Home, Calendar } from 'lucide-react'
+import { Shield, Landmark, Home, Calendar, Target, Handshake } from 'lucide-react'
 import type { Database } from '@/types'
 
 type ClientDetail = Database['public']['Tables']['clients']['Row'] & {
@@ -45,6 +47,8 @@ export default async function ClientDetailPage(props: PageProps) {
   let clientCreditCases: Awaited<ReturnType<typeof getCreditCases>> = []
   let clientRequests: Awaited<ReturnType<typeof getRequests>> = []
   let clientViewings: Awaited<ReturnType<typeof getViewings>> = []
+  let clientOpportunities: Awaited<ReturnType<typeof getOpportunities>> = []
+  let clientOffers: Awaited<ReturnType<typeof getOffers>> = []
   let health: { status: string; score: number; reason: string } | null = null
   let recommendations: Array<{ id: string; title: string; reason: string; priority: string; actions: string[] }> = []
 
@@ -70,7 +74,7 @@ export default async function ClientDetailPage(props: PageProps) {
   }
 
   try {
-    const [actData, docData, foldData, healthData, recData, polData, credData, reqData, viewData] = await Promise.all([
+    const [actData, docData, foldData, healthData, recData, polData, credData, reqData, viewData, opData, offData] = await Promise.all([
       getClientActivities(clientId).catch(() => []),
       getClientDocuments(clientId).catch(() => []),
       getClientDocumentFolders(clientId).catch(() => []),
@@ -80,6 +84,8 @@ export default async function ClientDetailPage(props: PageProps) {
       getCreditCases({ clientId }).catch(() => []),
       getRequests({ buyerId: clientId }).catch(() => []),
       getViewings({ clientId }).catch(() => []),
+      getOpportunities({ clientId }).catch(() => []),
+      getOffers({ clientId }).catch(() => []),
     ])
     activities = (actData as ActivityRow[]) || []
     documents = (docData as DocumentRow[]) || []
@@ -90,6 +96,8 @@ export default async function ClientDetailPage(props: PageProps) {
     clientCreditCases = credData || []
     clientRequests = reqData || []
     clientViewings = viewData || []
+    clientOpportunities = opData || []
+    clientOffers = offData || []
   } catch (err) {
     console.error('Error loading client related data:', err)
   }
@@ -287,6 +295,95 @@ export default async function ClientDetailPage(props: PageProps) {
 
           {/* Right Column: Portfolio Widgets, Activity Timeline & Document Vault */}
           <div className="lg:col-span-2 space-y-6">
+            {/* Client Deals & Opportunities Pipeline Card */}
+            <Card>
+              <div className="flex items-center justify-between pb-3 border-b border-slate-100 mb-4">
+                <div className="flex items-center gap-2">
+                  <Target className="w-4 h-4 text-emerald-600" />
+                  <h3 className="text-sm font-bold text-slate-900 uppercase tracking-wider">
+                    Deals &amp; Opportunities ({clientOpportunities.length})
+                  </h3>
+                </div>
+                <Link href="/admin/opportunities/new" className="text-xs text-blue-600 hover:underline">
+                  + New Deal
+                </Link>
+              </div>
+
+              {clientOpportunities.length === 0 ? (
+                <p className="text-xs text-slate-500 py-3 text-center">
+                  No active deal opportunities logged for this client.
+                </p>
+              ) : (
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                  {clientOpportunities.map((op) => (
+                    <div
+                      key={op.id}
+                      className="p-3 bg-slate-50 rounded-xl border border-slate-200/80 text-xs space-y-1.5"
+                    >
+                      <div className="flex items-center justify-between font-semibold text-slate-900">
+                        <span className="line-clamp-1">{op.title}</span>
+                        <Badge size="sm" variant="info">
+                          {op.stage}
+                        </Badge>
+                      </div>
+                      <div className="flex items-center justify-between text-[11px] text-slate-500">
+                        <span className="font-bold text-emerald-700">
+                          {op.value ? `€${Number(op.value).toLocaleString()}` : '—'}
+                        </span>
+                        <span>{op.probability}% probability</span>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </Card>
+
+            {/* Client Offers & Proposals Card */}
+            <Card>
+              <div className="flex items-center justify-between pb-3 border-b border-slate-100 mb-4">
+                <div className="flex items-center gap-2">
+                  <Handshake className="w-4 h-4 text-amber-600" />
+                  <h3 className="text-sm font-bold text-slate-900 uppercase tracking-wider">
+                    Offers &amp; Proposals ({clientOffers.length})
+                  </h3>
+                </div>
+                <Link href="/admin/offers/new" className="text-xs text-blue-600 hover:underline">
+                  + Submit Offer
+                </Link>
+              </div>
+
+              {clientOffers.length === 0 ? (
+                <p className="text-xs text-slate-500 py-3 text-center">
+                  No property purchase proposals recorded for this client.
+                </p>
+              ) : (
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                  {clientOffers.map((off) => (
+                    <div
+                      key={off.id}
+                      className="p-3 bg-slate-50 rounded-xl border border-slate-200/80 text-xs space-y-1.5"
+                    >
+                      <div className="flex items-center justify-between font-semibold text-slate-900">
+                        <span className="line-clamp-1">{off.property?.title || 'Target Property'}</span>
+                        <Badge
+                          size="sm"
+                          variant={off.status === 'ACCEPTED' ? 'success' : off.status === 'REJECTED' ? 'danger' : 'warning'}
+                        >
+                          {off.status}
+                        </Badge>
+                      </div>
+                      <div className="flex items-center justify-between text-[11px] text-slate-500">
+                        <span className="font-bold text-slate-900">
+                          €{Number(off.offer_amount).toLocaleString()}
+                        </span>
+                        <span>{new Date(off.offer_date).toLocaleDateString()}</span>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </Card>
+
             {/* Client Insurance Portfolio Card */}
             <Card>
               <div className="flex items-center justify-between pb-3 border-b border-slate-100 mb-4">

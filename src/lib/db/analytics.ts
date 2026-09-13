@@ -33,6 +33,17 @@ export interface RealAnalyticsOverview {
     totalClients: number
     activeClients: number
   }
+  opportunities: {
+    totalPipelineValue: number
+    weightedPipelineValue: number
+    activeDealsCount: number
+    wonDealsCount: number
+  }
+  offers: {
+    totalOffersCount: number
+    acceptedOffersVolume: number
+    pendingOffersCount: number
+  }
 }
 
 export async function getRealDatabaseAnalytics(): Promise<RealAnalyticsOverview> {
@@ -45,6 +56,8 @@ export async function getRealDatabaseAnalytics(): Promise<RealAnalyticsOverview>
     insuranceRes,
     creditRes,
     clientsRes,
+    opportunitiesRes,
+    offersRes,
   ] = await Promise.all([
     supabase.from('properties').select('price, property_status, public_visibility, currency'),
     supabase.from('requests').select('budget_max, status, currency'),
@@ -52,6 +65,8 @@ export async function getRealDatabaseAnalytics(): Promise<RealAnalyticsOverview>
     supabase.from('insurance_policies').select('premium, status, expiry_date, currency'),
     supabase.from('credit_cases').select('amount, status, currency'),
     supabase.from('clients').select('status, created_at'),
+    supabase.from('opportunities').select('value, stage, probability, currency'),
+    supabase.from('offers').select('offer_amount, status, currency'),
   ])
 
   const properties = propertiesRes.data || []
@@ -60,6 +75,8 @@ export async function getRealDatabaseAnalytics(): Promise<RealAnalyticsOverview>
   const insurance = insuranceRes.data || []
   const credit = creditRes.data || []
   const clients = clientsRes.data || []
+  const opportunities = opportunitiesRes.data || []
+  const offers = offersRes.data || []
 
   // 1. Properties
   const activeProps = properties.filter((p) => p.property_status !== 'SOLD' && p.property_status !== 'ARCHIVED')
@@ -104,6 +121,23 @@ export async function getRealDatabaseAnalytics(): Promise<RealAnalyticsOverview>
   const totalClients = clients.length
   const activeClients = clients.filter((c) => c.status === 'ACTIVE').length
 
+  // 7. Opportunities & Deals Pipeline
+  const activeDeals = opportunities.filter((o) => o.stage !== 'CLOSED_WON' && o.stage !== 'CLOSED_LOST')
+  const wonDeals = opportunities.filter((o) => o.stage === 'CLOSED_WON')
+  const totalPipelineValue = activeDeals.reduce((sum, o) => sum + (Number(o.value) || 0), 0)
+  const weightedPipelineValue = activeDeals.reduce(
+    (sum, o) => sum + (Number(o.value) || 0) * ((o.probability || 0) / 100),
+    0
+  )
+
+  // 8. Offers & Negotiations
+  const totalOffersCount = offers.length
+  const acceptedOffers = offers.filter((o) => o.status === 'ACCEPTED')
+  const acceptedOffersVolume = acceptedOffers.reduce((sum, o) => sum + (Number(o.offer_amount) || 0), 0)
+  const pendingOffersCount = offers.filter(
+    (o) => o.status === 'SUBMITTED' || o.status === 'UNDER_REVIEW' || o.status === 'COUNTERED'
+  ).length
+
   return {
     properties: {
       totalActive: activeProps.length,
@@ -136,6 +170,17 @@ export async function getRealDatabaseAnalytics(): Promise<RealAnalyticsOverview>
     clients: {
       totalClients,
       activeClients,
+    },
+    opportunities: {
+      totalPipelineValue,
+      weightedPipelineValue,
+      activeDealsCount: activeDeals.length,
+      wonDealsCount: wonDeals.length,
+    },
+    offers: {
+      totalOffersCount,
+      acceptedOffersVolume,
+      pendingOffersCount,
     },
   }
 }

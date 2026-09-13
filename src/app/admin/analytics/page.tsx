@@ -130,6 +130,40 @@ export default async function AdminAnalyticsPage() {
               </p>
             </div>
           </Card>
+
+          <Card className="p-5 bg-white border-slate-200">
+            <div className="flex items-center justify-between">
+              <span className="text-xs font-semibold uppercase text-slate-500 tracking-wider">Deals Pipeline</span>
+              <div className="w-8 h-8 rounded-lg bg-emerald-50 text-emerald-600 flex items-center justify-center">
+                <Target className="w-4 h-4" />
+              </div>
+            </div>
+            <div className="mt-3">
+              <div className="text-2xl font-black text-slate-900">
+                {analytics.opportunities.totalPipelineValue.toLocaleString()} €
+              </div>
+              <p className="text-xs text-slate-500 mt-1">
+                {analytics.opportunities.activeDealsCount} active deals • {analytics.opportunities.weightedPipelineValue.toLocaleString()} € weighted forecast
+              </p>
+            </div>
+          </Card>
+
+          <Card className="p-5 bg-white border-slate-200">
+            <div className="flex items-center justify-between">
+              <span className="text-xs font-semibold uppercase text-slate-500 tracking-wider">Accepted Offers</span>
+              <div className="w-8 h-8 rounded-lg bg-amber-50 text-amber-600 flex items-center justify-center">
+                <BarChart3 className="w-4 h-4" />
+              </div>
+            </div>
+            <div className="mt-3">
+              <div className="text-2xl font-black text-slate-900">
+                {analytics.offers.acceptedOffersVolume.toLocaleString()} €
+              </div>
+              <p className="text-xs text-slate-500 mt-1">
+                {analytics.offers.totalOffersCount} total offers ({analytics.offers.pendingOffersCount} pending review)
+              </p>
+            </div>
+          </Card>
         </div>
 
         {/* Deep Dive Section: Attribution Breakdown & Pipeline Health */}
