@@ -7,7 +7,12 @@ import Link from 'next/link'
 export const dynamic = 'force-dynamic'
 
 export default async function PublicRequestsPage() {
-  const requests = await getPublicRequests()
+  let requests: Awaited<ReturnType<typeof getPublicRequests>> = []
+  try {
+    requests = await getPublicRequests()
+  } catch (err) {
+    console.error('Error loading public requests:', err)
+  }
 
   return (
     <PublicLayout>
