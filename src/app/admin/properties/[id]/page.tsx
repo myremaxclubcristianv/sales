@@ -109,6 +109,12 @@ export default async function AdminPropertyDetailPage(props: PageProps) {
           </div>
 
           <div className="flex items-center gap-2.5">
+            <Link href={`/admin/properties/${property.id}/kit`}>
+              <Button variant="secondary" size="sm" className="flex items-center gap-1.5">
+                <Sparkles className="w-3.5 h-3.5 text-blue-600" />
+                Marketing Kit
+              </Button>
+            </Link>
             {property.public_visibility && property.property_status === 'PUBLIC' && (
               <a
                 href={`/properties/${property.slug}`}

@@ -47,6 +47,11 @@ export function CommandPalette({ isOpen, onClose }: CommandPaletteProps) {
     { title: 'Open New Financing Case', category: 'Action', href: '/admin/credit/new' },
     { title: 'Follow-ups (Today & Overdue)', category: 'Navigation', href: '/admin/follow-ups' },
     { title: 'Tasks Management', category: 'Navigation', href: '/admin/tasks' },
+    { title: 'Inbound Leads & Attribution', category: 'Navigation', href: '/admin/leads' },
+    { title: 'Marketing Campaigns', category: 'Navigation', href: '/admin/campaigns' },
+    { title: 'Launch Marketing Campaign', category: 'Action', href: '/admin/campaigns/new' },
+    { title: 'Executive Operating Analytics', category: 'Navigation', href: '/admin/analytics' },
+    { title: 'Internal Notifications Hub', category: 'Navigation', href: '/admin/notifications' },
   ]
 
   const filtered = query.trim()

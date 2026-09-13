@@ -1023,6 +1023,117 @@ export interface Database {
           created_at?: string
         }
       }
+      campaigns: {
+        Row: {
+          id: string
+          name: string
+          objective: string | null
+          channel: 'website' | 'social' | 'email' | 'paid_ads' | 'referral' | 'other' | null
+          start_date: string | null
+          end_date: string | null
+          budget: number | null
+          currency: 'EUR' | 'USD' | 'RON'
+          status: 'ACTIVE' | 'PAUSED' | 'COMPLETED' | 'CANCELLED'
+          notes: string | null
+          created_at: string
+          updated_at: string
+        }
+        Insert: {
+          id?: string
+          name: string
+          objective?: string | null
+          channel?: 'website' | 'social' | 'email' | 'paid_ads' | 'referral' | 'other' | null
+          start_date?: string | null
+          end_date?: string | null
+          budget?: number | null
+          currency?: 'EUR' | 'USD' | 'RON'
+          status?: 'ACTIVE' | 'PAUSED' | 'COMPLETED' | 'CANCELLED'
+          notes?: string | null
+          created_at?: string
+          updated_at?: string
+        }
+        Update: {
+          id?: string
+          name?: string
+          objective?: string | null
+          channel?: 'website' | 'social' | 'email' | 'paid_ads' | 'referral' | 'other' | null
+          start_date?: string | null
+          end_date?: string | null
+          budget?: number | null
+          currency?: 'EUR' | 'USD' | 'RON'
+          status?: 'ACTIVE' | 'PAUSED' | 'COMPLETED' | 'CANCELLED'
+          notes?: string | null
+          created_at?: string
+          updated_at?: string
+        }
+      }
+      marketing_events: {
+        Row: {
+          id: string
+          campaign_id: string | null
+          lead_id: string | null
+          property_id: string | null
+          event_type: string
+          event_date: string
+          metadata: Record<string, unknown> | null
+          created_at: string
+        }
+        Insert: {
+          id?: string
+          campaign_id?: string | null
+          lead_id?: string | null
+          property_id?: string | null
+          event_type: string
+          event_date?: string
+          metadata?: Record<string, unknown> | null
+          created_at?: string
+        }
+        Update: {
+          id?: string
+          campaign_id?: string | null
+          lead_id?: string | null
+          property_id?: string | null
+          event_type?: string
+          event_date?: string
+          metadata?: Record<string, unknown> | null
+          created_at?: string
+        }
+      }
+      notifications: {
+        Row: {
+          id: string
+          user_id: string | null
+          type: string
+          title: string
+          message: string | null
+          related_entity_type: string | null
+          related_entity_id: string | null
+          is_read: boolean
+          created_at: string
+        }
+        Insert: {
+          id?: string
+          user_id?: string | null
+          type: string
+          title: string
+          message?: string | null
+          related_entity_type?: string | null
+          related_entity_id?: string | null
+          is_read?: boolean
+          created_at?: string
+        }
+        Update: {
+          id?: string
+          user_id?: string | null
+          type?: string
+          title?: string
+          message?: string | null
+          related_entity_type?: string | null
+          related_entity_id?: string | null
+          is_read?: boolean
+          created_at?: string
+        }
+      }
     }
   }
 }
