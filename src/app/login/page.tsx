@@ -49,7 +49,7 @@ export default function LoginPage() {
             OS
           </div>
           <span className="font-serif text-xl font-bold tracking-tight text-white">
-            VĂDUVA &amp; PARTNERS
+            CRISTIAN VĂDUVA
           </span>
         </Link>
         <h2 className="text-2xl font-bold tracking-tight text-white">
@@ -80,7 +80,7 @@ export default function LoginPage() {
                 type="email"
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
-                placeholder="agent@vaduva-partners.ro"
+                placeholder="broker@cristianvaduva.com"
                 required
                 className="w-full px-3.5 py-2.5 bg-slate-800 border border-slate-700 rounded-lg text-sm text-white placeholder-slate-500 focus:outline-hidden focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-colors"
               />

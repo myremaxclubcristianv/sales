@@ -13,8 +13,8 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "CRM Platform - Real Estate & Client Management",
-  description: "Professional real estate and client relationship management platform",
+  title: "Cristian Văduva | Luxury Real Estate, Insurance & Capital Advisory",
+  description: "Private real estate brokerage, insurance asset protection, and mortgage credit structuring across Bucharest, Monaco, and Dubai.",
 };
 
 export default function RootLayout({ children }: LayoutProps<"/">) {

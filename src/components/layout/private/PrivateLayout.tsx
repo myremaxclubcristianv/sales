@@ -304,8 +304,8 @@ export function PrivateLayout({ children }: PrivateLayoutProps) {
                 A
               </div>
               <div className="truncate">
-                <p className="text-xs font-medium text-white truncate">Administrator</p>
-                <p className="text-[10px] text-slate-400 font-mono truncate">Role: ADMIN</p>
+                <p className="text-xs font-medium text-white truncate">Cristian Văduva</p>
+                <p className="text-[10px] text-slate-400 font-mono truncate">Principal Broker</p>
               </div>
             </div>
             <button
