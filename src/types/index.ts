@@ -290,6 +290,76 @@ export interface Database {
           updated_at?: string
         }
       }
+      property_media: {
+        Row: {
+          id: string
+          property_id: string
+          file_path: string
+          file_name: string
+          file_type: string
+          file_size: number | null
+          is_primary: boolean
+          display_order: number
+          created_at: string
+        }
+        Insert: {
+          id?: string
+          property_id: string
+          file_path: string
+          file_name: string
+          file_type: string
+          file_size?: number | null
+          is_primary?: boolean
+          display_order?: number
+          created_at?: string
+        }
+        Update: {
+          id?: string
+          property_id?: string
+          file_path?: string
+          file_name?: string
+          file_type?: string
+          file_size?: number | null
+          is_primary?: boolean
+          display_order?: number
+          created_at?: string
+        }
+      }
+      property_documents: {
+        Row: {
+          id: string
+          property_id: string
+          file_path: string
+          file_name: string
+          file_type: string
+          category: 'contract' | 'ownership' | 'cadastral' | 'legal' | 'other' | null
+          description: string | null
+          uploaded_by: string | null
+          created_at: string
+        }
+        Insert: {
+          id?: string
+          property_id: string
+          file_path: string
+          file_name: string
+          file_type: string
+          category?: 'contract' | 'ownership' | 'cadastral' | 'legal' | 'other' | null
+          description?: string | null
+          uploaded_by?: string | null
+          created_at?: string
+        }
+        Update: {
+          id?: string
+          property_id?: string
+          file_path?: string
+          file_name?: string
+          file_type?: string
+          category?: 'contract' | 'ownership' | 'cadastral' | 'legal' | 'other' | null
+          description?: string | null
+          uploaded_by?: string | null
+          created_at?: string
+        }
+      }
       activities: {
         Row: {
           id: string
