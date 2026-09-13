@@ -13,6 +13,16 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: 'No file provided' }, { status: 400 })
     }
 
+    if (!clientId || typeof clientId !== 'string' || clientId.trim() === '') {
+      return NextResponse.json({ error: 'Valid client_id is required' }, { status: 400 })
+    }
+
+    // 50MB file size limit
+    const MAX_FILE_SIZE = 50 * 1024 * 1024
+    if (file.size > MAX_FILE_SIZE) {
+      return NextResponse.json({ error: 'File size exceeds maximum 50MB limit' }, { status: 400 })
+    }
+
     const supabase = await createServerClient()
     
     const { data: { user } } = await supabase.auth.getUser()
@@ -20,9 +30,9 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
 
-    const fileExt = file.name.split('.').pop()
+    const fileExt = (file.name.split('.').pop() || 'bin').replace(/[^a-zA-Z0-9]/g, '')
     const fileName = `${Date.now()}-${Math.random().toString(36).substring(7)}.${fileExt}`
-    const filePath = `${clientId}/${fileName}`
+    const filePath = `${clientId.trim()}/${fileName}`
 
     const { error: uploadError } = await supabase.storage
       .from('documents')

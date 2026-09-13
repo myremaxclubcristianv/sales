@@ -20,6 +20,15 @@ export async function POST(request: Request, props: RouteParams) {
       return NextResponse.json({ error: 'No file provided' }, { status: 400 })
     }
 
+    if (!propertyId || typeof propertyId !== 'string') {
+      return NextResponse.json({ error: 'Valid property_id is required' }, { status: 400 })
+    }
+
+    const MAX_FILE_SIZE = 50 * 1024 * 1024
+    if (file.size > MAX_FILE_SIZE) {
+      return NextResponse.json({ error: 'File size exceeds 50MB limit' }, { status: 400 })
+    }
+
     const supabase = await createServerClient()
     const { data: { user } } = await supabase.auth.getUser()
 
@@ -27,7 +36,7 @@ export async function POST(request: Request, props: RouteParams) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
 
-    const fileExt = file.name.split('.').pop()
+    const fileExt = (file.name.split('.').pop() || 'bin').replace(/[^a-zA-Z0-9]/g, '')
     const fileName = `${Date.now()}-${Math.random().toString(36).substring(7)}.${fileExt}`
     const filePath = `properties/${propertyId}/documents/${fileName}`
 
