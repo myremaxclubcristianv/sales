@@ -1,7 +1,8 @@
 'use client'
 
 import React, { useState } from 'react'
-import { Send, CheckCircle2, AlertCircle } from 'lucide-react'
+import Link from 'next/link'
+import { Send, CheckCircle2, AlertCircle, ShieldCheck } from 'lucide-react'
 
 export function ContactFormClient() {
   const [formData, setFormData] = useState({
@@ -10,6 +11,7 @@ export function ContactFormClient() {
     phone: '',
     service_type: 'real_estate_buy',
     message: '',
+    marketing_consent: false,
     honeypot: '',
   })
 
@@ -30,19 +32,20 @@ export function ContactFormClient() {
     }
 
     if (!formData.name.trim()) {
-      setError('Please provide your full name.')
+      setError('Vă rugăm să introduceți numele complet.')
       setLoading(false)
       return
     }
 
     if (!formData.email.trim() && !formData.phone.trim()) {
-      setError('Please provide either an email address or a phone number.')
+      setError('Vă rugăm să introduceți cel puțin o adresă de email sau un număr de telefon.')
       setLoading(false)
       return
     }
 
     try {
-      const payloadMessage = `[Service Interest: ${formData.service_type.replace(/_/g, ' ').toUpperCase()}] ${formData.message.trim()}`
+      const marketingTag = formData.marketing_consent ? ' [Marketing Consent: OPT-IN]' : ' [Marketing Consent: NONE]'
+      const payloadMessage = `[Service Interest: ${formData.service_type.replace(/_/g, ' ').toUpperCase()}]${marketingTag} ${formData.message.trim()}`
       
       const res = await fetch('/api/leads', {
         method: 'POST',
@@ -59,12 +62,12 @@ export function ContactFormClient() {
       const data = await res.json()
 
       if (!res.ok) {
-        throw new Error(data.error || 'Failed to submit your inquiry. Please try again.')
+        throw new Error(data.error || 'A apărut o eroare la transmiterea mesajului. Vă rugăm să reîncercați.')
       }
 
       setSubmitted(true)
     } catch (err: unknown) {
-      setError(err instanceof Error ? err.message : 'A temporary communication error occurred.')
+      setError(err instanceof Error ? err.message : 'A apărut o problemă temporară de comunicare.')
     } finally {
       setLoading(false)
     }
@@ -77,10 +80,10 @@ export function ContactFormClient() {
           <CheckCircle2 className="w-8 h-8" />
         </div>
         <h3 className="font-serif text-2xl sm:text-3xl font-bold">
-          Inquiry Successfully Transmitted
+          Solicitarea a Fost Transmisă cu Succes
         </h3>
         <p className="text-sm text-slate-400 max-w-md mx-auto leading-relaxed">
-          Thank you, <span className="text-white font-semibold">{formData.name}</span>. Your inquiry has been registered with our senior advisory team. A dedicated partner will contact you shortly.
+          Vă mulțumim, <span className="text-white font-semibold">{formData.name}</span>. Solicitarea dumneavoastră a fost înregistrată în siguranță. Vă vom contacta în cel mai scurt timp pentru a discuta detaliile.
         </p>
         <div className="pt-4">
           <button
@@ -92,12 +95,13 @@ export function ContactFormClient() {
                 phone: '',
                 service_type: 'real_estate_buy',
                 message: '',
+                marketing_consent: false,
                 honeypot: '',
               })
             }}
-            className="px-6 py-2.5 bg-white/10 hover:bg-white/20 text-white rounded-xl text-xs font-semibold uppercase tracking-wider transition"
+            className="px-6 py-2.5 bg-white/10 hover:bg-white/20 text-white rounded-xl text-xs font-semibold uppercase tracking-wider transition cursor-pointer"
           >
-            Submit Another Inquiry
+            Trimite o Nouă Solicitare
           </button>
         </div>
       </div>
@@ -127,12 +131,12 @@ export function ContactFormClient() {
       {/* Name */}
       <div>
         <label className="block text-xs font-bold uppercase tracking-wider text-slate-700 mb-2">
-          Full Name / Legal Entity *
+          Nume și Prenume / Entitate Juridică <span className="text-rose-600">*</span>
         </label>
         <input
           type="text"
           required
-          placeholder="e.g. Cristian Văduva / Family Office"
+          placeholder="ex: Cristian Văduva / Family Office"
           value={formData.name}
           onChange={(e) => setFormData({ ...formData, name: e.target.value })}
           className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl text-sm focus:outline-hidden focus:ring-2 focus:ring-slate-900 transition"
@@ -143,11 +147,11 @@ export function ContactFormClient() {
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
         <div>
           <label className="block text-xs font-bold uppercase tracking-wider text-slate-700 mb-2">
-            Email Address
+            Adresă de Email <span className="text-slate-400 font-normal lowercase">(opțional dacă introduceți telefonul)</span>
           </label>
           <input
             type="email"
-            placeholder="name@domain.com"
+            placeholder="nume@domeniu.com"
             value={formData.email}
             onChange={(e) => setFormData({ ...formData, email: e.target.value })}
             className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl text-sm focus:outline-hidden focus:ring-2 focus:ring-slate-900 transition"
@@ -156,7 +160,7 @@ export function ContactFormClient() {
 
         <div>
           <label className="block text-xs font-bold uppercase tracking-wider text-slate-700 mb-2">
-            Phone / WhatsApp Number
+            Telefon / WhatsApp <span className="text-slate-400 font-normal lowercase">(opțional dacă introduceți emailul)</span>
           </label>
           <input
             type="tel"
@@ -171,34 +175,68 @@ export function ContactFormClient() {
       {/* Advisory Service Type */}
       <div>
         <label className="block text-xs font-bold uppercase tracking-wider text-slate-700 mb-2">
-          Advisory Interest / Service Area
+          Aria de Interes / Tipul Solicitării <span className="text-rose-600">*</span>
         </label>
         <select
           value={formData.service_type}
           onChange={(e) => setFormData({ ...formData, service_type: e.target.value })}
           className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl text-sm focus:outline-hidden focus:ring-2 focus:ring-slate-900 transition"
         >
-          <option value="real_estate_buy">Property Acquisition / Buyer Search Mandate</option>
-          <option value="real_estate_sell">Property Listing &amp; Seller Representation</option>
-          <option value="insurance_package">Insurance Portfolio &amp; Asset Protection</option>
-          <option value="credit_mortgage">Mortgage &amp; Real Estate Credit Structuring</option>
-          <option value="private_advisory">Private Wealth / General Partnership</option>
+          <option value="real_estate_buy">Achiziție Imobiliară / Mandat Căutare Cumpărător</option>
+          <option value="real_estate_sell">Listare Proprietate &amp; Reprezentare Vânzător</option>
+          <option value="insurance_package">Pachet Asigurări &amp; Protecție Patrimonială</option>
+          <option value="credit_mortgage">Credit Ipotecar &amp; Structurare Financiară</option>
+          <option value="private_advisory">Consultanță Privată / Parteneriat Investițional</option>
         </select>
       </div>
 
       {/* Message */}
       <div>
         <label className="block text-xs font-bold uppercase tracking-wider text-slate-700 mb-2">
-          Confidential Brief / Requirements
+          Detalii Solicitare / Specificații <span className="text-rose-600">*</span>
         </label>
         <textarea
           rows={4}
           required
-          placeholder="Outline your target asset parameters, location preferences, timeline, or financing needs..."
+          placeholder="Descrieți parametrii proprietății dorite, zona preferată, bugetul estimativ sau alte specificații relevante..."
           value={formData.message}
           onChange={(e) => setFormData({ ...formData, message: e.target.value })}
           className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl text-sm focus:outline-hidden focus:ring-2 focus:ring-slate-900 transition"
         />
+      </div>
+
+      {/* GDPR Notice & Optional Marketing Checkbox */}
+      <div className="p-4 bg-slate-50 rounded-xl border border-slate-200 space-y-3">
+        <div className="flex items-start gap-2.5 text-xs text-slate-600 leading-relaxed">
+          <ShieldCheck className="w-4 h-4 text-brand-gold-600 shrink-0 mt-0.5" />
+          <span>
+            Datele transmise sunt utilizate exclusiv de către Cristian Văduva pentru procesarea solicitării dumneavoastră și formularea unui răspuns personalizat, conform{' '}
+            <Link href="/privacy-policy" target="_blank" className="text-slate-900 underline font-medium hover:text-brand-gold-600">
+              Politicii de Confidențialitate
+            </Link>{' '}
+            și{' '}
+            <Link href="/terms" target="_blank" className="text-slate-900 underline font-medium hover:text-brand-gold-600">
+              Termenilor și Condițiilor
+            </Link>.
+          </span>
+        </div>
+
+        <div className="pt-2 border-t border-slate-200">
+          <label className="flex items-start gap-3 cursor-pointer select-none">
+            <input
+              type="checkbox"
+              checked={formData.marketing_consent}
+              onChange={(e) => setFormData({ ...formData, marketing_consent: e.target.checked })}
+              className="mt-1 w-4 h-4 text-brand-gold-600 rounded border-slate-300 focus:ring-slate-900"
+            />
+            <span className="text-xs text-slate-600 leading-relaxed">
+              <strong className="text-slate-800 font-medium">Opțional:</strong> Doresc să primesc periodic noutăți imobiliare premium, rapoarte de piață și alerte de proprietăți noi. Pot retrage acest consimțământ oricând cu 1 click (detalii în{' '}
+              <Link href="/marketing-consent" target="_blank" className="text-slate-900 underline hover:text-brand-gold-600">
+                Politica de Marketing
+              </Link>).
+            </span>
+          </label>
+        </div>
       </div>
 
       {/* Submit Button */}
@@ -209,9 +247,10 @@ export function ContactFormClient() {
           className="w-full inline-flex items-center justify-center gap-2 px-8 py-3.5 bg-slate-950 text-white rounded-xl text-xs font-semibold uppercase tracking-wider hover:bg-slate-800 transition disabled:opacity-50 shadow-xs cursor-pointer"
         >
           <Send className="w-4 h-4" />
-          <span>{loading ? 'Transmitting Inbound...' : 'Transmit Confidential Inquiry'}</span>
+          <span>{loading ? 'Se transmite solicitarea...' : 'Transmite Solicitarea Confidențială'}</span>
         </button>
       </div>
     </form>
   )
 }
+

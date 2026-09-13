@@ -4,7 +4,8 @@ import React, { useState } from 'react'
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
 import { SITE_CONFIG } from '@/lib/config/site'
-import { Phone, Mail, MessageSquare, ExternalLink, ArrowUpRight } from 'lucide-react'
+import { Phone, Mail, MessageSquare, ArrowUpRight, Shield, Settings } from 'lucide-react'
+import { CookieConsentBanner } from '@/components/legal/CookieConsentBanner'
 
 interface PublicLayoutProps {
   children: React.ReactNode
@@ -19,10 +20,20 @@ export function PublicLayout({ children }: PublicLayoutProps) {
     { name: 'Buyer Requests', href: '/requests' },
     { name: 'About', href: '/about' },
     { name: 'Contact', href: '/contact' },
+    { name: 'Legal', href: '/legal' },
   ]
+
+  const openCookiePreferences = () => {
+    if (typeof window !== 'undefined') {
+      window.dispatchEvent(new CustomEvent('open-cookie-settings'))
+    }
+  }
 
   return (
     <div className="min-h-screen bg-white text-slate-900 flex flex-col font-sans selection:bg-slate-900 selection:text-white">
+      {/* Cookie Consent Manager Banner & Modal */}
+      <CookieConsentBanner />
+
       {/* Public Header */}
       <header className="sticky top-0 z-40 bg-white/90 backdrop-blur-md border-b border-slate-100">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
@@ -148,7 +159,7 @@ export function PublicLayout({ children }: PublicLayoutProps) {
       {/* Premium Footer */}
       <footer className="bg-slate-950 text-slate-300 border-t border-slate-800 mt-20">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-16">
-          <div className="grid grid-cols-1 md:grid-cols-12 gap-10">
+          <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-12 gap-10">
             {/* Column 1: Brand & Profile (4 cols) */}
             <div className="md:col-span-4 space-y-4">
               <div className="flex items-center gap-3">
@@ -223,40 +234,77 @@ export function PublicLayout({ children }: PublicLayoutProps) {
               </ul>
             </div>
 
-            {/* Column 3: Ecosystem & Websites (3 cols) */}
+            {/* Column 3: Legal & Compliance (3 cols) */}
             <div className="md:col-span-3">
-              <h4 className="text-xs font-semibold tracking-wider text-white uppercase mb-4">
-                Ecosystem &amp; Portals
+              <h4 className="text-xs font-semibold tracking-wider text-white uppercase mb-4 flex items-center gap-1.5">
+                <Shield className="w-3.5 h-3.5 text-brand-gold-400" />
+                <span>Legal &amp; Conformitate</span>
               </h4>
               <ul className="space-y-2 text-xs text-slate-400">
-                {SITE_CONFIG.websites.slice(0, 5).map((site) => (
-                  <li key={site.name}>
-                    <a
-                      href={site.url}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="hover:text-white transition-colors inline-flex items-center gap-1 group"
-                    >
-                      <span>{site.name}</span>
-                      <ArrowUpRight className="w-3 h-3 text-slate-400 group-hover:text-white transition" />
-                    </a>
-                  </li>
-                ))}
                 <li>
-                  <a
-                    href={SITE_CONFIG.contact.whatsapp.url}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="text-emerald-400 hover:text-emerald-300 transition-colors inline-flex items-center gap-1 font-medium"
+                  <Link href="/legal" className="text-slate-200 hover:text-white transition-colors font-medium">
+                    → Centru Legal &amp; Documente
+                  </Link>
+                </li>
+                <li>
+                  <Link href="/privacy-policy" className="hover:text-white transition-colors">
+                    Politica de Confidențialitate
+                  </Link>
+                </li>
+                <li>
+                  <Link href="/cookie-policy" className="hover:text-white transition-colors">
+                    Politica Cookie
+                  </Link>
+                </li>
+                <li>
+                  <Link href="/terms" className="hover:text-white transition-colors">
+                    Termeni și Condiții
+                  </Link>
+                </li>
+                <li>
+                  <Link href="/gdpr" className="hover:text-white transition-colors">
+                    Drepturi Persoane Vizate (GDPR)
+                  </Link>
+                </li>
+                <li>
+                  <Link href="/data-protection" className="hover:text-white transition-colors">
+                    Notă Prelucrare Date CRM
+                  </Link>
+                </li>
+                <li>
+                  <Link href="/marketing-consent" className="hover:text-white transition-colors">
+                    Consimțământ Marketing
+                  </Link>
+                </li>
+                <li>
+                  <Link href="/imprint" className="hover:text-white transition-colors">
+                    Date Identificare (Imprint)
+                  </Link>
+                </li>
+                <li>
+                  <Link href="/accessibility" className="hover:text-white transition-colors">
+                    Declarație Accesibilitate
+                  </Link>
+                </li>
+                <li>
+                  <Link href="/complaints" className="hover:text-white transition-colors">
+                    Reclamații &amp; ANSPDCP
+                  </Link>
+                </li>
+                <li className="pt-1">
+                  <button
+                    type="button"
+                    onClick={openCookiePreferences}
+                    className="inline-flex items-center gap-1.5 text-xs text-brand-gold-400 hover:text-brand-gold-300 font-medium transition cursor-pointer"
                   >
-                    <span>Direct WhatsApp Chat</span>
-                    <ExternalLink className="w-3 h-3" />
-                  </a>
+                    <Settings className="w-3 h-3" />
+                    <span>Preferințe Cookie-uri</span>
+                  </button>
                 </li>
               </ul>
             </div>
 
-            {/* Column 4: Social Accounts & Public Forms (3 cols) */}
+            {/* Column 4: Ecosystem & Channels (3 cols) */}
             <div className="md:col-span-3 space-y-5">
               <div>
                 <h4 className="text-xs font-semibold tracking-wider text-white uppercase mb-3">
@@ -281,18 +329,18 @@ export function PublicLayout({ children }: PublicLayoutProps) {
 
               <div>
                 <h4 className="text-xs font-semibold tracking-wider text-white uppercase mb-2">
-                  Mandate &amp; Advisory Forms
+                  Ecosystem &amp; Portals
                 </h4>
-                <div className="space-y-1 text-xs">
-                  {SITE_CONFIG.publicForms.map((form) => (
+                <div className="space-y-1.5 text-xs text-slate-400">
+                  {SITE_CONFIG.websites.slice(0, 4).map((site) => (
                     <a
-                      key={form.title}
-                      href={form.url}
+                      key={site.name}
+                      href={site.url}
                       target="_blank"
                       rel="noopener noreferrer"
-                      className="block text-slate-400 hover:text-white transition truncate"
+                      className="block hover:text-white transition truncate"
                     >
-                      ↗ {form.title}
+                      ↗ {site.name}
                     </a>
                   ))}
                 </div>
@@ -303,6 +351,13 @@ export function PublicLayout({ children }: PublicLayoutProps) {
           {/* Bottom Row */}
           <div className="mt-12 pt-8 border-t border-slate-900 flex flex-col sm:flex-row items-center justify-between gap-4 text-xs text-slate-400">
             <p>© {new Date().getFullYear()} {SITE_CONFIG.name}. All rights reserved.</p>
+            <div className="flex items-center gap-4 text-xs text-slate-400">
+              <Link href="/privacy-policy" className="hover:text-white transition">Confidențialitate</Link>
+              <span>•</span>
+              <Link href="/terms" className="hover:text-white transition">Termeni</Link>
+              <span>•</span>
+              <Link href="/cookie-policy" className="hover:text-white transition">Cookie-uri</Link>
+            </div>
             <p className="font-mono text-[11px] text-slate-400">
               {SITE_CONFIG.positioning.markets.join(' · ')}
             </p>
@@ -312,3 +367,4 @@ export function PublicLayout({ children }: PublicLayoutProps) {
     </div>
   )
 }
+

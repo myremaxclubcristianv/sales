@@ -14,6 +14,16 @@ export default function robots(): MetadataRoute.Robots {
           '/requests',
           '/about',
           '/contact',
+          '/legal',
+          '/privacy-policy',
+          '/cookie-policy',
+          '/terms',
+          '/gdpr',
+          '/data-protection',
+          '/marketing-consent',
+          '/imprint',
+          '/accessibility',
+          '/complaints',
         ],
         disallow: [
           '/admin/',
@@ -27,3 +37,4 @@ export default function robots(): MetadataRoute.Robots {
     sitemap: `${baseUrl}/sitemap.xml`,
   }
 }
+

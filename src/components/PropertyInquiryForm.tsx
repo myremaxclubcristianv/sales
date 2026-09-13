@@ -1,6 +1,7 @@
 'use client'
 
 import React, { useState } from 'react'
+import Link from 'next/link'
 
 interface PropertyInquiryFormProps {
   propertyId: string
@@ -12,6 +13,7 @@ export function PropertyInquiryForm({ propertyId, propertyTitle }: PropertyInqui
   const [phone, setPhone] = useState('')
   const [email, setEmail] = useState('')
   const [message, setMessage] = useState(`I am interested in ${propertyTitle} and would like to schedule a private viewing.`)
+  const [marketingConsent, setMarketingConsent] = useState(false)
   const [honeypot, setHoneypot] = useState('')
   const [submitting, setSubmitting] = useState(false)
   const [submitted, setSubmitted] = useState(false)
@@ -23,14 +25,17 @@ export function PropertyInquiryForm({ propertyId, propertyTitle }: PropertyInqui
     setErrorMsg('')
 
     try {
+      const marketingTag = marketingConsent ? ' [Marketing Consent: OPT-IN]' : ' [Marketing Consent: NONE]'
+      const fullMessage = `${message.trim()}${marketingTag}`
+
       const res = await fetch('/api/leads', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           name,
           phone,
-          email,
-          message,
+          email: email.trim() || null,
+          message: fullMessage,
           property_id: propertyId,
           honeypot,
         }),
@@ -93,7 +98,7 @@ export function PropertyInquiryForm({ propertyId, propertyTitle }: PropertyInqui
 
       <div>
         <label className="block text-[11px] font-semibold text-slate-300 uppercase tracking-wider mb-1">
-          Your Full Name
+          Your Full Name <span className="text-rose-400">*</span>
         </label>
         <input
           type="text"
@@ -107,7 +112,7 @@ export function PropertyInquiryForm({ propertyId, propertyTitle }: PropertyInqui
 
       <div>
         <label className="block text-[11px] font-semibold text-slate-300 uppercase tracking-wider mb-1">
-          Phone / WhatsApp
+          Phone / WhatsApp <span className="text-rose-400">*</span>
         </label>
         <input
           type="tel"
@@ -115,13 +120,13 @@ export function PropertyInquiryForm({ propertyId, propertyTitle }: PropertyInqui
           onChange={(e) => setPhone(e.target.value)}
           required
           placeholder="+40 7xx xxx xxx"
-          className="w-full px-3.5 py-2.5 bg-slate-800 border border-slate-700 rounded-lg text-sm text-white placeholder-slate-500 focus:outline-hidden focus:ring-2 focus:ring-blue-500"
+          className="w-full px-3.5 py-2.5 bg-slate-800 border border-slate-700 rounded-lg text-sm text-white placeholder-slate-500 focus:outline-hidden focus:ring-2 focus:ring-blue-500 font-mono"
         />
       </div>
 
       <div>
         <label className="block text-[11px] font-semibold text-slate-300 uppercase tracking-wider mb-1">
-          Email (Optional)
+          Email Address (Optional)
         </label>
         <input
           type="email"
@@ -144,6 +149,25 @@ export function PropertyInquiryForm({ propertyId, propertyTitle }: PropertyInqui
         />
       </div>
 
+      {/* GDPR Consent Notice & Optional Marketing */}
+      <div className="p-3 bg-slate-800/80 rounded-lg border border-slate-700/60 space-y-2 text-[11px] text-slate-400 leading-relaxed">
+        <p className="mb-0">
+          🔒 Your details are processed strictly to answer this property inquiry pursuant to our{' '}
+          <Link href="/privacy-policy" target="_blank" className="text-slate-200 underline hover:text-white">
+            Privacy Policy
+          </Link>.
+        </p>
+        <label className="flex items-start gap-2 pt-1.5 border-t border-slate-700/50 cursor-pointer select-none text-[11px] text-slate-300">
+          <input
+            type="checkbox"
+            checked={marketingConsent}
+            onChange={(e) => setMarketingConsent(e.target.checked)}
+            className="mt-0.5 w-3.5 h-3.5 rounded border-slate-600 bg-slate-900 text-blue-500"
+          />
+          <span>Send me matching new off-market properties (optional).</span>
+        </label>
+      </div>
+
       <button
         type="submit"
         disabled={submitting}
@@ -151,10 +175,7 @@ export function PropertyInquiryForm({ propertyId, propertyTitle }: PropertyInqui
       >
         {submitting ? 'Sending Request...' : 'Send Private Inquiry'}
       </button>
-
-      <p className="text-[10px] text-slate-500 text-center">
-        🔒 Confidential. Your information is never shared.
-      </p>
     </form>
   )
 }
+

@@ -1,9 +1,10 @@
 'use client'
 
 import { useState } from 'react'
+import Link from 'next/link'
 import { Button } from '@/components/ui/Button'
 import { Input } from '@/components/ui/Input'
-import { CheckCircle2, Send, Home } from 'lucide-react'
+import { CheckCircle2, Send, Home, ShieldCheck } from 'lucide-react'
 
 interface Props {
   requestId: string
@@ -21,6 +22,7 @@ export function RequestInquiryForm({ requestId, requestTitle }: Props) {
     email: '',
     property_details: '',
     asking_price: '',
+    marketing_consent: false,
     honeypot: '', // anti-bot spam protection
   })
 
@@ -37,6 +39,7 @@ export function RequestInquiryForm({ requestId, requestTitle }: Props) {
     }
 
     try {
+      const marketingTag = formData.marketing_consent ? ' [Marketing Consent: OPT-IN]' : ' [Marketing Consent: NONE]'
       const res = await fetch('/api/leads', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -44,7 +47,7 @@ export function RequestInquiryForm({ requestId, requestTitle }: Props) {
           name: formData.name,
           phone: formData.phone,
           email: formData.email,
-          message: `[Matching Property Submission for Request: ${requestTitle}] Details: ${formData.property_details} | Asking: ${formData.asking_price}`,
+          message: `[Matching Property Submission for Request: ${requestTitle}] Details: ${formData.property_details} | Asking: ${formData.asking_price}${marketingTag}`,
           source: 'website',
           request_id: requestId,
         }),
@@ -154,6 +157,28 @@ export function RequestInquiryForm({ requestId, requestTitle }: Props) {
         </div>
       </div>
 
+      {/* GDPR Consent Notice */}
+      <div className="p-2.5 bg-white dark:bg-neutral-900/80 rounded-lg border border-neutral-200 dark:border-neutral-800 space-y-1.5 text-[11px] text-neutral-500">
+        <div className="flex items-start gap-2">
+          <ShieldCheck className="w-3.5 h-3.5 text-neutral-400 shrink-0 mt-0.5" />
+          <span>
+            Data processed confidentially to evaluate this proposal under our{' '}
+            <Link href="/privacy-policy" target="_blank" className="underline hover:text-neutral-900 dark:hover:text-white">
+              Privacy Policy
+            </Link>.
+          </span>
+        </div>
+        <label className="flex items-center gap-2 pt-1 border-t border-neutral-100 dark:border-neutral-800 cursor-pointer select-none text-[11px]">
+          <input
+            type="checkbox"
+            checked={formData.marketing_consent}
+            onChange={(e) => setFormData({ ...formData, marketing_consent: e.target.checked })}
+            className="w-3.5 h-3.5 rounded border-neutral-300 dark:border-neutral-700"
+          />
+          <span>Receive relevant investor search briefs (optional).</span>
+        </label>
+      </div>
+
       <div className="flex justify-end pt-1">
         <Button type="submit" disabled={loading} size="sm" className="gap-2 text-xs">
           <Send className="w-3.5 h-3.5" />
@@ -163,3 +188,4 @@ export function RequestInquiryForm({ requestId, requestTitle }: Props) {
     </form>
   )
 }
+
