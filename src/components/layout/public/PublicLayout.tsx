@@ -137,9 +137,15 @@ export function PublicLayout({ children }: PublicLayoutProps) {
             <div className="pt-4 border-t border-slate-100 flex flex-col gap-2">
               <a
                 href={SITE_CONFIG.contact.primaryPhone.tel}
-                className="block text-center w-full py-2.5 bg-slate-100 text-slate-900 text-xs font-semibold rounded-lg"
+                className="block text-center w-full py-2.5 bg-slate-100 text-slate-900 text-xs font-semibold rounded-lg font-mono"
               >
                 Call: {SITE_CONFIG.contact.primaryPhone.display}
+              </a>
+              <a
+                href={SITE_CONFIG.contact.primaryEmail.mailto}
+                className="block text-center w-full py-2.5 bg-slate-50 text-slate-700 text-xs font-mono font-medium rounded-lg border border-slate-200"
+              >
+                {SITE_CONFIG.contact.primaryEmail.address}
               </a>
               <Link
                 href="/contact"
@@ -176,7 +182,7 @@ export function PublicLayout({ children }: PublicLayoutProps) {
               <p className="text-xs text-slate-400 leading-relaxed">
                 Bespoke real estate acquisitions, confidential seller representation, asset risk structuring, and private investments.
               </p>
-              <div className="pt-2 text-xs space-y-1.5 text-slate-400">
+              <div className="pt-2 text-xs space-y-2 text-slate-400">
                 <div className="flex items-center gap-2">
                   <Phone className="w-3.5 h-3.5 text-slate-400" />
                   <a href={SITE_CONFIG.contact.primaryPhone.tel} className="hover:text-white transition font-mono">
@@ -192,10 +198,18 @@ export function PublicLayout({ children }: PublicLayoutProps) {
                   <span className="text-[10px] text-emerald-400">(WhatsApp / AT)</span>
                 </div>
                 <div className="flex items-center gap-2">
+                  <Mail className="w-3.5 h-3.5 text-brand-gold-400" />
+                  <a href={SITE_CONFIG.contact.primaryEmail.mailto} className="text-white hover:text-brand-gold-300 font-mono transition">
+                    {SITE_CONFIG.contact.primaryEmail.address}
+                  </a>
+                  <span className="text-[10px] text-slate-400">(Direct)</span>
+                </div>
+                <div className="flex items-center gap-2">
                   <Mail className="w-3.5 h-3.5 text-slate-400" />
                   <a href={SITE_CONFIG.contact.publicEmail.mailto} className="hover:text-white transition">
                     {SITE_CONFIG.contact.publicEmail.address}
                   </a>
+                  <span className="text-[10px] text-slate-400">(Advisory)</span>
                 </div>
               </div>
             </div>

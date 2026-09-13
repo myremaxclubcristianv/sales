@@ -168,11 +168,16 @@ export default function LegalHubPage() {
               <p className="text-slate-400 text-[11px]">{SITE_CONFIG.location.full}</p>
             </div>
             <div>
-              <span className="text-slate-400 block font-semibold uppercase tracking-wider text-[10px]">Privacy Contact</span>
-              <a href={SITE_CONFIG.contact.publicEmail.mailto} className="font-semibold text-white hover:text-slate-300 transition">
-                {SITE_CONFIG.contact.publicEmail.address}
-              </a>
-              <p className="text-slate-400 text-[11px]">Direct Data Subject Requests</p>
+              <span className="text-slate-400 block font-semibold uppercase tracking-wider text-[10px]">Privacy &amp; Direct Contact</span>
+              <div className="space-y-0.5 mt-0.5">
+                <a href={SITE_CONFIG.contact.primaryEmail.mailto} className="font-mono text-white hover:text-brand-gold-300 block transition">
+                  {SITE_CONFIG.contact.primaryEmail.address}
+                </a>
+                <a href={SITE_CONFIG.contact.publicEmail.mailto} className="text-slate-300 hover:text-white block transition text-[11px]">
+                  {SITE_CONFIG.contact.publicEmail.address}
+                </a>
+              </div>
+              <p className="text-slate-400 text-[10px]">Direct Data Subject Requests</p>
             </div>
             <div>
               <span className="text-slate-400 block font-semibold uppercase tracking-wider text-[10px]">Supervisory Authority</span>

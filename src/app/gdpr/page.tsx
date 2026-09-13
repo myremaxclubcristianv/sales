@@ -175,9 +175,16 @@ export default function GdprRightsPage() {
           <div className="pt-2 text-xs space-y-2 text-slate-300">
             <p>
               <strong>Email:</strong>{' '}
-              <a href={SITE_CONFIG.contact.publicEmail.mailto} className="text-blue-400 underline font-mono">
-                {SITE_CONFIG.contact.publicEmail.address}
+              <a href={SITE_CONFIG.contact.primaryEmail.mailto} className="text-brand-gold-400 underline font-mono mr-2">
+                {SITE_CONFIG.contact.primaryEmail.address}
               </a>
+              <span className="text-slate-400">
+                (sau{' '}
+                <a href={SITE_CONFIG.contact.publicEmail.mailto} className="text-blue-400 underline font-mono">
+                  {SITE_CONFIG.contact.publicEmail.address}
+                </a>
+                )
+              </span>
             </p>
             <p>
               <strong>Identity Verification:</strong> To protect client confidentiality and prevent unauthorized disclosures, we may request reasonable proof of identity before releasing sensitive files.

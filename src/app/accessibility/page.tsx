@@ -121,10 +121,17 @@ export default function AccessibilityPage() {
             </p>
             <div className="space-y-2 text-sm">
               <p>
-                <strong>Email:</strong>{' '}
-                <a href={`mailto:${SITE_CONFIG.contact.publicEmail.address}?subject=Accesibilitate%20Site%20Web`} className="text-brand-gold-600 font-semibold hover:underline">
-                  {SITE_CONFIG.contact.publicEmail.address}
+                <strong>Email Contact:</strong>{' '}
+                <a href={SITE_CONFIG.contact.primaryEmail.mailto} className="text-brand-gold-600 font-semibold hover:underline font-mono mr-2">
+                  {SITE_CONFIG.contact.primaryEmail.address}
                 </a>
+                <span className="text-xs text-brand-neutral-500">
+                  (sau{' '}
+                  <a href={`mailto:${SITE_CONFIG.contact.publicEmail.address}?subject=Accesibilitate%20Site%20Web`} className="text-brand-gold-600 hover:underline">
+                    {SITE_CONFIG.contact.publicEmail.address}
+                  </a>
+                  )
+                </span>
               </p>
               <p>
                 <strong>Telefon:</strong>{' '}

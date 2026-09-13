@@ -1,7 +1,19 @@
 import { PublicLayout } from '@/components/layout/public/PublicLayout'
 import Link from 'next/link'
 import { SITE_CONFIG } from '@/lib/config/site'
-import { ArrowRight, Building2, Shield, Landmark, CheckCircle2, Award, ExternalLink, ArrowUpRight } from 'lucide-react'
+import {
+  ArrowRight,
+  Building2,
+  Shield,
+  Landmark,
+  CheckCircle2,
+  Award,
+  ExternalLink,
+  ArrowUpRight,
+  Mail,
+  Phone,
+  MessageSquare,
+} from 'lucide-react'
 import type { Metadata } from 'next'
 
 export const metadata: Metadata = {
@@ -25,7 +37,7 @@ export default function AboutPage() {
             {SITE_CONFIG.positioning.role} · {SITE_CONFIG.positioning.pillars.join(' · ')}
           </p>
           <p className="text-base sm:text-lg text-slate-600 leading-relaxed font-light">
-            Providing private advisory and discrete representation for high-net-worth individuals, family offices, and institutional investors across {SITE_CONFIG.positioning.markets.join(', ')}.
+            Providing private advisory and discreet representation for high-net-worth individuals, family offices, and institutional investors across {SITE_CONFIG.positioning.markets.join(', ')}.
           </p>
         </div>
 
@@ -107,6 +119,85 @@ export default function AboutPage() {
                 <span>Refinancing &amp; Equity Extraction</span>
               </li>
             </ul>
+          </div>
+        </div>
+
+        {/* Direct Principal Contact Details Card */}
+        <div className="bg-slate-950 text-white rounded-3xl p-8 sm:p-12 shadow-xl border border-slate-800 space-y-8">
+          <div className="max-w-3xl space-y-2">
+            <span className="text-xs font-mono font-bold uppercase tracking-widest text-brand-gold-400">
+              Direct Channels &amp; Verification
+            </span>
+            <h2 className="font-serif text-2xl sm:text-4xl font-bold text-white">
+              Principal Contact Information
+            </h2>
+            <p className="text-xs sm:text-sm text-slate-300 font-light">
+              Direct access channels for confidential mandates, asset discussions, and private appointments:
+            </p>
+          </div>
+
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 pt-4 border-t border-slate-800 text-xs">
+            {/* Primary Direct Email */}
+            <div className="p-4 bg-slate-900/80 rounded-2xl border border-slate-800 space-y-1.5">
+              <div className="flex items-center gap-2 text-brand-gold-400 font-bold text-[11px] uppercase tracking-wider">
+                <Mail className="w-3.5 h-3.5" />
+                <span>Primary Direct Email</span>
+              </div>
+              <a
+                href={SITE_CONFIG.contact.primaryEmail.mailto}
+                className="text-white hover:text-brand-gold-300 font-mono text-xs block truncate transition font-medium"
+              >
+                {SITE_CONFIG.contact.primaryEmail.address}
+              </a>
+              <p className="text-[10px] text-slate-400">Direct personal advisory inbox</p>
+            </div>
+
+            {/* Public Advisory Email */}
+            <div className="p-4 bg-slate-900/80 rounded-2xl border border-slate-800 space-y-1.5">
+              <div className="flex items-center gap-2 text-slate-400 font-bold text-[11px] uppercase tracking-wider">
+                <Mail className="w-3.5 h-3.5" />
+                <span>Advisory Inquiries</span>
+              </div>
+              <a
+                href={SITE_CONFIG.contact.publicEmail.mailto}
+                className="text-slate-200 hover:text-white text-xs block truncate transition"
+              >
+                {SITE_CONFIG.contact.publicEmail.address}
+              </a>
+              <p className="text-[10px] text-slate-400">Public correspondence desk</p>
+            </div>
+
+            {/* Primary RO Phone */}
+            <div className="p-4 bg-slate-900/80 rounded-2xl border border-slate-800 space-y-1.5">
+              <div className="flex items-center gap-2 text-slate-400 font-bold text-[11px] uppercase tracking-wider">
+                <Phone className="w-3.5 h-3.5" />
+                <span>Phone (RO Direct)</span>
+              </div>
+              <a
+                href={SITE_CONFIG.contact.primaryPhone.tel}
+                className="text-white hover:text-slate-300 font-mono text-xs block transition font-medium"
+              >
+                {SITE_CONFIG.contact.primaryPhone.display}
+              </a>
+              <p className="text-[10px] text-slate-400">Bucharest practice phone</p>
+            </div>
+
+            {/* WhatsApp / AT Direct */}
+            <div className="p-4 bg-slate-900/80 rounded-2xl border border-slate-800 space-y-1.5">
+              <div className="flex items-center gap-2 text-emerald-400 font-bold text-[11px] uppercase tracking-wider">
+                <MessageSquare className="w-3.5 h-3.5" />
+                <span>WhatsApp (Direct)</span>
+              </div>
+              <a
+                href={SITE_CONFIG.contact.whatsapp.url}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="text-white hover:text-emerald-300 font-mono text-xs block transition font-medium"
+              >
+                {SITE_CONFIG.contact.realEstatePhone.display}
+              </a>
+              <p className="text-[10px] text-emerald-400">Real-estate direct line</p>
+            </div>
           </div>
         </div>
 
