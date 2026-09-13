@@ -17,6 +17,7 @@ import {
   ExternalLink,
   ArrowLeft
 } from 'lucide-react'
+import { getMediaUrl } from '@/lib/utils/media'
 import type { Database } from '@/types'
 
 type PropertyWithMedia = Database['public']['Tables']['properties']['Row'] & {
@@ -122,9 +123,7 @@ Reply directly to this message to book an immediate private viewing.`
   }
 
   const primaryMedia = property.media?.find(m => m.is_primary) || property.media?.[0]
-  const primaryImageUrl = primaryMedia
-    ? `${process.env.NEXT_PUBLIC_SUPABASE_URL}/storage/v1/object/public/media/${primaryMedia.file_path}`
-    : null
+  const primaryImageUrl = primaryMedia ? getMediaUrl(primaryMedia.file_path) : null
 
   return (
     <div className="space-y-6">
@@ -406,7 +405,7 @@ Reply directly to this message to book an immediate private viewing.`
                   <div key={idx} className="aspect-4/3 rounded-lg overflow-hidden bg-slate-100 border border-slate-200">
                     {/* eslint-disable-next-line @next/next/no-img-element */}
                     <img
-                      src={`${process.env.NEXT_PUBLIC_SUPABASE_URL}/storage/v1/object/public/media/${m.file_path}`}
+                      src={getMediaUrl(m.file_path)}
                       alt={`Gallery ${idx + 1}`}
                       className="w-full h-full object-cover"
                     />

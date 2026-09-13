@@ -9,6 +9,7 @@ import { getRequests } from '@/lib/db/requests'
 import { getViewings } from '@/lib/db/viewings'
 import { getOffers } from '@/lib/db/offers'
 import { calculatePropertyRequestMatch } from '@/lib/utils/matching-engine'
+import { getMediaUrl } from '@/lib/utils/media'
 import { Sparkles, Calendar, DollarSign } from 'lucide-react'
 import type { Database } from '@/types'
 
@@ -230,7 +231,7 @@ export default async function AdminPropertyDetailPage(props: PageProps) {
                 {primaryMedia ? (
                   // eslint-disable-next-line @next/next/no-img-element
                   <img
-                    src={`${process.env.NEXT_PUBLIC_SUPABASE_URL}/storage/v1/object/public/media/${primaryMedia.file_path}`}
+                    src={getMediaUrl(primaryMedia.file_path)}
                     alt={property.title}
                     className="w-full h-full object-cover"
                   />
@@ -379,7 +380,7 @@ export default async function AdminPropertyDetailPage(props: PageProps) {
                     >
                       {/* eslint-disable-next-line @next/next/no-img-element */}
                       <img
-                        src={`${process.env.NEXT_PUBLIC_SUPABASE_URL}/storage/v1/object/public/media/${item.file_path}`}
+                        src={getMediaUrl(item.file_path)}
                         alt={item.file_name}
                         className="w-full h-full object-cover"
                       />

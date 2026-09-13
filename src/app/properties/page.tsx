@@ -2,6 +2,7 @@ import React from 'react'
 import Link from 'next/link'
 import { PublicLayout } from '@/components/layout/public/PublicLayout'
 import { getPublicProperties, type PropertyFilterParams } from '@/lib/db/properties'
+import { getMediaUrl } from '@/lib/utils/media'
 import type { Database } from '@/types'
 
 type PublicPropertyItem = {
@@ -187,7 +188,7 @@ export default async function PublicPropertiesPage(props: PageProps) {
                     {primaryMedia ? (
                       // eslint-disable-next-line @next/next/no-img-element
                       <img
-                        src={`${process.env.NEXT_PUBLIC_SUPABASE_URL}/storage/v1/object/public/media/${primaryMedia.file_path}`}
+                        src={getMediaUrl(primaryMedia.file_path)}
                         alt={prop.title}
                         className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
                       />

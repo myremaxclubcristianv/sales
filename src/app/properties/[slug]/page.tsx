@@ -4,6 +4,7 @@ import Link from 'next/link'
 import type { Metadata } from 'next'
 import { PublicLayout } from '@/components/layout/public/PublicLayout'
 import { getPublicPropertyBySlug } from '@/lib/db/properties'
+import { getMediaUrl } from '@/lib/utils/media'
 import { PropertyInquiryForm } from '@/components/PropertyInquiryForm'
 import type { Database } from '@/types'
 
@@ -50,15 +51,23 @@ export async function generateMetadata(props: PageProps): Promise<Metadata> {
     ? `${prop.price.toLocaleString()} ${prop.currency}`
     : 'Price Upon Request'
 
+  const primaryMedia = prop.media?.find((m) => m.is_primary) || prop.media?.[0]
+  const ogImageUrl = primaryMedia ? getMediaUrl(primaryMedia.file_path) : undefined
+
   return {
     title: `${prop.title} | ${prop.area} | Văduva & Partners`,
     description: prop.description
       ? prop.description.slice(0, 160)
       : `Luxury ${prop.type} in ${prop.area}, ${prop.location}. ${displayPrice}.`,
+    alternates: {
+      canonical: `https://sales.cristianvaduva.com/properties/${prop.slug}`,
+    },
     openGraph: {
       title: `${prop.title} | Văduva & Partners`,
       description: prop.description ? prop.description.slice(0, 160) : undefined,
+      url: `https://sales.cristianvaduva.com/properties/${prop.slug}`,
       type: 'website',
+      images: ogImageUrl ? [{ url: ogImageUrl }] : undefined,
     },
   }
 }
@@ -128,7 +137,7 @@ export default async function PropertyDetailPage(props: PageProps) {
             {primaryMedia ? (
               // eslint-disable-next-line @next/next/no-img-element
               <img
-                src={`${process.env.NEXT_PUBLIC_SUPABASE_URL}/storage/v1/object/public/media/${primaryMedia.file_path}`}
+                src={getMediaUrl(primaryMedia.file_path)}
                 alt={prop.title}
                 className="w-full h-full object-cover"
               />
@@ -145,7 +154,7 @@ export default async function PropertyDetailPage(props: PageProps) {
               <div key={media.id} className="flex-1 relative overflow-hidden bg-slate-900">
                 {/* eslint-disable-next-line @next/next/no-img-element */}
                 <img
-                  src={`${process.env.NEXT_PUBLIC_SUPABASE_URL}/storage/v1/object/public/media/${media.file_path}`}
+                  src={getMediaUrl(media.file_path)}
                   alt={media.file_name}
                   className="w-full h-full object-cover"
                 />

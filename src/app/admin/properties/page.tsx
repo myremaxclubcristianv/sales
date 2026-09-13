@@ -5,6 +5,7 @@ import { Button } from '@/components/ui/Button'
 import { Badge } from '@/components/ui/Badge'
 import { Card } from '@/components/ui/Card'
 import { getProperties, type PropertyFilterParams } from '@/lib/db/properties'
+import { getMediaUrl } from '@/lib/utils/media'
 import type { Database } from '@/types'
 
 type PropertyWithRelations = Database['public']['Tables']['properties']['Row'] & {
@@ -159,7 +160,7 @@ export default async function AdminPropertiesPage(props: PageProps) {
                     {primaryMedia ? (
                       // eslint-disable-next-line @next/next/no-img-element
                       <img
-                        src={`${process.env.NEXT_PUBLIC_SUPABASE_URL}/storage/v1/object/public/media/${primaryMedia.file_path}`}
+                        src={getMediaUrl(primaryMedia.file_path)}
                         alt={prop.title}
                         className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
                       />
