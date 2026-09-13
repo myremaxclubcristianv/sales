@@ -5,6 +5,11 @@ import { Button } from '@/components/ui/Button'
 import { Badge } from '@/components/ui/Badge'
 import { Card } from '@/components/ui/Card'
 import { getPropertyById } from '@/lib/db/properties'
+import { getRequests } from '@/lib/db/requests'
+import { getViewings } from '@/lib/db/viewings'
+import { getOffers } from '@/lib/db/offers'
+import { calculatePropertyRequestMatch } from '@/lib/utils/matching-engine'
+import { Sparkles, Calendar, DollarSign } from 'lucide-react'
 import type { Database } from '@/types'
 
 type PropertyFull = Database['public']['Tables']['properties']['Row'] & {
@@ -25,11 +30,23 @@ export default async function AdminPropertyDetailPage(props: PageProps) {
   const propertyId = params.id
 
   let property: PropertyFull | null = null
+  let allRequests: Awaited<ReturnType<typeof getRequests>> = []
+  let propertyViewings: Awaited<ReturnType<typeof getViewings>> = []
+  let propertyOffers: Awaited<ReturnType<typeof getOffers>> = []
+
   try {
-    const data = await getPropertyById(propertyId)
-    property = data as PropertyFull
+    const [propData, reqs, views, offs] = await Promise.all([
+      getPropertyById(propertyId),
+      getRequests({ status: 'ACTIVE' }),
+      getViewings({ propertyId }),
+      getOffers({ propertyId }),
+    ])
+    property = propData as PropertyFull
+    allRequests = reqs
+    propertyViewings = views
+    propertyOffers = offs
   } catch (err) {
-    console.error('Error loading property by id:', err)
+    console.error('Error loading property data:', err)
   }
 
   if (!property) {
@@ -45,6 +62,18 @@ export default async function AdminPropertyDetailPage(props: PageProps) {
       </PrivateLayout>
     )
   }
+
+  // Calculate matching buyer requests
+  const matchedRequests = allRequests
+    .map((req) => {
+      const match = calculatePropertyRequestMatch(property!, req)
+      return {
+        request: req,
+        match,
+      }
+    })
+    .filter((m) => m.match.score >= 50)
+    .sort((a, b) => b.match.score - a.match.score)
 
   const primaryMedia = property.media?.find((m) => m.is_primary) || property.media?.[0]
   const formattedPrice = property.price
@@ -138,6 +167,53 @@ export default async function AdminPropertyDetailPage(props: PageProps) {
           </Card>
         </div>
 
+        {/* Matching Buyer Opportunities Callout */}
+        <Card className="bg-gradient-to-r from-neutral-900 to-neutral-800 text-white border-none p-6 shadow-md">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+            <div className="space-y-1">
+              <div className="flex items-center gap-2">
+                <Sparkles className="w-5 h-5 text-amber-400" />
+                <h2 className="text-lg font-bold tracking-tight">
+                  Matching Buyer Opportunities ({matchedRequests.length})
+                </h2>
+              </div>
+              <p className="text-xs text-neutral-300">
+                Active buyer search profiles compatible with this property&apos;s price, location, and specs.
+              </p>
+            </div>
+            <Link href="/admin/requests">
+              <Button size="sm" variant="secondary" className="text-xs">
+                Browse All Requests
+              </Button>
+            </Link>
+          </div>
+
+          {matchedRequests.length > 0 && (
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3 mt-4">
+              {matchedRequests.slice(0, 3).map(({ request: req, match }) => (
+                <Link
+                  key={req.id}
+                  href={`/admin/requests/${req.id}`}
+                  className="p-3.5 bg-neutral-800/80 hover:bg-neutral-800 rounded-xl border border-neutral-700 transition block text-xs space-y-2"
+                >
+                  <div className="flex items-center justify-between">
+                    <span className="px-2 py-0.5 bg-emerald-500/20 text-emerald-300 rounded font-bold text-[11px]">
+                      {match.score}% Match
+                    </span>
+                    <span className="text-[11px] text-neutral-400">
+                      Buyer: {req.buyer?.first_name} {req.buyer?.last_name}
+                    </span>
+                  </div>
+                  <h4 className="font-semibold text-white line-clamp-1">{req.title}</h4>
+                  <p className="text-[11px] text-neutral-300">
+                    Budget: {req.budget_max ? `Up to ${req.budget_max.toLocaleString()} ${req.currency}` : 'Open'}
+                  </p>
+                </Link>
+              ))}
+            </div>
+          )}
+        </Card>
+
         {/* 2-Column Main Layout */}
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
           {/* Left 2 Cols: Gallery, Media & Public Description */}
@@ -168,6 +244,110 @@ export default async function AdminPropertyDetailPage(props: PageProps) {
                   {property.description || 'No public description provided.'}
                 </p>
               </div>
+            </Card>
+
+            {/* Viewings & Walkthroughs Log */}
+            <Card>
+              <div className="flex items-center justify-between pb-3 border-b border-slate-100 mb-4">
+                <div className="flex items-center gap-2">
+                  <Calendar className="w-4 h-4 text-slate-600" />
+                  <h3 className="text-sm font-bold text-slate-900 uppercase tracking-wider">
+                    Viewings &amp; Walkthroughs ({propertyViewings.length})
+                  </h3>
+                </div>
+                <Link href="/admin/viewings" className="text-xs text-blue-600 hover:underline">
+                  Schedule New →
+                </Link>
+              </div>
+
+              {propertyViewings.length === 0 ? (
+                <p className="text-xs text-slate-500 py-4 text-center">
+                  No viewings conducted yet on this property.
+                </p>
+              ) : (
+                <div className="space-y-2.5">
+                  {propertyViewings.map((v) => (
+                    <div
+                      key={v.id}
+                      className="p-3 bg-slate-50 rounded-xl border border-slate-200/80 flex items-center justify-between text-xs"
+                    >
+                      <div>
+                        <div className="flex items-center gap-2 font-semibold text-slate-900">
+                          <span>
+                            {v.client?.first_name} {v.client?.last_name}
+                          </span>
+                          <Badge size="sm" variant={v.status === 'COMPLETED' ? 'success' : 'info'}>
+                            {v.status}
+                          </Badge>
+                          {v.interest && (
+                            <span className="text-[10px] uppercase font-bold text-purple-700 bg-purple-100 px-1.5 py-0.2 rounded">
+                              {v.interest} interest
+                            </span>
+                          )}
+                        </div>
+                        {v.feedback && <p className="text-slate-600 mt-1">{v.feedback}</p>}
+                      </div>
+                      <span className="text-[11px] text-slate-500 font-medium">
+                        {new Date(v.date).toLocaleDateString()}
+                      </span>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </Card>
+
+            {/* Offer Negotiation History */}
+            <Card>
+              <div className="flex items-center justify-between pb-3 border-b border-slate-100 mb-4">
+                <div className="flex items-center gap-2">
+                  <DollarSign className="w-4 h-4 text-slate-600" />
+                  <h3 className="text-sm font-bold text-slate-900 uppercase tracking-wider">
+                    Offers &amp; Negotiations ({propertyOffers.length})
+                  </h3>
+                </div>
+              </div>
+
+              {propertyOffers.length === 0 ? (
+                <p className="text-xs text-slate-500 py-4 text-center">
+                  No offers recorded on this property yet.
+                </p>
+              ) : (
+                <div className="space-y-2.5">
+                  {propertyOffers.map((o) => (
+                    <div
+                      key={o.id}
+                      className="p-3 bg-slate-50 rounded-xl border border-slate-200/80 flex items-center justify-between text-xs"
+                    >
+                      <div>
+                        <div className="flex items-center gap-2 font-semibold text-slate-900">
+                          <span>
+                            Offer: {Number(o.offer_price).toLocaleString()} {o.currency}
+                          </span>
+                          <span className="text-slate-400 font-normal">
+                            (Asking: {Number(o.asking_price).toLocaleString()} {o.currency})
+                          </span>
+                          <Badge
+                            size="sm"
+                            variant={
+                              o.status === 'ACCEPTED'
+                                ? 'success'
+                                : o.status === 'REJECTED'
+                                ? 'danger'
+                                : 'warning'
+                            }
+                          >
+                            {o.status}
+                          </Badge>
+                        </div>
+                        <p className="text-slate-500 text-[11px] mt-0.5">
+                          By: {o.client?.first_name} {o.client?.last_name} ({o.party})
+                        </p>
+                      </div>
+                      <span className="text-[11px] text-slate-500 font-medium">{o.offer_date}</span>
+                    </div>
+                  ))}
+                </div>
+              )}
             </Card>
 
             {/* Media Gallery Management */}
@@ -340,3 +520,4 @@ export default async function AdminPropertyDetailPage(props: PageProps) {
     </PrivateLayout>
   )
 }
+

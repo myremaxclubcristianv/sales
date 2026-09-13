@@ -600,6 +600,94 @@ export interface Database {
           created_at?: string
         }
       }
+      viewings: {
+        Row: {
+          id: string
+          client_id: string
+          property_id: string
+          date: string
+          status: 'SCHEDULED' | 'COMPLETED' | 'CANCELLED' | 'NO_SHOW'
+          attendees: string[] | null
+          notes: string | null
+          feedback: string | null
+          interest: 'high' | 'medium' | 'low' | 'none' | null
+          next_action: string | null
+          created_at: string
+          updated_at: string
+        }
+        Insert: {
+          id?: string
+          client_id: string
+          property_id: string
+          date: string
+          status?: 'SCHEDULED' | 'COMPLETED' | 'CANCELLED' | 'NO_SHOW'
+          attendees?: string[] | null
+          notes?: string | null
+          feedback?: string | null
+          interest?: 'high' | 'medium' | 'low' | 'none' | null
+          next_action?: string | null
+          created_at?: string
+          updated_at?: string
+        }
+        Update: {
+          id?: string
+          client_id?: string
+          property_id?: string
+          date?: string
+          status?: 'SCHEDULED' | 'COMPLETED' | 'CANCELLED' | 'NO_SHOW'
+          attendees?: string[] | null
+          notes?: string | null
+          feedback?: string | null
+          interest?: 'high' | 'medium' | 'low' | 'none' | null
+          next_action?: string | null
+          created_at?: string
+          updated_at?: string
+        }
+      }
+      offers: {
+        Row: {
+          id: string
+          client_id: string
+          property_id: string
+          asking_price: number
+          offer_price: number
+          currency: 'EUR' | 'USD' | 'RON'
+          offer_date: string
+          party: 'buyer' | 'seller' | null
+          notes: string | null
+          status: 'PENDING' | 'ACCEPTED' | 'REJECTED' | 'COUNTERED' | 'WITHDRAWN'
+          created_at: string
+          updated_at: string
+        }
+        Insert: {
+          id?: string
+          client_id: string
+          property_id: string
+          asking_price: number
+          offer_price: number
+          currency?: 'EUR' | 'USD' | 'RON'
+          offer_date: string
+          party?: 'buyer' | 'seller' | null
+          notes?: string | null
+          status?: 'PENDING' | 'ACCEPTED' | 'REJECTED' | 'COUNTERED' | 'WITHDRAWN'
+          created_at?: string
+          updated_at?: string
+        }
+        Update: {
+          id?: string
+          client_id?: string
+          property_id?: string
+          asking_price?: number
+          offer_price?: number
+          currency?: 'EUR' | 'USD' | 'RON'
+          offer_date?: string
+          party?: 'buyer' | 'seller' | null
+          notes?: string | null
+          status?: 'PENDING' | 'ACCEPTED' | 'REJECTED' | 'COUNTERED' | 'WITHDRAWN'
+          created_at?: string
+          updated_at?: string
+        }
+      }
       requests: {
         Row: {
           id: string

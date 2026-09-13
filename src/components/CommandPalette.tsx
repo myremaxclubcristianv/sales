@@ -37,7 +37,10 @@ export function CommandPalette({ isOpen, onClose }: CommandPaletteProps) {
     { title: 'Clients Directory', category: 'Navigation', href: '/admin/clients' },
     { title: 'Add New Client', category: 'Action', href: '/admin/clients/new' },
     { title: 'Properties & Listings', category: 'Navigation', href: '/admin/properties' },
+    { title: 'Add New Property', category: 'Action', href: '/admin/properties/new' },
     { title: 'Buyer Requests', category: 'Navigation', href: '/admin/requests' },
+    { title: 'Add New Buyer Request', category: 'Action', href: '/admin/requests/new' },
+    { title: 'Viewings & Walkthroughs Hub', category: 'Navigation', href: '/admin/viewings' },
     { title: 'Follow-ups (Today & Overdue)', category: 'Navigation', href: '/admin/follow-ups' },
     { title: 'Tasks Management', category: 'Navigation', href: '/admin/tasks' },
   ]
