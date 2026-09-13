@@ -10,8 +10,13 @@ import { DocumentVault } from '@/components/DocumentVault'
 import { getClientById } from '@/lib/db/clients'
 import { getClientActivities } from '@/lib/db/activities'
 import { getClientDocuments, getClientDocumentFolders } from '@/lib/db/documents'
+import { getInsurancePolicies } from '@/lib/db/insurance'
+import { getCreditCases } from '@/lib/db/credit'
+import { getRequests } from '@/lib/db/requests'
+import { getViewings } from '@/lib/db/viewings'
 import { calculateRelationshipHealth, getHealthIcon, type RelationshipHealth } from '@/lib/utils/relationship-health'
 import { getNextBestActions } from '@/lib/utils/next-best-action'
+import { Shield, Landmark, Home, Calendar } from 'lucide-react'
 import type { Database } from '@/types'
 
 type ClientDetail = Database['public']['Tables']['clients']['Row'] & {
@@ -36,6 +41,10 @@ export default async function ClientDetailPage(props: PageProps) {
   let activities: ActivityRow[] = []
   let documents: DocumentRow[] = []
   let folders: DocumentFolderRow[] = []
+  let clientPolicies: Awaited<ReturnType<typeof getInsurancePolicies>> = []
+  let clientCreditCases: Awaited<ReturnType<typeof getCreditCases>> = []
+  let clientRequests: Awaited<ReturnType<typeof getRequests>> = []
+  let clientViewings: Awaited<ReturnType<typeof getViewings>> = []
   let health: { status: string; score: number; reason: string } | null = null
   let recommendations: Array<{ id: string; title: string; reason: string; priority: string; actions: string[] }> = []
 
@@ -61,18 +70,26 @@ export default async function ClientDetailPage(props: PageProps) {
   }
 
   try {
-    const [actData, docData, foldData, healthData, recData] = await Promise.all([
+    const [actData, docData, foldData, healthData, recData, polData, credData, reqData, viewData] = await Promise.all([
       getClientActivities(clientId).catch(() => []),
       getClientDocuments(clientId).catch(() => []),
       getClientDocumentFolders(clientId).catch(() => []),
       calculateRelationshipHealth(clientId).catch(() => null),
       getNextBestActions(clientId, `${client.first_name} ${client.last_name}`).catch(() => []),
+      getInsurancePolicies({ clientId }).catch(() => []),
+      getCreditCases({ clientId }).catch(() => []),
+      getRequests({ buyerId: clientId }).catch(() => []),
+      getViewings({ clientId }).catch(() => []),
     ])
     activities = (actData as ActivityRow[]) || []
     documents = (docData as DocumentRow[]) || []
     folders = (foldData as DocumentFolderRow[]) || []
     health = healthData
     recommendations = recData || []
+    clientPolicies = polData || []
+    clientCreditCases = credData || []
+    clientRequests = reqData || []
+    clientViewings = viewData || []
   } catch (err) {
     console.error('Error loading client related data:', err)
   }
@@ -268,8 +285,179 @@ export default async function ClientDetailPage(props: PageProps) {
             </Card>
           </div>
 
-          {/* Right Column: Activity Timeline & Document Vault */}
+          {/* Right Column: Portfolio Widgets, Activity Timeline & Document Vault */}
           <div className="lg:col-span-2 space-y-6">
+            {/* Client Insurance Portfolio Card */}
+            <Card>
+              <div className="flex items-center justify-between pb-3 border-b border-slate-100 mb-4">
+                <div className="flex items-center gap-2">
+                  <Shield className="w-4 h-4 text-blue-600" />
+                  <h3 className="text-sm font-bold text-slate-900 uppercase tracking-wider">
+                    Insurance Portfolio ({clientPolicies.length})
+                  </h3>
+                </div>
+                <Link href="/admin/insurance/new" className="text-xs text-blue-600 hover:underline">
+                  + Add Policy
+                </Link>
+              </div>
+
+              {clientPolicies.length === 0 ? (
+                <p className="text-xs text-slate-500 py-3 text-center">
+                  No active insurance policies registered for this client.
+                </p>
+              ) : (
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                  {clientPolicies.map((p) => (
+                    <Link
+                      key={p.id}
+                      href={`/admin/insurance/${p.id}`}
+                      className="p-3 bg-slate-50 hover:bg-slate-100 rounded-xl border border-slate-200/80 transition block text-xs space-y-1.5"
+                    >
+                      <div className="flex items-center justify-between font-semibold text-slate-900">
+                        <span>{p.product} ({p.insurer})</span>
+                        <Badge size="sm" variant={p.status === 'ACTIVE' ? 'success' : 'warning'}>
+                          {p.status}
+                        </Badge>
+                      </div>
+                      <div className="flex items-center justify-between text-[11px] text-slate-500">
+                        <span>{p.premium ? `${Number(p.premium).toLocaleString()} ${p.currency}` : 'N/A'}</span>
+                        <span>Exp: {p.expiry_date}</span>
+                      </div>
+                    </Link>
+                  ))}
+                </div>
+              )}
+            </Card>
+
+            {/* Client Financing & Credit Cases Card */}
+            <Card>
+              <div className="flex items-center justify-between pb-3 border-b border-slate-100 mb-4">
+                <div className="flex items-center gap-2">
+                  <Landmark className="w-4 h-4 text-emerald-600" />
+                  <h3 className="text-sm font-bold text-slate-900 uppercase tracking-wider">
+                    Credit &amp; Mortgage Cases ({clientCreditCases.length})
+                  </h3>
+                </div>
+                <Link href="/admin/credit/new" className="text-xs text-blue-600 hover:underline">
+                  + Open Case
+                </Link>
+              </div>
+
+              {clientCreditCases.length === 0 ? (
+                <p className="text-xs text-slate-500 py-3 text-center">
+                  No credit or mortgage cases open for this client.
+                </p>
+              ) : (
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                  {clientCreditCases.map((c) => (
+                    <Link
+                      key={c.id}
+                      href={`/admin/credit/${c.id}`}
+                      className="p-3 bg-slate-50 hover:bg-slate-100 rounded-xl border border-slate-200/80 transition block text-xs space-y-1.5"
+                    >
+                      <div className="flex items-center justify-between font-semibold text-slate-900">
+                        <span className="line-clamp-1">{c.purpose}</span>
+                        <Badge size="sm" variant="info">
+                          {c.status}
+                        </Badge>
+                      </div>
+                      <div className="flex items-center justify-between text-[11px] text-slate-500">
+                        <span className="font-bold text-emerald-600">
+                          {Number(c.amount).toLocaleString()} {c.currency}
+                        </span>
+                        <span>{c.institution || 'Partner Bank'}</span>
+                      </div>
+                    </Link>
+                  ))}
+                </div>
+              )}
+            </Card>
+
+            {/* Client Buyer Requests Card */}
+            <Card>
+              <div className="flex items-center justify-between pb-3 border-b border-slate-100 mb-4">
+                <div className="flex items-center gap-2">
+                  <Home className="w-4 h-4 text-purple-600" />
+                  <h3 className="text-sm font-bold text-slate-900 uppercase tracking-wider">
+                    Real Estate Buyer Searches ({clientRequests.length})
+                  </h3>
+                </div>
+                <Link href="/admin/requests/new" className="text-xs text-blue-600 hover:underline">
+                  + Add Request
+                </Link>
+              </div>
+
+              {clientRequests.length === 0 ? (
+                <p className="text-xs text-slate-500 py-3 text-center">
+                  No active buyer search profiles for this client.
+                </p>
+              ) : (
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                  {clientRequests.map((r) => (
+                    <Link
+                      key={r.id}
+                      href={`/admin/requests/${r.id}`}
+                      className="p-3 bg-slate-50 hover:bg-slate-100 rounded-xl border border-slate-200/80 transition block text-xs space-y-1.5"
+                    >
+                      <div className="flex items-center justify-between font-semibold text-slate-900">
+                        <span className="line-clamp-1">{r.title}</span>
+                        <Badge size="sm" variant={r.status === 'ACTIVE' ? 'success' : 'warning'}>
+                          {r.status}
+                        </Badge>
+                      </div>
+                      <div className="flex items-center justify-between text-[11px] text-slate-500">
+                        <span>
+                          {r.budget_max ? `Up to ${r.budget_max.toLocaleString()} ${r.currency}` : 'Flexible'}
+                        </span>
+                        <span className="capitalize">{r.property_type || 'Any type'}</span>
+                      </div>
+                    </Link>
+                  ))}
+                </div>
+              )}
+            </Card>
+
+            {/* Client Property Viewings Card */}
+            <Card>
+              <div className="flex items-center justify-between pb-3 border-b border-slate-100 mb-4">
+                <div className="flex items-center gap-2">
+                  <Calendar className="w-4 h-4 text-amber-600" />
+                  <h3 className="text-sm font-bold text-slate-900 uppercase tracking-wider">
+                    Property Viewings ({clientViewings.length})
+                  </h3>
+                </div>
+                <Link href="/admin/viewings" className="text-xs text-blue-600 hover:underline">
+                  + Schedule Viewing
+                </Link>
+              </div>
+
+              {clientViewings.length === 0 ? (
+                <p className="text-xs text-slate-500 py-3 text-center">
+                  No property viewings recorded for this client.
+                </p>
+              ) : (
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                  {clientViewings.map((v) => (
+                    <div
+                      key={v.id}
+                      className="p-3 bg-slate-50 rounded-xl border border-slate-200/80 text-xs space-y-1.5"
+                    >
+                      <div className="flex items-center justify-between font-semibold text-slate-900">
+                        <span className="line-clamp-1">{v.property?.title || 'Property'}</span>
+                        <Badge size="sm" variant={v.status === 'COMPLETED' ? 'success' : 'info'}>
+                          {v.status}
+                        </Badge>
+                      </div>
+                      <div className="flex items-center justify-between text-[11px] text-slate-500">
+                        <span>{new Date(v.date).toLocaleDateString()}</span>
+                        {v.interest && <span className="capitalize">{v.interest} interest</span>}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </Card>
+
             <Card>
               <h3 className="text-sm font-bold text-slate-900 uppercase tracking-wider pb-3 border-b border-slate-100 mb-4">
                 Activity Timeline &amp; History

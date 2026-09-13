@@ -41,6 +41,10 @@ export function CommandPalette({ isOpen, onClose }: CommandPaletteProps) {
     { title: 'Buyer Requests', category: 'Navigation', href: '/admin/requests' },
     { title: 'Add New Buyer Request', category: 'Action', href: '/admin/requests/new' },
     { title: 'Viewings & Walkthroughs Hub', category: 'Navigation', href: '/admin/viewings' },
+    { title: 'Insurance Portfolio & Renewals', category: 'Navigation', href: '/admin/insurance' },
+    { title: 'Register Insurance Policy', category: 'Action', href: '/admin/insurance/new' },
+    { title: 'Credit & Mortgage Pipeline', category: 'Navigation', href: '/admin/credit' },
+    { title: 'Open New Financing Case', category: 'Action', href: '/admin/credit/new' },
     { title: 'Follow-ups (Today & Overdue)', category: 'Navigation', href: '/admin/follow-ups' },
     { title: 'Tasks Management', category: 'Navigation', href: '/admin/tasks' },
   ]

@@ -950,6 +950,79 @@ export interface Database {
           updated_at?: string
         }
       }
+      insurance_opportunities: {
+        Row: {
+          id: string
+          client_id: string
+          product: 'RCA' | 'CASCO' | 'HOME' | 'LIFE' | 'HEALTH' | 'IMM' | 'BUSINESS' | 'PROFESSIONAL_LIABILITY' | 'CARGO' | 'OTHER'
+          estimated_premium: number | null
+          currency: 'EUR' | 'USD' | 'RON'
+          status: 'LEAD' | 'PROPOSAL' | 'NEGOTIATION' | 'CLOSED_WON' | 'CLOSED_LOST'
+          notes: string | null
+          converted_to_policy_id: string | null
+          created_at: string
+          updated_at: string
+        }
+        Insert: {
+          id?: string
+          client_id: string
+          product: 'RCA' | 'CASCO' | 'HOME' | 'LIFE' | 'HEALTH' | 'IMM' | 'BUSINESS' | 'PROFESSIONAL_LIABILITY' | 'CARGO' | 'OTHER'
+          estimated_premium?: number | null
+          currency?: 'EUR' | 'USD' | 'RON'
+          status?: 'LEAD' | 'PROPOSAL' | 'NEGOTIATION' | 'CLOSED_WON' | 'CLOSED_LOST'
+          notes?: string | null
+          converted_to_policy_id?: string | null
+          created_at?: string
+          updated_at?: string
+        }
+        Update: {
+          id?: string
+          client_id?: string
+          product?: 'RCA' | 'CASCO' | 'HOME' | 'LIFE' | 'HEALTH' | 'IMM' | 'BUSINESS' | 'PROFESSIONAL_LIABILITY' | 'CARGO' | 'OTHER'
+          estimated_premium?: number | null
+          currency?: 'EUR' | 'USD' | 'RON'
+          status?: 'LEAD' | 'PROPOSAL' | 'NEGOTIATION' | 'CLOSED_WON' | 'CLOSED_LOST'
+          notes?: string | null
+          converted_to_policy_id?: string | null
+          created_at?: string
+          updated_at?: string
+        }
+      }
+      credit_documents: {
+        Row: {
+          id: string
+          credit_case_id: string
+          file_path: string
+          file_name: string
+          file_type: string
+          category: string | null
+          description: string | null
+          uploaded_by: string | null
+          created_at: string
+        }
+        Insert: {
+          id?: string
+          credit_case_id: string
+          file_path: string
+          file_name: string
+          file_type: string
+          category?: string | null
+          description?: string | null
+          uploaded_by?: string | null
+          created_at?: string
+        }
+        Update: {
+          id?: string
+          credit_case_id?: string
+          file_path?: string
+          file_name?: string
+          file_type?: string
+          category?: string | null
+          description?: string | null
+          uploaded_by?: string | null
+          created_at?: string
+        }
+      }
     }
   }
 }
