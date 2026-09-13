@@ -39,6 +39,20 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: error.message }, { status: 500 })
     }
 
+    // Auto-create broker notification
+    try {
+      await supabase.from('notifications').insert({
+        type: 'lead',
+        title: `New Inbound Lead: ${name.trim()}`,
+        message: message ? message.trim().slice(0, 150) : `Inquiry registered for ${property_id ? 'property' : 'general services'}.`,
+        related_entity_type: 'lead',
+        related_entity_id: lead.id,
+        is_read: false,
+      })
+    } catch {
+      // Non-blocking notification creation
+    }
+
     return NextResponse.json({ success: true, lead }, { status: 201 })
   } catch (error: unknown) {
     const message = error instanceof Error ? error.message : 'Failed to register inquiry'
