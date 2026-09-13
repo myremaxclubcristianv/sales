@@ -1,4 +1,4 @@
-import { createClient as createServerClient } from '@/lib/supabase/server'
+import { createAdminClient } from '@/lib/supabase/admin'
 import { checkRateLimit } from '@/lib/utils/rate-limit'
 import { notifyNewLeadTelegram } from '@/lib/telegram/telegram'
 import { NextResponse } from 'next/server'
@@ -35,7 +35,7 @@ export async function POST(request: Request) {
       )
     }
 
-    const supabase = await createServerClient()
+    const supabase = createAdminClient()
     const sourceVal = property_id ? 'property' : (request_id ? 'website' : 'website')
 
     const { data: lead, error } = await supabase
