@@ -1,8 +1,24 @@
 import { createClient as createServerClient } from '@/lib/supabase/server'
+import { checkRateLimit } from '@/lib/utils/rate-limit'
 import { NextResponse } from 'next/server'
 
 export async function POST(request: Request) {
   try {
+    // Rate limit check: max 10 requests per minute per IP
+    const clientIp = request.headers.get('x-forwarded-for')?.split(',')[0]?.trim() || 'anonymous'
+    const rateLimit = checkRateLimit(clientIp, { limit: 10, windowMs: 60000 })
+    if (!rateLimit.allowed) {
+      return NextResponse.json(
+        { error: 'Too many requests. Please wait a moment before trying again.' },
+        {
+          status: 429,
+          headers: {
+            'Retry-After': Math.ceil((rateLimit.resetTime - Date.now()) / 1000).toString(),
+          },
+        }
+      )
+    }
+
     const body = await request.json()
     const { name, phone, email, message, property_id, request_id, honeypot } = body
 

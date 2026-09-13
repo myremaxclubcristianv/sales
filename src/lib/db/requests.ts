@@ -72,6 +72,37 @@ export async function getPublicRequests() {
   return data
 }
 
+export async function getPublicRequestById(id: string) {
+  const supabase = await createServerClient()
+  // STRICT DATA SEPARATION: Never select buyer_id, buyer contact, notes, or internal details
+  const { data, error } = await supabase
+    .from('requests')
+    .select(`
+      id,
+      title,
+      property_type,
+      preferred_locations,
+      budget_min,
+      budget_max,
+      currency,
+      bedrooms,
+      bathrooms,
+      minimum_area,
+      desired_features,
+      timeline,
+      financing_required,
+      status,
+      created_at
+    `)
+    .eq('id', id)
+    .eq('public_visibility', true)
+    .eq('status', 'ACTIVE')
+    .single()
+
+  if (error) throw error
+  return data
+}
+
 export async function getRequestById(id: string) {
   const supabase = await createServerClient()
   const { data, error } = await supabase

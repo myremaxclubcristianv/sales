@@ -75,7 +75,9 @@ export default async function PublicRequestsPage() {
                         </span>
                       </div>
                       <h2 className="font-serif text-2xl font-bold text-slate-950">
-                        {req.title}
+                        <Link href={`/requests/${req.id}`} className="hover:text-slate-700 transition">
+                          {req.title}
+                        </Link>
                       </h2>
                     </div>
 
