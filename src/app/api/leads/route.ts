@@ -1,5 +1,6 @@
 import { createClient as createServerClient } from '@/lib/supabase/server'
 import { checkRateLimit } from '@/lib/utils/rate-limit'
+import { notifyNewLeadTelegram } from '@/lib/telegram/telegram'
 import { NextResponse } from 'next/server'
 
 export async function POST(request: Request) {
@@ -35,6 +36,8 @@ export async function POST(request: Request) {
     }
 
     const supabase = await createServerClient()
+    const sourceVal = property_id ? 'property' : (request_id ? 'website' : 'website')
+
     const { data: lead, error } = await supabase
       .from('leads')
       .insert({
@@ -44,7 +47,7 @@ export async function POST(request: Request) {
         message: message ? message.trim() : null,
         property_id: property_id || null,
         request_id: request_id || null,
-        source: property_id ? 'property' : 'website',
+        source: sourceVal,
         status: 'NEW',
       })
       .select()
@@ -55,7 +58,7 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: error.message }, { status: 500 })
     }
 
-    // Auto-create broker notification
+    // Auto-create broker in-app notification (non-blocking)
     try {
       await supabase.from('notifications').insert({
         type: 'lead',
@@ -66,7 +69,55 @@ export async function POST(request: Request) {
         is_read: false,
       })
     } catch {
-      // Non-blocking notification creation
+      // Non-blocking internal notification creation
+    }
+
+    // Lookup optional property or request title for richer Telegram context
+    let propertyTitle: string | null = null
+    let requestTitle: string | null = null
+
+    if (property_id) {
+      try {
+        const { data: prop } = await supabase
+          .from('properties')
+          .select('title')
+          .eq('id', property_id)
+          .single()
+        if (prop?.title) propertyTitle = prop.title
+      } catch {
+        // Ignore lookup error
+      }
+    }
+
+    if (request_id) {
+      try {
+        const { data: reqData } = await supabase
+          .from('requests')
+          .select('title')
+          .eq('id', request_id)
+          .single()
+        if (reqData?.title) requestTitle = reqData.title
+      } catch {
+        // Ignore lookup error
+      }
+    }
+
+    // Dispatch Telegram notification as safe side-effect
+    try {
+      await notifyNewLeadTelegram({
+        id: lead.id,
+        name: lead.name,
+        phone: lead.phone,
+        email: lead.email,
+        message: lead.message,
+        source: lead.source,
+        property_title: propertyTitle,
+        request_title: requestTitle,
+        created_at: lead.created_at,
+      })
+    } catch (telegramErr) {
+      // Telegram failure must never block lead confirmation
+      console.warn('[Telegram Side-Effect] Notification skipped or failed safely:', telegramErr)
     }
 
     return NextResponse.json({ success: true, lead }, { status: 201 })
@@ -75,3 +126,4 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: message }, { status: 500 })
   }
 }
+
