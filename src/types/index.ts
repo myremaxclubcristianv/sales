@@ -102,7 +102,11 @@ export interface Database {
           secondary_contact: string | null
           address: string | null
           city: string | null
+          county: string | null
+          postal_code: string | null
           country: string
+          cnp: string | null
+          client_type: 'INDIVIDUAL' | 'CORPORATE' | string
           preferred_communication: 'phone' | 'whatsapp' | 'email'
           lead_source: 'website' | 'whatsapp' | 'telegram' | 'instagram' | 'facebook' | 'referral' | 'phone' | 'email' | 'property' | 'campaign' | 'other' | null
           tags: string[] | null
@@ -126,7 +130,11 @@ export interface Database {
           secondary_contact?: string | null
           address?: string | null
           city?: string | null
+          county?: string | null
+          postal_code?: string | null
           country?: string
+          cnp?: string | null
+          client_type?: 'INDIVIDUAL' | 'CORPORATE' | string
           preferred_communication?: 'phone' | 'whatsapp' | 'email'
           lead_source?: 'website' | 'whatsapp' | 'telegram' | 'instagram' | 'facebook' | 'referral' | 'phone' | 'email' | 'property' | 'campaign' | 'other' | null
           tags?: string[] | null
@@ -150,7 +158,11 @@ export interface Database {
           secondary_contact?: string | null
           address?: string | null
           city?: string | null
+          county?: string | null
+          postal_code?: string | null
           country?: string
+          cnp?: string | null
+          client_type?: 'INDIVIDUAL' | 'CORPORATE' | string
           preferred_communication?: 'phone' | 'whatsapp' | 'email'
           lead_source?: 'website' | 'whatsapp' | 'telegram' | 'instagram' | 'facebook' | 'referral' | 'phone' | 'email' | 'property' | 'campaign' | 'other' | null
           tags?: string[] | null
@@ -863,16 +875,21 @@ export interface Database {
         Row: {
           id: string
           client_id: string
+          vehicle_id: string | null
+          client_property_id: string | null
           policy_number: string | null
-          product: 'RCA' | 'CASCO' | 'HOME' | 'LIFE' | 'HEALTH' | 'IMM' | 'BUSINESS' | 'PROFESSIONAL_LIABILITY' | 'CARGO' | 'OTHER'
+          product: 'RCA' | 'CASCO' | 'HOME' | 'LIFE' | 'HEALTH' | 'TRAVEL' | 'LIABILITY' | 'PROFESSIONAL_LIABILITY' | 'CARGO' | 'IMM' | 'BUSINESS' | 'CYBER' | 'OTHER' | string
           insurer: string
           premium: number | null
+          commission: number | null
           currency: 'EUR' | 'USD' | 'RON'
           start_date: string
+          issue_date: string | null
           expiry_date: string
-          status: 'ACTIVE' | 'EXPIRED' | 'CANCELLED' | 'PENDING_RENEWAL'
+          status: 'DRAFT' | 'OFFERED' | 'ACTIVE' | 'EXPIRED' | 'CANCELLED' | 'PENDING_RENEWAL' | string
           documents: Record<string, unknown> | null
           notes: string | null
+          details: string | null
           renewal_follow_up_id: string | null
           created_at: string
           updated_at: string
@@ -880,16 +897,21 @@ export interface Database {
         Insert: {
           id?: string
           client_id: string
+          vehicle_id?: string | null
+          client_property_id?: string | null
           policy_number?: string | null
-          product: 'RCA' | 'CASCO' | 'HOME' | 'LIFE' | 'HEALTH' | 'IMM' | 'BUSINESS' | 'PROFESSIONAL_LIABILITY' | 'CARGO' | 'OTHER'
+          product: 'RCA' | 'CASCO' | 'HOME' | 'LIFE' | 'HEALTH' | 'TRAVEL' | 'LIABILITY' | 'PROFESSIONAL_LIABILITY' | 'CARGO' | 'IMM' | 'BUSINESS' | 'CYBER' | 'OTHER' | string
           insurer: string
           premium?: number | null
+          commission?: number | null
           currency?: 'EUR' | 'USD' | 'RON'
           start_date: string
+          issue_date?: string | null
           expiry_date: string
-          status?: 'ACTIVE' | 'EXPIRED' | 'CANCELLED' | 'PENDING_RENEWAL'
+          status?: 'DRAFT' | 'OFFERED' | 'ACTIVE' | 'EXPIRED' | 'CANCELLED' | 'PENDING_RENEWAL' | string
           documents?: Record<string, unknown> | null
           notes?: string | null
+          details?: string | null
           renewal_follow_up_id?: string | null
           created_at?: string
           updated_at?: string
@@ -897,17 +919,175 @@ export interface Database {
         Update: {
           id?: string
           client_id?: string
+          vehicle_id?: string | null
+          client_property_id?: string | null
           policy_number?: string | null
-          product?: 'RCA' | 'CASCO' | 'HOME' | 'LIFE' | 'HEALTH' | 'IMM' | 'BUSINESS' | 'PROFESSIONAL_LIABILITY' | 'CARGO' | 'OTHER'
+          product?: 'RCA' | 'CASCO' | 'HOME' | 'LIFE' | 'HEALTH' | 'TRAVEL' | 'LIABILITY' | 'PROFESSIONAL_LIABILITY' | 'CARGO' | 'IMM' | 'BUSINESS' | 'CYBER' | 'OTHER' | string
           insurer?: string
           premium?: number | null
+          commission?: number | null
           currency?: 'EUR' | 'USD' | 'RON'
           start_date?: string
+          issue_date?: string | null
           expiry_date?: string
-          status?: 'ACTIVE' | 'EXPIRED' | 'CANCELLED' | 'PENDING_RENEWAL'
+          status?: 'DRAFT' | 'OFFERED' | 'ACTIVE' | 'EXPIRED' | 'CANCELLED' | 'PENDING_RENEWAL' | string
           documents?: Record<string, unknown> | null
           notes?: string | null
+          details?: string | null
           renewal_follow_up_id?: string | null
+          created_at?: string
+          updated_at?: string
+        }
+      }
+      client_vehicles: {
+        Row: {
+          id: string
+          client_id: string
+          vin: string
+          make: string
+          model: string
+          year: number | null
+          plate_number: string | null
+          fuel_type: string | null
+          engine_capacity: number | null
+          power_hp: number | null
+          value: number | null
+          details: string | null
+          created_at: string
+          updated_at: string
+        }
+        Insert: {
+          id?: string
+          client_id: string
+          vin: string
+          make: string
+          model: string
+          year?: number | null
+          plate_number?: string | null
+          fuel_type?: string | null
+          engine_capacity?: number | null
+          power_hp?: number | null
+          value?: number | null
+          details?: string | null
+          created_at?: string
+          updated_at?: string
+        }
+        Update: {
+          id?: string
+          client_id?: string
+          vin?: string
+          make?: string
+          model?: string
+          year?: number | null
+          plate_number?: string | null
+          fuel_type?: string | null
+          engine_capacity?: number | null
+          power_hp?: number | null
+          value?: number | null
+          details?: string | null
+          created_at?: string
+          updated_at?: string
+        }
+      }
+      client_properties: {
+        Row: {
+          id: string
+          client_id: string
+          property_type: string
+          address: string
+          city: string | null
+          county: string | null
+          surface_sqm: number | null
+          property_value: number | null
+          insured_value: number | null
+          construction_year: number | null
+          details: string | null
+          notes: string | null
+          created_at: string
+          updated_at: string
+        }
+        Insert: {
+          id?: string
+          client_id: string
+          property_type?: string
+          address: string
+          city?: string | null
+          county?: string | null
+          surface_sqm?: number | null
+          property_value?: number | null
+          insured_value?: number | null
+          construction_year?: number | null
+          details?: string | null
+          notes?: string | null
+          created_at?: string
+          updated_at?: string
+        }
+        Update: {
+          id?: string
+          client_id?: string
+          property_type?: string
+          address?: string
+          city?: string | null
+          county?: string | null
+          surface_sqm?: number | null
+          property_value?: number | null
+          insured_value?: number | null
+          construction_year?: number | null
+          details?: string | null
+          notes?: string | null
+          created_at?: string
+          updated_at?: string
+        }
+      }
+      insurance_claims: {
+        Row: {
+          id: string
+          client_id: string
+          policy_id: string | null
+          incident_date: string
+          claim_type: string
+          claim_number: string | null
+          insurer: string | null
+          estimated_amount: number | null
+          currency: 'EUR' | 'USD' | 'RON'
+          status: 'OPEN' | 'UNDER_REVIEW' | 'APPROVED' | 'REJECTED' | 'PAID' | 'CLOSED'
+          description: string | null
+          notes: string | null
+          next_action: string | null
+          created_at: string
+          updated_at: string
+        }
+        Insert: {
+          id?: string
+          client_id: string
+          policy_id?: string | null
+          incident_date: string
+          claim_type: string
+          claim_number?: string | null
+          insurer?: string | null
+          estimated_amount?: number | null
+          currency?: 'EUR' | 'USD' | 'RON'
+          status?: 'OPEN' | 'UNDER_REVIEW' | 'APPROVED' | 'REJECTED' | 'PAID' | 'CLOSED'
+          description?: string | null
+          notes?: string | null
+          next_action?: string | null
+          created_at?: string
+          updated_at?: string
+        }
+        Update: {
+          id?: string
+          client_id?: string
+          policy_id?: string | null
+          incident_date?: string
+          claim_type?: string
+          claim_number?: string | null
+          insurer?: string | null
+          estimated_amount?: number | null
+          currency?: 'EUR' | 'USD' | 'RON'
+          status?: 'OPEN' | 'UNDER_REVIEW' | 'APPROVED' | 'REJECTED' | 'PAID' | 'CLOSED'
+          description?: string | null
+          notes?: string | null
+          next_action?: string | null
           created_at?: string
           updated_at?: string
         }
