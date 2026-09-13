@@ -103,6 +103,15 @@ export default async function AdminPropertyDetailPage(props: PageProps) {
               >
                 {property.property_status}
               </Badge>
+              {property.portfolio_type === 'PERSONAL' ? (
+                <Badge variant="purple" size="sm">
+                  ★ My Portfolio
+                </Badge>
+              ) : (
+                <Badge variant="info" size="sm">
+                  🏛️ Chestertons
+                </Badge>
+              )}
             </div>
             <p className="text-xs text-slate-500 mt-0.5">
               📍 {property.location} · {property.area} · Slug: <span className="font-mono text-slate-700">{property.slug}</span>
@@ -116,6 +125,17 @@ export default async function AdminPropertyDetailPage(props: PageProps) {
                 Marketing Kit
               </Button>
             </Link>
+            {property.source_url && (
+              <a
+                href={property.source_url}
+                target="_blank"
+                rel="noopener noreferrer"
+              >
+                <Button variant="outline" size="sm">
+                  ↗ HomeFind Source
+                </Button>
+              </a>
+            )}
             {property.public_visibility && property.property_status === 'PUBLIC' && (
               <a
                 href={`/properties/${property.slug}`}
@@ -123,7 +143,7 @@ export default async function AdminPropertyDetailPage(props: PageProps) {
                 rel="noopener noreferrer"
               >
                 <Button variant="outline" size="sm">
-                  ↗ View Public Page
+                  ↗ Public Portal
                 </Button>
               </a>
             )}

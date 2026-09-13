@@ -22,6 +22,7 @@ interface PageProps {
     location?: string
     minPrice?: string
     maxPrice?: string
+    portfolio?: string
   }>
 }
 
@@ -30,11 +31,15 @@ export default async function AdminPropertiesPage(props: PageProps) {
   const type = searchParams?.type || ''
   const status = searchParams?.status || ''
   const location = searchParams?.location || ''
+  const portfolio = searchParams?.portfolio === 'PERSONAL' || searchParams?.portfolio === 'CHESTERTONS'
+    ? (searchParams.portfolio as 'PERSONAL' | 'CHESTERTONS')
+    : undefined
 
   const filterParams: PropertyFilterParams = {
     type: type || undefined,
     status: status || undefined,
     location: location || undefined,
+    portfolio,
   }
 
   let properties: PropertyWithRelations[] = []
@@ -82,11 +87,20 @@ export default async function AdminPropertiesPage(props: PageProps) {
 
         {/* Filter Controls */}
         <Card className="p-4">
-          <form method="GET" className="grid grid-cols-1 sm:grid-cols-4 gap-3">
+          <form method="GET" className="grid grid-cols-1 sm:grid-cols-5 gap-3">
+            <select
+              name="portfolio"
+              defaultValue={portfolio || ''}
+              className="px-3.5 py-2 text-sm border border-slate-200 rounded-lg focus:outline-hidden focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 bg-white font-medium"
+            >
+              <option value="">All Portfolios</option>
+              <option value="PERSONAL">★ My Portfolio</option>
+              <option value="CHESTERTONS">🏛️ Chestertons</option>
+            </select>
             <input
               type="text"
               name="location"
-              placeholder="Filter by city, area, neighborhood..."
+              placeholder="Filter by city, area..."
               defaultValue={location}
               className="px-3.5 py-2 text-sm border border-slate-200 rounded-lg focus:outline-hidden focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500"
             />
@@ -120,9 +134,9 @@ export default async function AdminPropertiesPage(props: PageProps) {
             </select>
             <div className="flex items-center gap-2">
               <Button type="submit" size="sm" className="w-full">
-                Apply Filters
+                Apply
               </Button>
-              {(type || status || location) && (
+              {(type || status || location || portfolio) && (
                 <Link href="/admin/properties">
                   <Button type="button" variant="outline" size="sm">
                     Reset
@@ -173,13 +187,22 @@ export default async function AdminPropertiesPage(props: PageProps) {
                     <div className="absolute top-3 left-3 flex gap-1.5">
                       {getStatusBadge(prop.property_status)}
                     </div>
-                    {prop.public_visibility && (
-                      <div className="absolute top-3 right-3">
+                    <div className="absolute top-3 right-3 flex flex-col items-end gap-1">
+                      {prop.public_visibility && (
                         <span className="px-2 py-0.5 text-[10px] font-semibold bg-emerald-500/90 text-white rounded-md backdrop-blur-xs">
                           Live on Portal
                         </span>
-                      </div>
-                    )}
+                      )}
+                      {prop.portfolio_type === 'PERSONAL' ? (
+                        <span className="px-2 py-0.5 text-[10px] font-bold bg-slate-950/90 text-white rounded-md backdrop-blur-xs">
+                          My Portfolio
+                        </span>
+                      ) : (
+                        <span className="px-2 py-0.5 text-[10px] font-bold bg-blue-900/90 text-white rounded-md backdrop-blur-xs">
+                          Chestertons
+                        </span>
+                      )}
+                    </div>
                   </div>
 
                   <div className="p-4 flex-1 flex flex-col justify-between">

@@ -222,6 +222,8 @@ export interface Database {
           public_price_visibility: boolean
           public_location_visibility: boolean
           public_request_visibility: boolean
+          portfolio_type: 'PERSONAL' | 'CHESTERTONS'
+          source_url: string | null
           created_at: string
           updated_at: string
         }
@@ -254,6 +256,8 @@ export interface Database {
           public_price_visibility?: boolean
           public_location_visibility?: boolean
           public_request_visibility?: boolean
+          portfolio_type?: 'PERSONAL' | 'CHESTERTONS'
+          source_url?: string | null
           created_at?: string
           updated_at?: string
         }
@@ -286,6 +290,8 @@ export interface Database {
           public_price_visibility?: boolean
           public_location_visibility?: boolean
           public_request_visibility?: boolean
+          portfolio_type?: 'PERSONAL' | 'CHESTERTONS'
+          source_url?: string | null
           created_at?: string
           updated_at?: string
         }

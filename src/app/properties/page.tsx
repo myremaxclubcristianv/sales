@@ -26,6 +26,8 @@ type PublicPropertyItem = {
   features: Record<string, unknown> | null
   public_price_visibility: boolean
   public_location_visibility: boolean
+  portfolio_type: 'PERSONAL' | 'CHESTERTONS'
+  source_url: string | null
   created_at: string
   media: Database['public']['Tables']['property_media']['Row'][] | null
 }
@@ -39,6 +41,7 @@ interface PageProps {
     minPrice?: string
     maxPrice?: string
     bedrooms?: string
+    portfolio?: string
   }>
 }
 
@@ -49,6 +52,9 @@ export default async function PublicPropertiesPage(props: PageProps) {
   const minPrice = searchParams?.minPrice ? parseFloat(searchParams.minPrice) : undefined
   const maxPrice = searchParams?.maxPrice ? parseFloat(searchParams.maxPrice) : undefined
   const bedrooms = searchParams?.bedrooms ? parseInt(searchParams.bedrooms, 10) : undefined
+  const portfolio = searchParams?.portfolio === 'PERSONAL' || searchParams?.portfolio === 'CHESTERTONS'
+    ? (searchParams.portfolio as 'PERSONAL' | 'CHESTERTONS')
+    : undefined
 
   const filterParams: PropertyFilterParams = {
     type: type || undefined,
@@ -56,6 +62,7 @@ export default async function PublicPropertiesPage(props: PageProps) {
     minPrice,
     maxPrice,
     bedrooms,
+    portfolio,
   }
 
   let properties: PublicPropertyItem[] = []
@@ -78,8 +85,42 @@ export default async function PublicPropertiesPage(props: PageProps) {
               Featured Properties &amp; Estates
             </h1>
             <p className="text-sm sm:text-base text-slate-600 mt-3 leading-relaxed">
-              Explore our vetted collection of prime residential properties, penthouses, and private estates across premium locations.
+              Explore our vetted collection of prime residential properties, penthouses, and private estates across Romania and Spain.
             </p>
+          </div>
+
+          {/* Portfolio Category Segment Tabs */}
+          <div className="mt-8 flex flex-wrap gap-2.5">
+            <Link
+              href="/properties"
+              className={`px-4 py-2 rounded-xl text-xs font-semibold transition-all ${
+                !portfolio
+                  ? 'bg-slate-950 text-white shadow-xs'
+                  : 'bg-white text-slate-700 hover:bg-slate-100 border border-slate-200/80'
+              }`}
+            >
+              All Collections
+            </Link>
+            <Link
+              href="/properties?portfolio=PERSONAL"
+              className={`px-4 py-2 rounded-xl text-xs font-semibold transition-all flex items-center gap-1.5 ${
+                portfolio === 'PERSONAL'
+                  ? 'bg-slate-950 text-white shadow-xs'
+                  : 'bg-white text-slate-700 hover:bg-slate-100 border border-slate-200/80'
+              }`}
+            >
+              <span>★</span> My Portfolio (Direct)
+            </Link>
+            <Link
+              href="/properties?portfolio=CHESTERTONS"
+              className={`px-4 py-2 rounded-xl text-xs font-semibold transition-all flex items-center gap-1.5 ${
+                portfolio === 'CHESTERTONS'
+                  ? 'bg-blue-900 text-white shadow-xs'
+                  : 'bg-white text-slate-700 hover:bg-slate-100 border border-slate-200/80'
+              }`}
+            >
+              <span>🏛️</span> Chestertons Partner Portfolio
+            </Link>
           </div>
         </div>
       </div>
@@ -88,6 +129,7 @@ export default async function PublicPropertiesPage(props: PageProps) {
         {/* Search & Filter Matrix */}
         <div className="bg-white rounded-2xl border border-slate-200/80 p-5 shadow-xs mb-10">
           <form method="GET" className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-3">
+            {portfolio && <input type="hidden" name="portfolio" value={portfolio} />}
             <input
               type="text"
               name="location"
@@ -137,7 +179,7 @@ export default async function PublicPropertiesPage(props: PageProps) {
               >
                 Search
               </button>
-              {(type || location || minPrice || maxPrice || bedrooms) && (
+              {(type || location || minPrice || maxPrice || bedrooms || portfolio) && (
                 <Link
                   href="/properties"
                   className="px-3 py-2.5 text-xs text-slate-600 hover:text-slate-950 border border-slate-200 rounded-lg transition-colors whitespace-nowrap"
@@ -202,6 +244,17 @@ export default async function PublicPropertiesPage(props: PageProps) {
                       <span className="px-2.5 py-1 text-[11px] font-semibold bg-white/95 text-slate-900 rounded-md backdrop-blur-xs uppercase tracking-wider">
                         {prop.type}
                       </span>
+                    </div>
+                    <div className="absolute top-3 right-3">
+                      {prop.portfolio_type === 'PERSONAL' ? (
+                        <span className="px-2.5 py-1 text-[11px] font-bold bg-slate-950/90 text-white rounded-md backdrop-blur-xs uppercase tracking-wider">
+                          My Portfolio
+                        </span>
+                      ) : (
+                        <span className="px-2.5 py-1 text-[11px] font-bold bg-blue-900/90 text-white rounded-md backdrop-blur-xs uppercase tracking-wider">
+                          Chestertons
+                        </span>
+                      )}
                     </div>
                   </div>
 

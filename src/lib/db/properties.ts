@@ -14,6 +14,7 @@ export interface PropertyFilterParams {
   maxPrice?: number
   bedrooms?: number
   location?: string
+  portfolio?: 'PERSONAL' | 'CHESTERTONS'
 }
 
 export async function getProperties(filters?: PropertyFilterParams) {
@@ -45,6 +46,9 @@ export async function getProperties(filters?: PropertyFilterParams) {
   }
   if (filters?.status) {
     query = query.eq('property_status', filters.status)
+  }
+  if (filters?.portfolio) {
+    query = query.eq('portfolio_type', filters.portfolio)
   }
   if (filters?.location) {
     query = query.ilike('location', `%${filters.location}%`)
@@ -89,6 +93,8 @@ export async function getPublicProperties(filters?: PropertyFilterParams) {
       features,
       public_price_visibility,
       public_location_visibility,
+      portfolio_type,
+      source_url,
       created_at,
       media:property_media (
         id,
@@ -103,6 +109,9 @@ export async function getPublicProperties(filters?: PropertyFilterParams) {
     .eq('property_status', 'PUBLIC')
     .order('created_at', { ascending: false })
 
+  if (filters?.portfolio) {
+    query = query.eq('portfolio_type', filters.portfolio)
+  }
   if (filters?.type) {
     query = query.eq('type', filters.type)
   }
@@ -195,6 +204,8 @@ export async function getPublicPropertyBySlug(slug: string) {
       features,
       public_price_visibility,
       public_location_visibility,
+      portfolio_type,
+      source_url,
       created_at,
       media:property_media (
         id,
