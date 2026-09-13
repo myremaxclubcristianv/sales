@@ -111,19 +111,30 @@ ALTER TABLE public.client_properties ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.insurance_claims ENABLE ROW LEVEL SECURITY;
 
 -- No public access
+DROP POLICY IF EXISTS "No public access to client_vehicles" ON public.client_vehicles;
 CREATE POLICY "No public access to client_vehicles" ON public.client_vehicles FOR SELECT USING (false);
+
+DROP POLICY IF EXISTS "No public access to client_properties" ON public.client_properties;
 CREATE POLICY "No public access to client_properties" ON public.client_properties FOR SELECT USING (false);
+
+DROP POLICY IF EXISTS "No public access to insurance_claims" ON public.insurance_claims;
 CREATE POLICY "No public access to insurance_claims" ON public.insurance_claims FOR SELECT USING (false);
 
 -- Authenticated users access
+DROP POLICY IF EXISTS "Authenticated users can view client_vehicles" ON public.client_vehicles;
 CREATE POLICY "Authenticated users can view client_vehicles" ON public.client_vehicles
   FOR SELECT USING (auth.role() = 'authenticated');
+
+DROP POLICY IF EXISTS "Authenticated users can view client_properties" ON public.client_properties;
 CREATE POLICY "Authenticated users can view client_properties" ON public.client_properties
   FOR SELECT USING (auth.role() = 'authenticated');
+
+DROP POLICY IF EXISTS "Authenticated users can view insurance_claims" ON public.insurance_claims;
 CREATE POLICY "Authenticated users can view insurance_claims" ON public.insurance_claims
   FOR SELECT USING (auth.role() = 'authenticated');
 
 -- Admins and agents manage
+DROP POLICY IF EXISTS "Admins and agents can manage client_vehicles" ON public.client_vehicles;
 CREATE POLICY "Admins and agents can manage client_vehicles" ON public.client_vehicles
   FOR ALL USING (
     EXISTS (
@@ -131,6 +142,7 @@ CREATE POLICY "Admins and agents can manage client_vehicles" ON public.client_ve
     )
   );
 
+DROP POLICY IF EXISTS "Admins and agents can manage client_properties" ON public.client_properties;
 CREATE POLICY "Admins and agents can manage client_properties" ON public.client_properties
   FOR ALL USING (
     EXISTS (
@@ -138,6 +150,7 @@ CREATE POLICY "Admins and agents can manage client_properties" ON public.client_
     )
   );
 
+DROP POLICY IF EXISTS "Admins and agents can manage insurance_claims" ON public.insurance_claims;
 CREATE POLICY "Admins and agents can manage insurance_claims" ON public.insurance_claims
   FOR ALL USING (
     EXISTS (
@@ -169,6 +182,9 @@ DECLARE
   v_opportunity_data JSONB;
   v_interaction_data JSONB;
   v_claim_data JSONB;
+
+  v_lead_source TEXT;
+  v_pref_comm TEXT;
 BEGIN
   v_client_data := payload->'client';
   v_policy_data := payload->'policy';
@@ -181,6 +197,12 @@ BEGIN
   -- 1. Validate & Insert Client
   IF v_client_data IS NULL OR (v_client_data->>'first_name' IS NULL AND v_client_data->>'last_name' IS NULL) THEN
     RAISE EXCEPTION 'Client name is required';
+  END IF;
+
+  v_lead_source := LOWER(NULLIF(TRIM(v_client_data->>'lead_source'), ''));
+  v_pref_comm := LOWER(NULLIF(TRIM(v_client_data->>'preferred_communication'), ''));
+  IF v_pref_comm NOT IN ('phone', 'whatsapp', 'email') THEN
+    v_pref_comm := 'whatsapp';
   END IF;
 
   INSERT INTO public.clients (
@@ -214,8 +236,8 @@ BEGIN
     COALESCE(NULLIF(TRIM(v_client_data->>'country'), ''), 'Romania'),
     NULLIF(TRIM(v_client_data->>'role'), ''),
     COALESCE(NULLIF(TRIM(v_client_data->>'client_type'), ''), 'INDIVIDUAL'),
-    NULLIF(TRIM(v_client_data->>'lead_source'), '')::public.clients.lead_source%TYPE,
-    COALESCE(NULLIF(TRIM(v_client_data->>'preferred_communication'), ''), 'phone')::public.clients.preferred_communication%TYPE,
+    v_lead_source,
+    v_pref_comm,
     NULLIF(TRIM(v_client_data->>'date_of_birth'), '')::DATE,
     NULLIF(TRIM(v_client_data->>'personal_notes'), ''),
     'ACTIVE'
@@ -341,7 +363,7 @@ BEGIN
   END IF;
 
   -- 6. Optional Initial Activity (Last Interaction)
-  IF v_interaction_data IS NOT NULL AND NULLIF(TRIM(v_interaction_data->>'last_activity_title'), '') IS NOT NULL THEN
+  IF v_interaction_data IS NOT NULL AND (NULLIF(TRIM(v_interaction_data->>'last_activity_title'), '') IS NOT NULL OR NULLIF(TRIM(v_interaction_data->>'title'), '') IS NOT NULL) THEN
     INSERT INTO public.activities (
       client_id,
       type,
@@ -350,16 +372,16 @@ BEGIN
       date
     ) VALUES (
       v_client_id,
-      COALESCE(NULLIF(TRIM(v_interaction_data->>'last_activity_type'), ''), 'call'),
-      TRIM(v_interaction_data->>'last_activity_title'),
-      NULLIF(TRIM(v_interaction_data->>'last_activity_notes'), ''),
-      COALESCE(NULLIF(TRIM(v_interaction_data->>'last_activity_date'), '')::TIMESTAMP WITH TIME ZONE, NOW())
+      COALESCE(UPPER(NULLIF(TRIM(COALESCE(v_interaction_data->>'last_activity_type', v_interaction_data->>'type')), '')), 'CALL'),
+      COALESCE(TRIM(v_interaction_data->>'last_activity_title'), TRIM(v_interaction_data->>'title')),
+      COALESCE(NULLIF(TRIM(v_interaction_data->>'last_activity_notes'), ''), NULLIF(TRIM(v_interaction_data->>'notes'), '')),
+      COALESCE(NULLIF(TRIM(COALESCE(v_interaction_data->>'last_activity_date', v_interaction_data->>'date')), '')::TIMESTAMP WITH TIME ZONE, NOW())
     )
     RETURNING id INTO v_activity_id;
   END IF;
 
   -- 7. Optional Scheduled Follow-up (Next Interaction)
-  IF v_interaction_data IS NOT NULL AND NULLIF(TRIM(v_interaction_data->>'next_followup_reason'), '') IS NOT NULL THEN
+  IF v_interaction_data IS NOT NULL AND (NULLIF(TRIM(v_interaction_data->>'next_followup_reason'), '') IS NOT NULL OR NULLIF(TRIM(v_interaction_data->>'reason'), '') IS NOT NULL) THEN
     INSERT INTO public.follow_ups (
       client_id,
       insurance_id,
@@ -371,11 +393,11 @@ BEGIN
     ) VALUES (
       v_client_id,
       v_policy_id,
-      TRIM(v_interaction_data->>'next_followup_reason'),
-      COALESCE(NULLIF(TRIM(v_interaction_data->>'next_followup_date'), '')::DATE, CURRENT_DATE + INTERVAL '7 days'),
-      COALESCE(NULLIF(TRIM(v_interaction_data->>'next_followup_priority'), ''), 'MEDIUM'),
+      COALESCE(TRIM(v_interaction_data->>'next_followup_reason'), TRIM(v_interaction_data->>'reason')),
+      COALESCE(NULLIF(TRIM(COALESCE(v_interaction_data->>'next_followup_date', v_interaction_data->>'due_date')), '')::DATE, CURRENT_DATE + INTERVAL '7 days'),
+      COALESCE(NULLIF(TRIM(COALESCE(v_interaction_data->>'next_followup_priority', v_interaction_data->>'priority')), ''), 'MEDIUM'),
       'PENDING',
-      NULLIF(TRIM(v_interaction_data->>'next_followup_notes'), '')
+      COALESCE(NULLIF(TRIM(v_interaction_data->>'next_followup_notes'), ''), NULLIF(TRIM(v_interaction_data->>'notes'), ''))
     )
     RETURNING id INTO v_follow_up_id;
   END IF;
