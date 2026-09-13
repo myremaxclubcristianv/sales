@@ -1,6 +1,6 @@
 'use client'
 
-import React, { useState, useEffect } from 'react'
+import React, { useState, useEffect, useCallback } from 'react'
 import { useRouter } from 'next/navigation'
 
 interface CommandPaletteProps {
@@ -8,9 +8,46 @@ interface CommandPaletteProps {
   onClose: () => void
 }
 
+const navigationItems = [
+  { title: 'Dashboard & Command Center', category: 'Navigation', href: '/admin/dashboard' },
+  { title: 'Clients Directory (360°)', category: 'Navigation', href: '/admin/clients' },
+  { title: 'Add New Client Record', category: 'Action', href: '/admin/clients/new' },
+  { title: 'Properties & Listings Portfolio', category: 'Navigation', href: '/admin/properties' },
+  { title: 'Add New Property Listing', category: 'Action', href: '/admin/properties/new' },
+  { title: 'Buyer Requests & Matching', category: 'Navigation', href: '/admin/requests' },
+  { title: 'Add New Buyer Search Request', category: 'Action', href: '/admin/requests/new' },
+  { title: 'Viewings & Walkthroughs Hub', category: 'Navigation', href: '/admin/viewings' },
+  { title: 'Insurance Portfolio & 30-Day Renewals', category: 'Navigation', href: '/admin/insurance' },
+  { title: 'Register New Insurance Policy', category: 'Action', href: '/admin/insurance/new' },
+  { title: 'Credit & Mortgage 8-Stage Pipeline', category: 'Navigation', href: '/admin/credit' },
+  { title: 'Open New Financing Case', category: 'Action', href: '/admin/credit/new' },
+  { title: 'Follow-ups Queue (Today & Overdue)', category: 'Navigation', href: '/admin/follow-ups' },
+  { title: 'Schedule New Follow-up', category: 'Action', href: '/admin/follow-ups/new' },
+  { title: 'Tasks Management Board', category: 'Navigation', href: '/admin/tasks' },
+  { title: 'Inbound Leads & Attribution Inbox', category: 'Navigation', href: '/admin/leads' },
+  { title: 'Marketing Campaigns Management', category: 'Navigation', href: '/admin/campaigns' },
+  { title: 'Launch Marketing Campaign', category: 'Action', href: '/admin/campaigns/new' },
+  { title: 'Executive Operating Analytics', category: 'Navigation', href: '/admin/analytics' },
+  { title: 'Internal Notifications Hub', category: 'Navigation', href: '/admin/notifications' },
+]
+
 export function CommandPalette({ isOpen, onClose }: CommandPaletteProps) {
   const [query, setQuery] = useState('')
+  const [selectedIndex, setSelectedIndex] = useState(0)
   const router = useRouter()
+
+  const handleSelect = useCallback((href: string) => {
+    onClose()
+    router.push(href)
+  }, [onClose, router])
+
+  const filtered = query.trim()
+    ? navigationItems.filter(
+        (item) =>
+          item.title.toLowerCase().includes(query.toLowerCase()) ||
+          item.category.toLowerCase().includes(query.toLowerCase())
+      )
+    : navigationItems
 
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
@@ -18,53 +55,31 @@ export function CommandPalette({ isOpen, onClose }: CommandPaletteProps) {
         e.preventDefault()
         if (isOpen) {
           onClose()
-        } else {
-          // Trigger open via parent or event
         }
       }
       if (e.key === 'Escape' && isOpen) {
         onClose()
       }
+      if (isOpen && filtered.length > 0) {
+        if (e.key === 'ArrowDown') {
+          e.preventDefault()
+          setSelectedIndex((prev) => (prev + 1) % filtered.length)
+        } else if (e.key === 'ArrowUp') {
+          e.preventDefault()
+          setSelectedIndex((prev) => (prev - 1 + filtered.length) % filtered.length)
+        } else if (e.key === 'Enter') {
+          e.preventDefault()
+          if (filtered[selectedIndex]) {
+            handleSelect(filtered[selectedIndex].href)
+          }
+        }
+      }
     }
     window.addEventListener('keydown', handleKeyDown)
     return () => window.removeEventListener('keydown', handleKeyDown)
-  }, [isOpen, onClose])
+  }, [isOpen, onClose, filtered, selectedIndex, handleSelect])
 
   if (!isOpen) return null
-
-  const navigationItems = [
-    { title: 'Dashboard', category: 'Navigation', href: '/admin/dashboard' },
-    { title: 'Clients Directory', category: 'Navigation', href: '/admin/clients' },
-    { title: 'Add New Client', category: 'Action', href: '/admin/clients/new' },
-    { title: 'Properties & Listings', category: 'Navigation', href: '/admin/properties' },
-    { title: 'Add New Property', category: 'Action', href: '/admin/properties/new' },
-    { title: 'Buyer Requests', category: 'Navigation', href: '/admin/requests' },
-    { title: 'Add New Buyer Request', category: 'Action', href: '/admin/requests/new' },
-    { title: 'Viewings & Walkthroughs Hub', category: 'Navigation', href: '/admin/viewings' },
-    { title: 'Insurance Portfolio & Renewals', category: 'Navigation', href: '/admin/insurance' },
-    { title: 'Register Insurance Policy', category: 'Action', href: '/admin/insurance/new' },
-    { title: 'Credit & Mortgage Pipeline', category: 'Navigation', href: '/admin/credit' },
-    { title: 'Open New Financing Case', category: 'Action', href: '/admin/credit/new' },
-    { title: 'Follow-ups (Today & Overdue)', category: 'Navigation', href: '/admin/follow-ups' },
-    { title: 'Tasks Management', category: 'Navigation', href: '/admin/tasks' },
-    { title: 'Inbound Leads & Attribution', category: 'Navigation', href: '/admin/leads' },
-    { title: 'Marketing Campaigns', category: 'Navigation', href: '/admin/campaigns' },
-    { title: 'Launch Marketing Campaign', category: 'Action', href: '/admin/campaigns/new' },
-    { title: 'Executive Operating Analytics', category: 'Navigation', href: '/admin/analytics' },
-    { title: 'Internal Notifications Hub', category: 'Navigation', href: '/admin/notifications' },
-  ]
-
-  const filtered = query.trim()
-    ? navigationItems.filter(item =>
-        item.title.toLowerCase().includes(query.toLowerCase()) ||
-        item.category.toLowerCase().includes(query.toLowerCase())
-      )
-    : navigationItems
-
-  const handleSelect = (href: string) => {
-    onClose()
-    router.push(href)
-  }
 
   return (
     <div className="fixed inset-0 z-50 overflow-y-auto p-4 sm:p-6 md:p-20">
@@ -80,9 +95,12 @@ export function CommandPalette({ isOpen, onClose }: CommandPaletteProps) {
           <input
             type="text"
             className="h-13 w-full border-0 bg-transparent pr-4 text-slate-900 placeholder:text-slate-400 focus:outline-hidden text-sm"
-            placeholder="Search commands, clients, properties, tasks... (Press ESC to exit)"
+            placeholder="Search commands, clients, properties, tasks... (↑↓ to navigate, ↵ to select, ESC to exit)"
             value={query}
-            onChange={(e) => setQuery(e.target.value)}
+            onChange={(e) => {
+              setQuery(e.target.value)
+              setSelectedIndex(0)
+            }}
             autoFocus
           />
         </div>
@@ -92,24 +110,34 @@ export function CommandPalette({ isOpen, onClose }: CommandPaletteProps) {
             <p className="p-4 text-sm text-slate-500 text-center">No results found for &quot;{query}&quot;</p>
           ) : (
             <ul className="text-sm text-slate-700 divide-y divide-slate-50">
-              {filtered.map((item, idx) => (
-                <li
-                  key={idx}
-                  onClick={() => handleSelect(item.href)}
-                  className="flex cursor-pointer select-none items-center justify-between rounded-lg px-3 py-2.5 hover:bg-slate-100/80 transition-colors"
-                >
-                  <span className="font-medium text-slate-900">{item.title}</span>
-                  <span className="text-xs px-2 py-0.5 rounded-md bg-slate-100 text-slate-500 font-mono">
-                    {item.category}
-                  </span>
-                </li>
-              ))}
+              {filtered.map((item, idx) => {
+                const isSelected = idx === selectedIndex
+                return (
+                  <li
+                    key={idx}
+                    onClick={() => handleSelect(item.href)}
+                    onMouseEnter={() => setSelectedIndex(idx)}
+                    className={`flex cursor-pointer select-none items-center justify-between rounded-lg px-3 py-2.5 transition-colors ${
+                      isSelected ? 'bg-blue-600 text-white' : 'hover:bg-slate-100/80 text-slate-900'
+                    }`}
+                  >
+                    <span className="font-medium text-xs sm:text-sm truncate">{item.title}</span>
+                    <span
+                      className={`text-[10px] sm:text-xs px-2 py-0.5 rounded-md font-mono shrink-0 ml-2 ${
+                        isSelected ? 'bg-blue-700 text-blue-100' : 'bg-slate-100 text-slate-500'
+                      }`}
+                    >
+                      {item.category}
+                    </span>
+                  </li>
+                )
+              })}
             </ul>
           )}
         </div>
 
         <div className="flex items-center justify-between bg-slate-50 px-4 py-2.5 text-xs text-slate-500 border-t border-slate-200/60">
-          <span>Navigate with mouse or enter</span>
+          <span>Navigate with ↑↓ arrows or mouse • ↵ to open</span>
           <span className="font-mono">ESC to close</span>
         </div>
       </div>
