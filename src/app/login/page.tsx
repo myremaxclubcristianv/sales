@@ -20,21 +20,25 @@ export default function LoginPage() {
     try {
       const supabase = createBrowserClient()
       const { data, error } = await supabase.auth.signInWithPassword({
-        email,
+        email: email.trim().toLowerCase(),
         password,
       })
 
       if (error) {
-        setErrorMessage(error.message)
+        if (error.message.includes('Invalid login credentials') || error.message.includes('invalid_credentials')) {
+          setErrorMessage('Invalid email or password. Please verify your credentials.')
+        } else {
+          setErrorMessage(error.message)
+        }
       } else if (data.session) {
         router.push('/admin/dashboard')
         router.refresh()
       }
     } catch (err: unknown) {
-      if (err instanceof Error) {
+      if (err instanceof Error && err.message && err.message !== 'Load failed') {
         setErrorMessage(err.message)
       } else {
-        setErrorMessage('An unexpected error occurred. Please try again.')
+        setErrorMessage('Unable to connect to authentication server. Please check your connection and try again.')
       }
     } finally {
       setLoading(false)
