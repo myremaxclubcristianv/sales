@@ -13,8 +13,23 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "Cristian Văduva | Luxury Real Estate, Insurance & Capital Advisory",
+  metadataBase: new URL(process.env.NEXT_PUBLIC_SITE_URL || 'https://sales.cristianvaduva.com'),
+  title: {
+    default: "Cristian Văduva | Luxury Real Estate, Insurance & Capital Advisory",
+    template: "%s | Cristian Văduva",
+  },
   description: "Private real estate brokerage, insurance asset protection, and mortgage credit structuring across Bucharest, Monaco, and Dubai.",
+  alternates: {
+    canonical: './',
+  },
+  openGraph: {
+    title: "Cristian Văduva | Luxury Real Estate, Insurance & Capital Advisory",
+    description: "Private real estate brokerage, insurance asset protection, and mortgage credit structuring across Bucharest, Monaco, and Dubai.",
+    url: "https://sales.cristianvaduva.com",
+    siteName: "Cristian Văduva Real Estate & Advisory",
+    locale: "en_US",
+    type: "website",
+  },
 };
 
 export default function RootLayout({ children }: LayoutProps<"/">) {

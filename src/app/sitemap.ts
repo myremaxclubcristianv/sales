@@ -4,7 +4,7 @@ import { getPublicProperties } from '@/lib/db/properties'
 export const dynamic = 'force-dynamic'
 
 export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
-  const baseUrl = process.env.NEXT_PUBLIC_SITE_URL || 'https://cristianvaduva.com'
+  const baseUrl = process.env.NEXT_PUBLIC_SITE_URL || 'https://sales.cristianvaduva.com'
 
   const staticRoutes: MetadataRoute.Sitemap = [
     {
