@@ -1,7 +1,7 @@
 'use client'
 
-import { useState, useEffect } from 'react'
-import { useRouter } from 'next/navigation'
+import { useState, useEffect, Suspense } from 'react'
+import { useRouter, useSearchParams } from 'next/navigation'
 import { PrivateLayout } from '@/components/layout/private/PrivateLayout'
 import { Button } from '@/components/ui/Button'
 import { Input } from '@/components/ui/Input'
@@ -15,8 +15,10 @@ interface ClientOption {
   last_name: string
 }
 
-export default function NewInsurancePolicyPage() {
+function NewInsurancePolicyContent() {
   const router = useRouter()
+  const searchParams = useSearchParams()
+  const preselectedClientId = searchParams.get('client_id') || ''
   const [loading, setLoading] = useState(false)
   const [clients, setClients] = useState<ClientOption[]>([])
   const [fetchingClients, setFetchingClients] = useState(true)
@@ -29,7 +31,7 @@ export default function NewInsurancePolicyPage() {
     const nextYearStr = nextYear.toISOString().split('T')[0]
 
     return {
-      client_id: '',
+      client_id: preselectedClientId,
       product: 'RCA',
       insurer: 'Allianz-Tiriac',
       policy_number: '',
@@ -50,7 +52,12 @@ export default function NewInsurancePolicyPage() {
           const data = await res.json()
           setClients(data)
           if (data.length > 0) {
-            setFormData((prev) => ({ ...prev, client_id: data[0].id }))
+            setFormData((prev) => ({
+              ...prev,
+              client_id: preselectedClientId && data.some((c: ClientOption) => c.id === preselectedClientId)
+                ? preselectedClientId
+                : prev.client_id || data[0].id,
+            }))
           }
         }
       } catch (err) {
@@ -60,7 +67,7 @@ export default function NewInsurancePolicyPage() {
       }
     }
     loadClients()
-  }, [])
+  }, [preselectedClientId])
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -132,9 +139,17 @@ export default function NewInsurancePolicyPage() {
 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
               <div>
-                <label className="block text-xs font-semibold text-neutral-700 dark:text-neutral-300 uppercase tracking-wider mb-2">
-                  Client *
-                </label>
+                <div className="flex items-center justify-between mb-2">
+                  <label className="block text-xs font-semibold text-neutral-700 dark:text-neutral-300 uppercase tracking-wider">
+                    Client *
+                  </label>
+                  <Link
+                    href="/admin/clients/new"
+                    className="text-xs text-blue-600 hover:underline font-semibold"
+                  >
+                    + Create New Client
+                  </Link>
+                </div>
                 {fetchingClients ? (
                   <div className="h-10 animate-pulse bg-neutral-100 dark:bg-neutral-800 rounded-lg" />
                 ) : clients.length === 0 ? (
@@ -299,5 +314,21 @@ export default function NewInsurancePolicyPage() {
         </form>
       </div>
     </PrivateLayout>
+  )
+}
+
+export default function NewInsurancePolicyPage() {
+  return (
+    <Suspense
+      fallback={
+        <PrivateLayout>
+          <div className="p-8 text-center text-sm text-neutral-500">
+            Loading policy editor...
+          </div>
+        </PrivateLayout>
+      }
+    >
+      <NewInsurancePolicyContent />
+    </Suspense>
   )
 }

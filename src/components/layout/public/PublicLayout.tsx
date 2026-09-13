@@ -20,7 +20,6 @@ export function PublicLayout({ children }: PublicLayoutProps) {
     { name: 'Buyer Requests', href: '/requests' },
     { name: 'About', href: '/about' },
     { name: 'Contact', href: '/contact' },
-    { name: 'Legal', href: '/legal' },
   ]
 
   const openCookiePreferences = () => {
