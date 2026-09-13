@@ -67,9 +67,16 @@ export function CookieConsentBanner() {
     const handleOpenSettings = () => {
       setModalOpen(true)
     }
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') {
+        setModalOpen(false)
+      }
+    }
     window.addEventListener('open-cookie-settings', handleOpenSettings)
+    window.addEventListener('keydown', handleKeyDown)
     return () => {
       window.removeEventListener('open-cookie-settings', handleOpenSettings)
+      window.removeEventListener('keydown', handleKeyDown)
     }
   }, [])
 

@@ -148,6 +148,9 @@ export default function DataProtectionNoticePage() {
                 <p className="text-slate-400">All client records, phone numbers, transaction notes, and document vaults require valid JWT auth tokens with role verification.</p>
               </div>
             </div>
+            <p className="text-xs text-slate-400 pt-2 mb-0">
+              ⚡ <strong>Operational Lead Alerts:</strong> Inbound leads generate a data-minimized notification alert dispatched to the operator&apos;s internal channel. Database persistence remains the isolated source of truth.
+            </p>
           </div>
         </div>
 

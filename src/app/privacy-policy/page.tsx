@@ -182,6 +182,9 @@ export default function PrivacyPolicyPage() {
                 <strong className="text-slate-900">Database &amp; Storage Vaults:</strong> Supabase Inc. (PostgreSQL database architecture with Row-Level Security, AES-256 encrypted at-rest storage in EU regions).
               </li>
               <li>
+                <strong className="text-slate-900">Internal Operational Notifications (Telegram Alert Channel):</strong> When an inbound contact form or property inquiry is submitted, a minimized summary alert (limited strictly to submitter name, contact method, inquiry message excerpt, and timestamp) is forwarded via secure HTTPS API to the operator&apos;s private Telegram notification channel for real-time response coordination. No CRM records, private documents, or sensitive financial data are transmitted.
+              </li>
+              <li>
                 <strong className="text-slate-900">Transaction Partners (Upon Explicit Mandate Only):</strong> Licensed Public Notaries (Notari Publici), Romanian banking institutions (for credit brokerage applications), and registered insurance underwriting partners (for policy issuance).
               </li>
             </ul>
