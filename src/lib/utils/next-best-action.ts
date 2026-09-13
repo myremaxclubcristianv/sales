@@ -1,140 +1,209 @@
-import { getClientActivities } from '@/lib/db/activities'
-import { getFollowUpsByView } from '@/lib/db/follow-ups'
-import { getUpcomingBirthdays } from '@/lib/db/personal-events'
+import { createClient as createServerClient } from '@/lib/supabase/server'
+import { calculatePropertyRequestMatch } from '@/lib/utils/matching-engine'
 import type { Database } from '@/types'
 
-type FollowUpRow = Database['public']['Tables']['follow_ups']['Row']
-type PersonalEventRow = Database['public']['Tables']['personal_events']['Row']
+type PropertyRow = Database['public']['Tables']['properties']['Row']
+type RequestRow = Database['public']['Tables']['requests']['Row']
 
-export interface Recommendation {
+export interface NextBestAction {
   id: string
-  type: 'CALL' | 'WHATSAPP' | 'EMAIL' | 'VIEW_PROPERTY' | 'REQUEST_DOCUMENTS' | 'SEND_RENEWAL' | 'REQUEST_FEEDBACK' | 'PERSONAL_MESSAGE'
-  priority: 'LOW' | 'NORMAL' | 'HIGH' | 'URGENT'
+  priority: 'CRITICAL' | 'HIGH' | 'MEDIUM' | 'LOW' | 'URGENT'
+  category: 'LEAD' | 'FOLLOW_UP' | 'INSURANCE_RENEWAL' | 'CREDIT_PIPELINE' | 'PROPERTY_MATCH' | 'PERSONAL_DATE'
   title: string
+  description: string
   reason: string
-  clientId: string
-  clientName: string
+  actionLabel: string
   actions: string[]
+  actionHref: string
+  clientName?: string
+  entityId?: string
+  badgeText?: string
 }
 
-export async function getNextBestActions(clientId: string, clientName: string): Promise<Recommendation[]> {
-  const recommendations: Recommendation[] = []
-  
+export async function getNextBestActions(targetClientId?: string, targetClientName?: string): Promise<NextBestAction[]> {
+  const supabase = await createServerClient()
+  const actions: NextBestAction[] = []
+  const now = new Date()
+  const todayStr = now.toISOString().split('T')[0]
+  const thirtyDaysAhead = new Date(now.getTime() + 30 * 24 * 60 * 60 * 1000).toISOString().split('T')[0]
+
   try {
-    const [activities, overdueFollowUps, upcomingBirthdays] = await Promise.all([
-      getClientActivities(clientId),
-      getFollowUpsByView('overdue'),
-      getUpcomingBirthdays(30),
+    const leadsQuery = supabase.from('leads').select('*').eq('status', 'NEW').order('created_at', { ascending: false }).limit(5)
+    let followUpsQuery = supabase.from('follow_ups').select('*, clients(first_name, last_name)').eq('status', 'PENDING').order('due_date', { ascending: true }).limit(10)
+    let insuranceQuery = supabase.from('insurance_policies').select('*, clients(first_name, last_name)').eq('status', 'ACTIVE').lte('expiry_date', thirtyDaysAhead).order('expiry_date', { ascending: true }).limit(5)
+    let creditQuery = supabase.from('credit_cases').select('*, clients(first_name, last_name)').in('status', ['LEAD', 'ANALYSIS', 'DOCUMENTS']).order('updated_at', { ascending: true }).limit(5)
+    let requestsQuery = supabase.from('requests').select('*, clients(first_name, last_name)').eq('status', 'ACTIVE').limit(10)
+    let personalEventsQuery = supabase.from('personal_events').select('*, clients(first_name, last_name)').gte('event_date', todayStr).order('event_date', { ascending: true }).limit(5)
+
+    if (targetClientId) {
+      followUpsQuery = followUpsQuery.eq('client_id', targetClientId)
+      insuranceQuery = insuranceQuery.eq('client_id', targetClientId)
+      creditQuery = creditQuery.eq('client_id', targetClientId)
+      requestsQuery = requestsQuery.eq('client_id', targetClientId)
+      personalEventsQuery = personalEventsQuery.eq('client_id', targetClientId)
+    }
+
+    const [
+      leadsRes,
+      followUpsRes,
+      insuranceRes,
+      creditRes,
+      requestsRes,
+      propertiesRes,
+      personalEventsRes,
+    ] = await Promise.all([
+      targetClientId ? Promise.resolve({ data: [] }) : leadsQuery,
+      followUpsQuery,
+      insuranceQuery,
+      creditQuery,
+      requestsQuery,
+      supabase.from('properties').select('*').eq('property_status', 'PUBLIC').limit(20),
+      personalEventsQuery,
     ])
 
-    const clientOverdueFollowUps = (overdueFollowUps as FollowUpRow[]).filter((f) => f.client_id === clientId)
-    const clientUpcomingBirthdays = (upcomingBirthdays as PersonalEventRow[]).filter((b) => b.client_id === clientId)
-
-    if (clientOverdueFollowUps.length > 0) {
-      recommendations.push({
-        id: `overdue-${Date.now()}`,
-        type: 'CALL',
-        priority: 'URGENT',
-        title: 'Complete overdue follow-up',
-        reason: `${clientOverdueFollowUps.length} overdue follow-up${clientOverdueFollowUps.length > 1 ? 's' : ''} pending`,
-        clientId,
-        clientName,
-        actions: ['Call', 'WhatsApp', 'Complete follow-up'],
+    // 1. Uncontacted NEW Leads (CRITICAL)
+    const newLeads = (leadsRes.data || []) as Database['public']['Tables']['leads']['Row'][]
+    for (const lead of newLeads) {
+      const desc = `Inquiry from ${lead.source || 'website'}: "${lead.message?.slice(0, 100) || 'Interested in properties/services'}"`
+      actions.push({
+        id: `lead-${lead.id}`,
+        priority: 'CRITICAL',
+        category: 'LEAD',
+        title: `Urgent: Uncontacted Inbound Lead (${lead.name})`,
+        description: desc,
+        reason: desc,
+        actionLabel: 'Contact & Convert Lead',
+        actions: ['Contact & Convert Lead'],
+        actionHref: `/admin/leads`,
+        entityId: lead.id,
+        badgeText: 'New Lead',
       })
     }
 
-    if (activities.length > 0) {
-      const lastActivity = activities[0]
-      const daysSinceLastContact = Math.floor(
-        (Date.now() - new Date(lastActivity.date).getTime()) / (1000 * 60 * 60 * 24)
-      )
+    // 2. Overdue / Due Today Follow-ups (HIGH)
+    const followUps = followUpsRes.data || []
+    for (const f of followUps) {
+      const isOverdue = f.due_date < todayStr
+      const clientName = f.clients ? `${(f.clients as unknown as { first_name: string; last_name: string }).first_name} ${(f.clients as unknown as { first_name: string; last_name: string }).last_name}` : (targetClientName || 'Client')
+      const desc = f.notes || 'Scheduled relationship touchpoint'
+      actions.push({
+        id: `followup-${f.id}`,
+        priority: isOverdue ? 'CRITICAL' : 'HIGH',
+        category: 'FOLLOW_UP',
+        title: isOverdue ? `Overdue Follow-up: ${clientName}` : `Today's Follow-up: ${clientName}`,
+        description: desc,
+        reason: desc,
+        actionLabel: 'Complete Follow-up',
+        actions: ['Complete Follow-up'],
+        actionHref: `/admin/follow-ups`,
+        clientName,
+        entityId: f.id,
+        badgeText: isOverdue ? 'Overdue' : 'Due Today',
+      })
+    }
 
-      if (daysSinceLastContact > 30) {
-        recommendations.push({
-          id: `no-contact-${Date.now()}`,
-          type: 'CALL',
-          priority: 'HIGH',
-          title: 'Reconnect with client',
-          reason: `No contact in ${daysSinceLastContact} days`,
-          clientId,
-          clientName,
-          actions: ['Call', 'WhatsApp', 'Email'],
-        })
-      } else if (daysSinceLastContact > 14) {
-        recommendations.push({
-          id: `check-in-${Date.now()}`,
-          type: 'WHATSAPP',
-          priority: 'NORMAL',
-          title: 'Check in with client',
-          reason: `No contact in ${daysSinceLastContact} days`,
-          clientId,
-          clientName,
-          actions: ['WhatsApp', 'Email'],
-        })
-      }
-    } else {
-      recommendations.push({
-        id: `first-contact-${Date.now()}`,
-        type: 'CALL',
+    // 3. 30-Day Insurance Policy Renewals (HIGH)
+    const expiringPolicies = insuranceRes.data || []
+    for (const p of expiringPolicies) {
+      const clientName = p.clients ? `${(p.clients as unknown as { first_name: string; last_name: string }).first_name} ${(p.clients as unknown as { first_name: string; last_name: string }).last_name}` : (targetClientName || 'Client')
+      const desc = `${p.product} policy #${p.policy_number} with ${p.provider} expires on ${p.expiry_date} (${p.premium ? `${p.premium} ${p.currency}` : 'active'}).`
+      actions.push({
+        id: `insurance-${p.id}`,
         priority: 'HIGH',
-        title: 'Make first contact',
-        reason: 'No recorded activity with this client',
-        clientId,
+        category: 'INSURANCE_RENEWAL',
+        title: `Insurance Policy Expiry in <30 Days: ${clientName}`,
+        description: desc,
+        reason: desc,
+        actionLabel: 'Open Policy Renewal',
+        actions: ['Open Policy Renewal'],
+        actionHref: `/admin/insurance/${p.id}`,
         clientName,
-        actions: ['Call', 'WhatsApp', 'Email'],
+        entityId: p.id,
+        badgeText: 'Expiring Soon',
       })
     }
 
-    if (clientUpcomingBirthdays.length > 0) {
-      const birthday = clientUpcomingBirthdays[0]
-      const eventDate = new Date(birthday.event_date)
-      const currentYear = new Date().getFullYear()
-      const thisYearBirthday = new Date(currentYear, eventDate.getMonth(), eventDate.getDate())
-      const daysUntil = Math.ceil((thisYearBirthday.getTime() - new Date().getTime()) / (1000 * 60 * 60 * 24))
+    // 4. Stalled Credit Applications (MEDIUM)
+    const creditCases = creditRes.data || []
+    for (const c of creditCases) {
+      const clientName = c.clients ? `${(c.clients as unknown as { first_name: string; last_name: string }).first_name} ${(c.clients as unknown as { first_name: string; last_name: string }).last_name}` : (targetClientName || 'Client')
+      const desc = `${c.bank || 'Mortgage'} file in ${c.stage || c.status} stage for ${c.amount ? `${c.amount.toLocaleString()} ${c.currency}` : 'financing'}.`
+      actions.push({
+        id: `credit-${c.id}`,
+        priority: 'MEDIUM',
+        category: 'CREDIT_PIPELINE',
+        title: `Financing Case Pending: ${clientName}`,
+        description: desc,
+        reason: desc,
+        actionLabel: 'Advance Credit Case',
+        actions: ['Advance Credit Case'],
+        actionHref: `/admin/credit/${c.id}`,
+        clientName,
+        entityId: c.id,
+        badgeText: c.stage || c.status,
+      })
+    }
 
-      if (daysUntil <= 7) {
-        recommendations.push({
-          id: `birthday-${Date.now()}`,
-          type: 'WHATSAPP',
-          priority: daysUntil <= 1 ? 'HIGH' : 'NORMAL',
-          title: `Birthday ${daysUntil === 0 ? 'today!' : daysUntil === 1 ? 'tomorrow' : `in ${daysUntil} days`}`,
-          reason: `Client's birthday is ${daysUntil === 0 ? 'today' : daysUntil === 1 ? 'tomorrow' : `in ${daysUntil} days`}`,
-          clientId,
-          clientName,
-          actions: ['WhatsApp', 'Call', 'Send message'],
-        })
+    // 5. High-Score Property Matches (80%+) for Buyer Requests
+    const requests = (requestsRes.data || []) as RequestRow[]
+    const properties = (propertiesRes.data || []) as PropertyRow[]
+    for (const r of requests) {
+      const clientName = targetClientName || 'Buyer'
+      for (const p of properties) {
+        const match = calculatePropertyRequestMatch(p, r)
+        if (match.score >= 80) {
+          const desc = `Listing "${p.title}" matches buyer criteria (${match.score}% score).`
+          actions.push({
+            id: `match-${r.id}-${p.id}`,
+            priority: 'HIGH',
+            category: 'PROPERTY_MATCH',
+            title: `High Affinity Property Match (${match.score}%): ${clientName}`,
+            description: desc,
+            reason: desc,
+            actionLabel: 'Schedule Viewing',
+            actions: ['Schedule Viewing', 'Send Dossier'],
+            actionHref: `/admin/requests/${r.id}`,
+            clientName,
+            entityId: r.id,
+            badgeText: `${match.score}% Match`,
+          })
+          break
+        }
       }
     }
 
-    const viewingActivities = activities.filter((a) => a.type === 'VIEWING')
-    if (viewingActivities.length > 0) {
-      const lastViewing = viewingActivities[0]
-      const daysSinceViewing = Math.floor(
-        (Date.now() - new Date(lastViewing.date).getTime()) / (1000 * 60 * 60 * 24)
-      )
-
-      if (daysSinceViewing <= 3 && !lastViewing.notes) {
-        recommendations.push({
-          id: `feedback-${Date.now()}`,
-          type: 'WHATSAPP',
-          priority: 'NORMAL',
-          title: 'Request viewing feedback',
-          reason: `Viewing completed ${daysSinceViewing} day${daysSinceViewing > 1 ? 's' : ''} ago without feedback`,
-          clientId,
-          clientName,
-          actions: ['WhatsApp', 'Call', 'Request feedback'],
-        })
-      }
+    // 6. Upcoming Personal Dates & Anniversaries (MEDIUM)
+    const personalEvents = personalEventsRes.data || []
+    for (const ev of personalEvents) {
+      const clientName = ev.clients ? `${(ev.clients as unknown as { first_name: string; last_name: string }).first_name} ${(ev.clients as unknown as { first_name: string; last_name: string }).last_name}` : (targetClientName || 'Client')
+      const desc = `Date: ${ev.event_date}. Personal touchpoint opportunity to maintain long-term relationship.`
+      actions.push({
+        id: `personal-${ev.id}`,
+        priority: 'MEDIUM',
+        category: 'PERSONAL_DATE',
+        title: `Upcoming Date: ${ev.title || ev.event_type} (${clientName})`,
+        description: desc,
+        reason: desc,
+        actionLabel: 'View Client Profile',
+        actions: ['Send Greetings', 'Schedule Call'],
+        actionHref: `/admin/clients/${ev.client_id}`,
+        clientName,
+        entityId: ev.client_id,
+        badgeText: ev.event_type,
+      })
     }
-
-    recommendations.sort((a, b) => {
-      const priorityOrder = { URGENT: 0, HIGH: 1, NORMAL: 2, LOW: 3 }
-      return priorityOrder[a.priority] - priorityOrder[b.priority]
-    })
-
-  } catch (error) {
-    console.error('Error generating recommendations:', error)
+  } catch (err) {
+    console.error('Error generating next best actions:', err)
   }
 
-  return recommendations.slice(0, 3)
+  // Sort: CRITICAL -> HIGH -> MEDIUM -> LOW
+  const priorityOrder: Record<string, number> = {
+    CRITICAL: 0,
+    URGENT: 0,
+    HIGH: 1,
+    MEDIUM: 2,
+    LOW: 3,
+  }
+
+  return actions.sort((a, b) => (priorityOrder[a.priority] ?? 4) - (priorityOrder[b.priority] ?? 4))
 }
