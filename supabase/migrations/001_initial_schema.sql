@@ -16,7 +16,7 @@ CREATE TABLE IF NOT EXISTS public.profiles (
 
 -- Companies table
 CREATE TABLE IF NOT EXISTS public.companies (
-  id UUID DEFAULT uuid_generate_v4() PRIMARY KEY,
+  id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
   name TEXT NOT NULL,
   legal_name TEXT,
   registration_number TEXT,
@@ -35,7 +35,7 @@ CREATE TABLE IF NOT EXISTS public.companies (
 
 -- Clients table (persons)
 CREATE TABLE IF NOT EXISTS public.clients (
-  id UUID DEFAULT uuid_generate_v4() PRIMARY KEY,
+  id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
   first_name TEXT NOT NULL,
   last_name TEXT NOT NULL,
   company_id UUID REFERENCES public.companies(id) ON DELETE SET NULL,
@@ -61,7 +61,7 @@ CREATE TABLE IF NOT EXISTS public.clients (
 
 -- Client relationships (multiple roles per client)
 CREATE TABLE IF NOT EXISTS public.client_relationships (
-  id UUID DEFAULT uuid_generate_v4() PRIMARY KEY,
+  id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
   client_id UUID NOT NULL REFERENCES public.clients(id) ON DELETE CASCADE,
   relationship_type TEXT NOT NULL CHECK (relationship_type IN ('buyer', 'seller', 'landlord', 'investor', 'insurance', 'credit', 'b2b', 'partner', 'referral')),
   is_primary BOOLEAN DEFAULT FALSE,
@@ -73,7 +73,7 @@ CREATE TABLE IF NOT EXISTS public.client_relationships (
 
 -- Contacts (for companies)
 CREATE TABLE IF NOT EXISTS public.contacts (
-  id UUID DEFAULT uuid_generate_v4() PRIMARY KEY,
+  id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
   company_id UUID NOT NULL REFERENCES public.companies(id) ON DELETE CASCADE,
   first_name TEXT NOT NULL,
   last_name TEXT NOT NULL,
@@ -88,7 +88,7 @@ CREATE TABLE IF NOT EXISTS public.contacts (
 
 -- Properties table
 CREATE TABLE IF NOT EXISTS public.properties (
-  id UUID DEFAULT uuid_generate_v4() PRIMARY KEY,
+  id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
   title TEXT NOT NULL,
   slug TEXT UNIQUE NOT NULL,
   type TEXT NOT NULL CHECK (type IN ('apartment', 'house', 'villa', 'land', 'commercial', 'office', 'retail', 'industrial', 'other')),
@@ -122,7 +122,7 @@ CREATE TABLE IF NOT EXISTS public.properties (
 
 -- Property media
 CREATE TABLE IF NOT EXISTS public.property_media (
-  id UUID DEFAULT uuid_generate_v4() PRIMARY KEY,
+  id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
   property_id UUID NOT NULL REFERENCES public.properties(id) ON DELETE CASCADE,
   file_path TEXT NOT NULL,
   file_name TEXT NOT NULL,
@@ -135,7 +135,7 @@ CREATE TABLE IF NOT EXISTS public.property_media (
 
 -- Property documents (private)
 CREATE TABLE IF NOT EXISTS public.property_documents (
-  id UUID DEFAULT uuid_generate_v4() PRIMARY KEY,
+  id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
   property_id UUID NOT NULL REFERENCES public.properties(id) ON DELETE CASCADE,
   file_path TEXT NOT NULL,
   file_name TEXT NOT NULL,
@@ -148,7 +148,7 @@ CREATE TABLE IF NOT EXISTS public.property_documents (
 
 -- Buyer requests
 CREATE TABLE IF NOT EXISTS public.requests (
-  id UUID DEFAULT uuid_generate_v4() PRIMARY KEY,
+  id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
   title TEXT NOT NULL,
   buyer_id UUID NOT NULL REFERENCES public.clients(id) ON DELETE CASCADE,
   property_type TEXT CHECK (property_type IN ('apartment', 'house', 'villa', 'land', 'commercial', 'office', 'retail', 'industrial', 'other')),
@@ -171,7 +171,7 @@ CREATE TABLE IF NOT EXISTS public.requests (
 
 -- Leads
 CREATE TABLE IF NOT EXISTS public.leads (
-  id UUID DEFAULT uuid_generate_v4() PRIMARY KEY,
+  id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
   name TEXT NOT NULL,
   phone TEXT,
   email TEXT,
@@ -188,7 +188,7 @@ CREATE TABLE IF NOT EXISTS public.leads (
 
 -- Opportunities
 CREATE TABLE IF NOT EXISTS public.opportunities (
-  id UUID DEFAULT uuid_generate_v4() PRIMARY KEY,
+  id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
   client_id UUID NOT NULL REFERENCES public.clients(id) ON DELETE CASCADE,
   property_id UUID REFERENCES public.properties(id) ON DELETE SET NULL,
   request_id UUID REFERENCES public.requests(id) ON DELETE SET NULL,
@@ -207,7 +207,7 @@ CREATE TABLE IF NOT EXISTS public.opportunities (
 
 -- Activities
 CREATE TABLE IF NOT EXISTS public.activities (
-  id UUID DEFAULT uuid_generate_v4() PRIMARY KEY,
+  id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
   client_id UUID REFERENCES public.clients(id) ON DELETE CASCADE,
   property_id UUID REFERENCES public.properties(id) ON DELETE SET NULL,
   opportunity_id UUID REFERENCES public.opportunities(id) ON DELETE SET NULL,
@@ -221,12 +221,12 @@ CREATE TABLE IF NOT EXISTS public.activities (
 
 -- Follow-ups
 CREATE TABLE IF NOT EXISTS public.follow_ups (
-  id UUID DEFAULT uuid_generate_v4() PRIMARY KEY,
+  id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
   client_id UUID NOT NULL REFERENCES public.clients(id) ON DELETE CASCADE,
   property_id UUID REFERENCES public.properties(id) ON DELETE SET NULL,
   opportunity_id UUID REFERENCES public.opportunities(id) ON DELETE SET NULL,
-  insurance_id UUID REFERENCES public.insurance_policies(id) ON DELETE SET NULL,
-  credit_id UUID REFERENCES public.credit_cases(id) ON DELETE SET NULL,
+  insurance_id UUID,
+  credit_id UUID,
   reason TEXT NOT NULL,
   due_date TIMESTAMP WITH TIME ZONE NOT NULL,
   priority TEXT DEFAULT 'NORMAL' CHECK (priority IN ('LOW', 'NORMAL', 'HIGH', 'URGENT')),
@@ -239,7 +239,7 @@ CREATE TABLE IF NOT EXISTS public.follow_ups (
 
 -- Tasks
 CREATE TABLE IF NOT EXISTS public.tasks (
-  id UUID DEFAULT uuid_generate_v4() PRIMARY KEY,
+  id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
   title TEXT NOT NULL,
   description TEXT,
   due_date DATE,
@@ -255,7 +255,7 @@ CREATE TABLE IF NOT EXISTS public.tasks (
 
 -- Viewings
 CREATE TABLE IF NOT EXISTS public.viewings (
-  id UUID DEFAULT uuid_generate_v4() PRIMARY KEY,
+  id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
   client_id UUID NOT NULL REFERENCES public.clients(id) ON DELETE CASCADE,
   property_id UUID NOT NULL REFERENCES public.properties(id) ON DELETE CASCADE,
   date TIMESTAMP WITH TIME ZONE NOT NULL,
@@ -271,7 +271,7 @@ CREATE TABLE IF NOT EXISTS public.viewings (
 
 -- Offers
 CREATE TABLE IF NOT EXISTS public.offers (
-  id UUID DEFAULT uuid_generate_v4() PRIMARY KEY,
+  id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
   client_id UUID NOT NULL REFERENCES public.clients(id) ON DELETE CASCADE,
   property_id UUID NOT NULL REFERENCES public.properties(id) ON DELETE CASCADE,
   asking_price NUMERIC(15, 2) NOT NULL,
@@ -287,7 +287,7 @@ CREATE TABLE IF NOT EXISTS public.offers (
 
 -- Insurance policies
 CREATE TABLE IF NOT EXISTS public.insurance_policies (
-  id UUID DEFAULT uuid_generate_v4() PRIMARY KEY,
+  id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
   client_id UUID NOT NULL REFERENCES public.clients(id) ON DELETE CASCADE,
   policy_number TEXT UNIQUE,
   product TEXT NOT NULL CHECK (product IN ('RCA', 'CASCO', 'HOME', 'LIFE', 'HEALTH', 'IMM', 'BUSINESS', 'PROFESSIONAL_LIABILITY', 'CARGO', 'OTHER')),
@@ -299,14 +299,14 @@ CREATE TABLE IF NOT EXISTS public.insurance_policies (
   status TEXT DEFAULT 'ACTIVE' CHECK (status IN ('ACTIVE', 'EXPIRED', 'CANCELLED', 'PENDING_RENEWAL')),
   documents JSONB,
   notes TEXT,
-  renewal_follow_up_id UUID REFERENCES public.follow_ups(id) ON DELETE SET NULL,
+  renewal_follow_up_id UUID,
   created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
   updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
 );
 
 -- Insurance opportunities
 CREATE TABLE IF NOT EXISTS public.insurance_opportunities (
-  id UUID DEFAULT uuid_generate_v4() PRIMARY KEY,
+  id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
   client_id UUID NOT NULL REFERENCES public.clients(id) ON DELETE CASCADE,
   product TEXT NOT NULL CHECK (product IN ('RCA', 'CASCO', 'HOME', 'LIFE', 'HEALTH', 'IMM', 'BUSINESS', 'PROFESSIONAL_LIABILITY', 'CARGO', 'OTHER')),
   estimated_premium NUMERIC(15, 2),
@@ -320,7 +320,7 @@ CREATE TABLE IF NOT EXISTS public.insurance_opportunities (
 
 -- Credit cases
 CREATE TABLE IF NOT EXISTS public.credit_cases (
-  id UUID DEFAULT uuid_generate_v4() PRIMARY KEY,
+  id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
   client_id UUID NOT NULL REFERENCES public.clients(id) ON DELETE CASCADE,
   amount NUMERIC(15, 2) NOT NULL,
   currency TEXT DEFAULT 'EUR' CHECK (currency IN ('EUR', 'USD', 'RON')),
@@ -329,14 +329,14 @@ CREATE TABLE IF NOT EXISTS public.credit_cases (
   institution TEXT,
   documents JSONB,
   notes TEXT,
-  follow_up_id UUID REFERENCES public.follow_ups(id) ON DELETE SET NULL,
+  follow_up_id UUID,
   created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
   updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
 );
 
 -- Credit documents
 CREATE TABLE IF NOT EXISTS public.credit_documents (
-  id UUID DEFAULT uuid_generate_v4() PRIMARY KEY,
+  id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
   credit_case_id UUID NOT NULL REFERENCES public.credit_cases(id) ON DELETE CASCADE,
   file_path TEXT NOT NULL,
   file_name TEXT NOT NULL,
@@ -349,7 +349,7 @@ CREATE TABLE IF NOT EXISTS public.credit_documents (
 
 -- Documents (client document vault)
 CREATE TABLE IF NOT EXISTS public.documents (
-  id UUID DEFAULT uuid_generate_v4() PRIMARY KEY,
+  id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
   file_path TEXT NOT NULL,
   file_name TEXT NOT NULL,
   file_type TEXT NOT NULL,
@@ -368,7 +368,7 @@ CREATE TABLE IF NOT EXISTS public.documents (
 
 -- Document folders
 CREATE TABLE IF NOT EXISTS public.document_folders (
-  id UUID DEFAULT uuid_generate_v4() PRIMARY KEY,
+  id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
   name TEXT NOT NULL,
   client_id UUID REFERENCES public.clients(id) ON DELETE CASCADE,
   parent_folder_id UUID REFERENCES public.document_folders(id) ON DELETE CASCADE,
@@ -377,7 +377,7 @@ CREATE TABLE IF NOT EXISTS public.document_folders (
 
 -- Campaigns
 CREATE TABLE IF NOT EXISTS public.campaigns (
-  id UUID DEFAULT uuid_generate_v4() PRIMARY KEY,
+  id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
   name TEXT NOT NULL,
   objective TEXT,
   channel TEXT CHECK (channel IN ('website', 'social', 'email', 'paid_ads', 'referral', 'other')),
@@ -393,7 +393,7 @@ CREATE TABLE IF NOT EXISTS public.campaigns (
 
 -- Marketing events
 CREATE TABLE IF NOT EXISTS public.marketing_events (
-  id UUID DEFAULT uuid_generate_v4() PRIMARY KEY,
+  id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
   campaign_id UUID REFERENCES public.campaigns(id) ON DELETE SET NULL,
   lead_id UUID REFERENCES public.leads(id) ON DELETE SET NULL,
   property_id UUID REFERENCES public.properties(id) ON DELETE SET NULL,
@@ -405,7 +405,7 @@ CREATE TABLE IF NOT EXISTS public.marketing_events (
 
 -- Referrals
 CREATE TABLE IF NOT EXISTS public.referrals (
-  id UUID DEFAULT uuid_generate_v4() PRIMARY KEY,
+  id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
   referrer_id UUID NOT NULL REFERENCES public.clients(id) ON DELETE CASCADE,
   referred_client_id UUID NOT NULL REFERENCES public.clients(id) ON DELETE CASCADE,
   date DATE NOT NULL,
@@ -416,7 +416,7 @@ CREATE TABLE IF NOT EXISTS public.referrals (
 
 -- Personal events (birthdays, anniversaries, etc.)
 CREATE TABLE IF NOT EXISTS public.personal_events (
-  id UUID DEFAULT uuid_generate_v4() PRIMARY KEY,
+  id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
   client_id UUID NOT NULL REFERENCES public.clients(id) ON DELETE CASCADE,
   event_type TEXT NOT NULL CHECK (event_type IN ('birthday', 'anniversary', 'custom')),
   event_date DATE NOT NULL,
@@ -428,7 +428,7 @@ CREATE TABLE IF NOT EXISTS public.personal_events (
 
 -- Notifications
 CREATE TABLE IF NOT EXISTS public.notifications (
-  id UUID DEFAULT uuid_generate_v4() PRIMARY KEY,
+  id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
   user_id UUID REFERENCES public.profiles(id) ON DELETE CASCADE,
   type TEXT NOT NULL,
   title TEXT NOT NULL,
@@ -441,7 +441,7 @@ CREATE TABLE IF NOT EXISTS public.notifications (
 
 -- Audit logs
 CREATE TABLE IF NOT EXISTS public.audit_logs (
-  id UUID DEFAULT uuid_generate_v4() PRIMARY KEY,
+  id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
   user_id UUID REFERENCES public.profiles(id) ON DELETE SET NULL,
   action TEXT NOT NULL,
   entity_type TEXT NOT NULL,
@@ -455,7 +455,7 @@ CREATE TABLE IF NOT EXISTS public.audit_logs (
 
 -- Public metrics
 CREATE TABLE IF NOT EXISTS public.public_metrics (
-  id UUID DEFAULT uuid_generate_v4() PRIMARY KEY,
+  id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
   metric_name TEXT NOT NULL UNIQUE,
   metric_value INTEGER NOT NULL,
   visible BOOLEAN DEFAULT TRUE,
@@ -464,12 +464,29 @@ CREATE TABLE IF NOT EXISTS public.public_metrics (
 
 -- Settings
 CREATE TABLE IF NOT EXISTS public.settings (
-  id UUID DEFAULT uuid_generate_v4() PRIMARY KEY,
+  id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
   key TEXT NOT NULL UNIQUE,
   value JSONB NOT NULL,
   description TEXT,
   updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
 );
+
+-- Deferred circular foreign key constraints (added after all 30 tables exist)
+ALTER TABLE public.follow_ups
+  ADD CONSTRAINT fk_follow_ups_insurance
+  FOREIGN KEY (insurance_id) REFERENCES public.insurance_policies(id) ON DELETE SET NULL;
+
+ALTER TABLE public.follow_ups
+  ADD CONSTRAINT fk_follow_ups_credit
+  FOREIGN KEY (credit_id) REFERENCES public.credit_cases(id) ON DELETE SET NULL;
+
+ALTER TABLE public.insurance_policies
+  ADD CONSTRAINT fk_insurance_policies_renewal_follow_up
+  FOREIGN KEY (renewal_follow_up_id) REFERENCES public.follow_ups(id) ON DELETE SET NULL;
+
+ALTER TABLE public.credit_cases
+  ADD CONSTRAINT fk_credit_cases_follow_up
+  FOREIGN KEY (follow_up_id) REFERENCES public.follow_ups(id) ON DELETE SET NULL;
 
 -- Create indexes for performance
 CREATE INDEX IF NOT EXISTS idx_clients_email ON public.clients(email);
