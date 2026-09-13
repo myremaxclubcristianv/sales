@@ -65,7 +65,7 @@ export default function DataProtectionNoticePage() {
                 <strong>Buyer Mandate Data:</strong> Search criteria (budget ceilings, target neighborhoods, surface requirements) are stored confidentially. Public listings on the Buyer Requests Board display criteria in an anonymized format without revealing individual or family office identities.
               </li>
               <li>
-                <strong>Seller Representation &amp; Cadastral Records:</strong> Property title deeds, land registry extracts (extrase de carte funciară), and architectural floorplans are maintained in encrypted private document vaults, accessible only to authorized advisors with a direct transaction need.
+                <strong>Seller Representation &amp; Cadastral Records:</strong> Property title deeds, land registry extracts (extrase de carte funciară), and architectural floorplans are maintained in private RLS-protected document storage, accessible only to authorized advisors with a direct transaction need.
               </li>
               <li>
                 <strong>Viewings &amp; Negotiations:</strong> Viewing schedules, attendee identity confirmations, and formal written offer records are logged with immutable timestamps to guarantee transaction transparency and legal enforceability.

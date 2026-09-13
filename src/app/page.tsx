@@ -259,10 +259,10 @@ export default async function Home() {
                 <div className="p-4 rounded-2xl bg-slate-50 border border-slate-200/80 space-y-1.5">
                   <div className="flex items-center gap-2 text-slate-900 font-bold text-xs">
                     <FolderLock className="w-4 h-4 text-emerald-600" />
-                    <span>Encrypted Document Vault</span>
+                    <span>Private Document Vault</span>
                   </div>
                   <p className="text-[11px] text-slate-500 leading-relaxed">
-                    Categorized ID documents, contracts, title deeds, and credit files with strict access controls.
+                    Categorized ID documents, contracts, title deeds, and credit files with Row-Level Security access controls.
                   </p>
                 </div>
 
@@ -319,8 +319,8 @@ export default async function Home() {
                     <span className="text-purple-400">Credit Case &amp; Stage Tracking</span>
                   </div>
                   <div className="p-3 bg-slate-900 rounded-xl border border-slate-800 flex items-center justify-between">
-                    <span className="text-slate-400">📁 Vault Storage</span>
-                    <span className="text-brand-gold-400">Row-Level Security Encrypted</span>
+                    <span className="text-slate-400">📁 Private Storage</span>
+                    <span className="text-brand-gold-400">Row-Level Security Governed</span>
                   </div>
                 </div>
 
