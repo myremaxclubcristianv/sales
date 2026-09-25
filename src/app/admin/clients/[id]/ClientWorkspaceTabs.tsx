@@ -23,7 +23,9 @@ import {
   User,
   History,
   Building2,
+  CreditCard,
 } from 'lucide-react'
+import { getCategoryLabel, getSourceLabel } from '@/lib/types/crm'
 import type { Database } from '@/types'
 
 type ClientRow = Database['public']['Tables']['clients']['Row'] & {
@@ -153,21 +155,41 @@ export function ClientWorkspaceTabs({
     router.replace(`?${params.toString()}`, { scroll: false })
   }
 
+  const clientCategory = (client.category || 'REAL_ESTATE').toUpperCase()
+
   return (
     <div className="space-y-6">
       {/* 1. Client Context Header */}
       <div className="bg-white dark:bg-neutral-900 rounded-2xl border border-neutral-200/80 dark:border-neutral-800 p-5 sm:p-6 shadow-sm">
-        <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-5">
+        <div className="flex flex-col lg:flex-row lg:items-start justify-between gap-5">
           {/* Client Identity */}
           <div className="flex items-start gap-4">
             <div className="w-14 h-14 rounded-2xl bg-neutral-900 dark:bg-neutral-100 text-white dark:text-neutral-900 font-serif font-bold text-xl flex items-center justify-center shrink-0 shadow-sm">
               {client.first_name?.[0] || 'C'}{client.last_name?.[0] || 'V'}
             </div>
-            <div className="space-y-1">
+            <div className="space-y-1.5">
               <div className="flex flex-wrap items-center gap-2">
                 <h1 className="text-2xl font-bold tracking-tight text-neutral-900 dark:text-neutral-100">
                   {client.first_name} {client.last_name}
                 </h1>
+
+                {/* Category Badge */}
+                <span
+                  className={`inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-bold uppercase tracking-wider ${
+                    clientCategory === 'INSURANCE'
+                      ? 'bg-emerald-50 text-emerald-700 dark:bg-emerald-950/40 dark:text-emerald-400 border border-emerald-200 dark:border-emerald-800'
+                      : clientCategory === 'CREDIT'
+                      ? 'bg-amber-50 text-amber-700 dark:bg-amber-950/40 dark:text-amber-400 border border-amber-200 dark:border-amber-800'
+                      : 'bg-blue-50 text-blue-700 dark:bg-blue-950/40 dark:text-blue-400 border border-blue-200 dark:border-blue-800'
+                  }`}
+                >
+                  {clientCategory === 'REAL_ESTATE' && <Building2 className="w-3 h-3" />}
+                  {clientCategory === 'INSURANCE' && <Shield className="w-3 h-3" />}
+                  {clientCategory === 'CREDIT' && <CreditCard className="w-3 h-3" />}
+                  <span>{getCategoryLabel(client.category)}</span>
+                </span>
+
+                {/* Status Badge */}
                 <span
                   className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-semibold uppercase tracking-wider ${
                     client.status === 'ACTIVE'
@@ -177,22 +199,33 @@ export function ClientWorkspaceTabs({
                 >
                   {client.status}
                 </span>
-                <span className="text-xs font-semibold uppercase bg-neutral-100 dark:bg-neutral-800 text-neutral-600 dark:text-neutral-400 px-2 py-0.5 rounded-md">
-                  {client.lead_source || 'DIRECT CLIENT'}
+
+                {/* Source Badge */}
+                <span className="text-xs font-semibold bg-neutral-100 dark:bg-neutral-800 text-neutral-600 dark:text-neutral-400 px-2 py-0.5 rounded-md border border-neutral-200/60 dark:border-neutral-700">
+                  {getSourceLabel(client.lead_source)}
                 </span>
               </div>
-              <div className="flex flex-wrap items-center gap-x-4 gap-y-1 text-xs text-neutral-500 dark:text-neutral-400">
+
+              {/* Ce dorește / Interest Summary banner */}
+              {(client.interest_summary || client.personal_notes) && (
+                <div className="inline-flex items-center gap-1.5 px-3 py-1 bg-blue-50/70 dark:bg-blue-950/40 border border-blue-200/60 dark:border-blue-900/40 rounded-xl text-xs font-medium text-blue-950 dark:text-blue-300 max-w-xl">
+                  <span className="font-bold text-blue-700 dark:text-blue-400">Ce dorește:</span>
+                  <span>{client.interest_summary || client.personal_notes}</span>
+                </div>
+              )}
+
+              <div className="flex flex-wrap items-center gap-x-4 gap-y-1 text-xs text-neutral-500 dark:text-neutral-400 pt-0.5">
                 {client.phone && (
-                  <span className="font-mono flex items-center gap-1">
+                  <a href={`tel:${client.phone}`} className="font-mono flex items-center gap-1 hover:text-blue-600">
                     <Phone className="w-3 h-3 text-neutral-400" />
                     {client.phone}
-                  </span>
+                  </a>
                 )}
                 {client.email && (
-                  <span className="flex items-center gap-1">
+                  <a href={`mailto:${client.email}`} className="flex items-center gap-1 hover:text-blue-600">
                     <Mail className="w-3 h-3 text-neutral-400" />
                     {client.email}
-                  </span>
+                  </a>
                 )}
                 {client.companies?.name && (
                   <span className="flex items-center gap-1 font-semibold text-neutral-700 dark:text-neutral-300">
@@ -208,12 +241,12 @@ export function ClientWorkspaceTabs({
           </div>
 
           {/* Quick Action Buttons */}
-          <div className="flex flex-wrap items-center gap-2 pt-2 lg:pt-0 border-t lg:border-t-0 border-neutral-100 dark:border-neutral-800">
+          <div className="flex flex-wrap items-center gap-2 pt-2 lg:pt-0 border-t lg:border-t-0 border-neutral-100 dark:border-neutral-800 shrink-0">
             {client.phone && (
               <a href={`tel:${client.phone}`}>
                 <Button size="sm" variant="outline" className="gap-1.5 text-xs h-9">
                   <Phone className="w-3.5 h-3.5 text-emerald-600" />
-                  <span>Call</span>
+                  <span>Sună</span>
                 </Button>
               </a>
             )}
@@ -237,16 +270,34 @@ export function ClientWorkspaceTabs({
                 </Button>
               </a>
             )}
+            <Button
+              size="sm"
+              variant="outline"
+              onClick={() => handleTabChange('activities')}
+              className="gap-1.5 text-xs h-9"
+            >
+              <Plus className="w-3.5 h-3.5" />
+              <span>Activitate</span>
+            </Button>
+            <Button
+              size="sm"
+              variant="outline"
+              onClick={() => handleTabChange('follow-ups')}
+              className="gap-1.5 text-xs h-9"
+            >
+              <Clock className="w-3.5 h-3.5 text-amber-600" />
+              <span>Follow-up</span>
+            </Button>
+            <Link href={`/admin/opportunities/new?client_id=${client.id}`}>
+              <Button size="sm" variant="outline" className="gap-1.5 text-xs h-9">
+                <Briefcase className="w-3.5 h-3.5 text-blue-600" />
+                <span>Oportunitate</span>
+              </Button>
+            </Link>
             <Link href={`/admin/insurance/new?client_id=${client.id}`}>
               <Button size="sm" className="gap-1.5 text-xs h-9 bg-neutral-900 text-white dark:bg-neutral-100 dark:text-neutral-900">
                 <Shield className="w-3.5 h-3.5 text-blue-400" />
-                <span>New Policy</span>
-              </Button>
-            </Link>
-            <Link href={`/admin/opportunities/new?client_id=${client.id}`}>
-              <Button size="sm" variant="outline" className="gap-1.5 text-xs h-9">
-                <Plus className="w-3.5 h-3.5" />
-                <span>New Opp</span>
+                <span>Poliță Nouă</span>
               </Button>
             </Link>
           </div>

@@ -108,7 +108,9 @@ export interface Database {
           cnp: string | null
           client_type: 'INDIVIDUAL' | 'CORPORATE' | string
           preferred_communication: 'phone' | 'whatsapp' | 'email'
-          lead_source: 'website' | 'whatsapp' | 'telegram' | 'instagram' | 'facebook' | 'referral' | 'phone' | 'email' | 'property' | 'campaign' | 'other' | null
+          lead_source: string | null
+          category?: string | null
+          interest_summary?: string | null
           tags: string[] | null
           status: 'ACTIVE' | 'INACTIVE' | 'ARCHIVED'
           date_of_birth: string | null
@@ -136,7 +138,9 @@ export interface Database {
           cnp?: string | null
           client_type?: 'INDIVIDUAL' | 'CORPORATE' | string
           preferred_communication?: 'phone' | 'whatsapp' | 'email'
-          lead_source?: 'website' | 'whatsapp' | 'telegram' | 'instagram' | 'facebook' | 'referral' | 'phone' | 'email' | 'property' | 'campaign' | 'other' | null
+          lead_source?: string | null
+          category?: string | null
+          interest_summary?: string | null
           tags?: string[] | null
           status?: 'ACTIVE' | 'INACTIVE' | 'ARCHIVED'
           date_of_birth?: string | null
@@ -164,7 +168,9 @@ export interface Database {
           cnp?: string | null
           client_type?: 'INDIVIDUAL' | 'CORPORATE' | string
           preferred_communication?: 'phone' | 'whatsapp' | 'email'
-          lead_source?: 'website' | 'whatsapp' | 'telegram' | 'instagram' | 'facebook' | 'referral' | 'phone' | 'email' | 'property' | 'campaign' | 'other' | null
+          lead_source?: string | null
+          category?: string | null
+          interest_summary?: string | null
           tags?: string[] | null
           status?: 'ACTIVE' | 'INACTIVE' | 'ARCHIVED'
           date_of_birth?: string | null
@@ -173,6 +179,112 @@ export interface Database {
           communication_preferences?: Record<string, unknown> | null
           created_at?: string
           updated_at?: string
+        }
+      }
+      contacts: {
+        Row: {
+          id: string
+          company_id: string | null
+          client_id: string | null
+          first_name: string
+          last_name: string
+          company_name: string | null
+          role: string | null
+          phone: string | null
+          whatsapp: string | null
+          email: string | null
+          category: string | null
+          source: string | null
+          interest_summary: string | null
+          address: string | null
+          city: string | null
+          country: string | null
+          notes: string | null
+          raw_data: Record<string, unknown> | null
+          created_at: string
+          updated_at: string
+        }
+        Insert: {
+          id?: string
+          company_id?: string | null
+          client_id?: string | null
+          first_name: string
+          last_name?: string
+          company_name?: string | null
+          role?: string | null
+          phone?: string | null
+          whatsapp?: string | null
+          email?: string | null
+          category?: string | null
+          source?: string | null
+          interest_summary?: string | null
+          address?: string | null
+          city?: string | null
+          country?: string | null
+          notes?: string | null
+          raw_data?: Record<string, unknown> | null
+          created_at?: string
+          updated_at?: string
+        }
+        Update: {
+          id?: string
+          company_id?: string | null
+          client_id?: string | null
+          first_name?: string
+          last_name?: string
+          company_name?: string | null
+          role?: string | null
+          phone?: string | null
+          whatsapp?: string | null
+          email?: string | null
+          category?: string | null
+          source?: string | null
+          interest_summary?: string | null
+          address?: string | null
+          city?: string | null
+          country?: string | null
+          notes?: string | null
+          raw_data?: Record<string, unknown> | null
+          created_at?: string
+          updated_at?: string
+        }
+      }
+      contact_imports: {
+        Row: {
+          id: string
+          filename: string
+          imported_by: string | null
+          total_rows: number
+          imported_count: number
+          skipped_count: number
+          duplicate_count: number
+          invalid_count: number
+          summary: Record<string, unknown> | null
+          created_at: string
+        }
+        Insert: {
+          id?: string
+          filename: string
+          imported_by?: string | null
+          total_rows?: number
+          imported_count?: number
+          skipped_count?: number
+          duplicate_count?: number
+          invalid_count?: number
+          summary?: Record<string, unknown> | null
+          created_at?: string
+        }
+        Update: {
+          id?: string
+          filename?: string
+          imported_by?: string | null
+          total_rows?: number
+          imported_count?: number
+          skipped_count?: number
+          duplicate_count?: number
+          invalid_count?: number
+          summary?: Record<string, unknown> | null
+          created_at?: string
         }
       }
       client_relationships: {
