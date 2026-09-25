@@ -342,7 +342,7 @@ export function PrivateLayout({ children }: PrivateLayoutProps) {
               <span className="font-bold text-sm tracking-tight text-slate-900">CRM OS</span>
             </div>
             <div className="hidden md:block">
-              <span className="text-xs font-medium text-slate-500 font-mono">Workspace: Main Operating Hub</span>
+              <span className="text-xs font-semibold text-slate-800 font-mono">Workspace: Main Operating Hub</span>
             </div>
           </div>
 

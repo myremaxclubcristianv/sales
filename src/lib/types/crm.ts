@@ -7,6 +7,7 @@ export const CLIENT_CATEGORIES: { id: ClientCategory; label: string; shortLabel:
 ]
 
 export type ClientSource =
+  | 'GENERALI_CRM'
   | 'DIRECT_CONTACT'
   | 'PHONE'
   | 'WHATSAPP'
@@ -36,6 +37,7 @@ export type ClientSource =
   | 'other'
 
 export const CLIENT_SOURCES: { id: string; label: string; group?: string }[] = [
+  { id: 'GENERALI_CRM', label: 'Generali CRM' },
   { id: 'DIRECT_CONTACT', label: 'Contact direct' },
   { id: 'PHONE', label: 'Telefon' },
   { id: 'WHATSAPP', label: 'WhatsApp' },

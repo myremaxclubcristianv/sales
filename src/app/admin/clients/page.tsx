@@ -29,17 +29,11 @@ export default async function ClientsPage(props: PageProps) {
       search: search || undefined,
       status: status || undefined,
       category: category !== 'ALL' ? category : undefined,
+      source: source || undefined,
       quickFilter: quickFilter || undefined,
     })
   } catch (err) {
     console.error('Error fetching clients:', err)
-  }
-
-  // If source filter is set, filter clients by lead_source
-  if (source) {
-    clients = clients.filter(
-      (c) => (c.lead_source || '').toUpperCase() === source.toUpperCase()
-    )
   }
 
   return (

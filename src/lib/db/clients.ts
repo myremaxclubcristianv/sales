@@ -10,6 +10,7 @@ export interface GetClientsOptions {
   search?: string
   category?: string
   status?: string
+  source?: string
   quickFilter?: string
   limit?: number
   offset?: number
@@ -24,7 +25,7 @@ export type ClientWithRelations = ClientRow & {
 
 export async function getClients(options: GetClientsOptions = {}) {
   const supabase = await createServerClient()
-  const { search, category, status, quickFilter } = options
+  const { search, category, status, source, quickFilter } = options
 
   let query = supabase
     .from('clients')
@@ -59,6 +60,10 @@ export async function getClients(options: GetClientsOptions = {}) {
 
   if (category && category !== 'ALL') {
     query = query.eq('category', category)
+  }
+
+  if (source && source.trim()) {
+    query = query.eq('lead_source', source.trim())
   }
 
   if (search && search.trim()) {

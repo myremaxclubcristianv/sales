@@ -138,15 +138,15 @@ export function ContactsView({
       {/* 1. Header & Quick Actions */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
-          <div className="flex items-center gap-2">
-            <h1 className="text-2xl sm:text-3xl font-bold tracking-tight text-slate-900 dark:text-neutral-100">
+          <div className="flex items-center gap-2.5">
+            <h1 className="text-2xl sm:text-3xl font-bold tracking-tight text-slate-900">
               Agenda Contacte
             </h1>
-            <span className="px-2.5 py-0.5 text-xs font-semibold bg-slate-100 text-slate-800 dark:bg-neutral-800 dark:text-neutral-200 rounded-full border border-slate-200 dark:border-neutral-700">
+            <span className="px-2.5 py-0.5 text-xs font-bold bg-slate-100 text-slate-800 rounded-full border border-slate-200">
               {totalCount.toLocaleString()} {totalCount === 1 ? 'persoană' : 'persoane'}
             </span>
           </div>
-          <p className="text-xs sm:text-sm text-slate-500 dark:text-neutral-400 mt-1">
+          <p className="text-xs sm:text-sm text-slate-600 font-medium mt-1">
             Baza de contacte și agenda telefonică (separată de clienții CRM).
           </p>
         </div>
@@ -155,7 +155,7 @@ export function ContactsView({
           <button
             type="button"
             onClick={handleExportCSV}
-            className="px-3.5 py-2 bg-white hover:bg-slate-50 dark:bg-neutral-800 dark:hover:bg-neutral-700 text-slate-700 dark:text-neutral-200 border border-slate-200 dark:border-neutral-700 text-xs font-semibold rounded-xl transition-all shadow-xs flex items-center gap-1.5"
+            className="px-3.5 py-2 bg-white hover:bg-slate-50 text-slate-700 border border-slate-300 text-xs font-semibold rounded-xl transition-all shadow-xs flex items-center gap-1.5"
           >
             <Download className="w-4 h-4 text-slate-500" />
             <span>Exportă CSV</span>
@@ -164,7 +164,7 @@ export function ContactsView({
           <button
             type="button"
             onClick={() => setImportModalOpen(true)}
-            className="px-3.5 py-2 bg-white hover:bg-slate-50 dark:bg-neutral-800 dark:hover:bg-neutral-700 text-slate-700 dark:text-neutral-200 border border-slate-200 dark:border-neutral-700 text-xs font-semibold rounded-xl transition-all shadow-xs flex items-center gap-1.5"
+            className="px-3.5 py-2 bg-white hover:bg-slate-50 text-slate-700 border border-slate-300 text-xs font-semibold rounded-xl transition-all shadow-xs flex items-center gap-1.5"
           >
             <FileSpreadsheet className="w-4 h-4 text-emerald-600" />
             <span>Importă contacte</span>
@@ -191,20 +191,20 @@ export function ContactsView({
             setActiveClientFilter('all')
             updateFilters({ clientFilter: 'all' })
           }}
-          className={`p-4 bg-white dark:bg-neutral-900 rounded-2xl border transition-all cursor-pointer shadow-xs ${
+          className={`p-4 bg-white rounded-2xl border transition-all cursor-pointer shadow-xs ${
             activeClientFilter === 'all'
               ? 'border-blue-500 ring-2 ring-blue-500/10'
-              : 'border-slate-200/80 dark:border-neutral-800 hover:border-slate-300'
+              : 'border-slate-200 hover:border-slate-300'
           }`}
         >
           <div className="flex items-center justify-between">
-            <span className="text-xs font-bold text-slate-500 uppercase tracking-wider">Total Agendă</span>
+            <span className="text-xs font-bold text-slate-600 uppercase tracking-wider">Total Agendă</span>
             <Users className="w-4 h-4 text-slate-400" />
           </div>
-          <p className="text-2xl font-bold text-slate-900 dark:text-neutral-100 mt-1">
+          <p className="text-2xl font-bold text-slate-900 mt-1">
             {totalCount.toLocaleString()}
           </p>
-          <span className="text-[11px] text-slate-400 mt-0.5 block">Toate contactele înregistrate</span>
+          <span className="text-[11px] text-slate-500 font-medium mt-0.5 block">Toate contactele înregistrate</span>
         </div>
 
         <div
@@ -212,22 +212,22 @@ export function ContactsView({
             setActiveClientFilter('clients_only')
             updateFilters({ clientFilter: 'clients_only' })
           }}
-          className={`p-4 bg-white dark:bg-neutral-900 rounded-2xl border transition-all cursor-pointer shadow-xs ${
+          className={`p-4 bg-white rounded-2xl border transition-all cursor-pointer shadow-xs ${
             activeClientFilter === 'clients_only'
               ? 'border-emerald-500 ring-2 ring-emerald-500/10'
-              : 'border-slate-200/80 dark:border-neutral-800 hover:border-slate-300'
+              : 'border-slate-200 hover:border-slate-300'
           }`}
         >
           <div className="flex items-center justify-between">
-            <span className="text-xs font-bold text-emerald-700 dark:text-emerald-400 uppercase tracking-wider">
+            <span className="text-xs font-bold text-emerald-700 uppercase tracking-wider">
               Clienți CRM
             </span>
             <CheckCircle2 className="w-4 h-4 text-emerald-600" />
           </div>
-          <p className="text-2xl font-bold text-emerald-700 dark:text-emerald-400 mt-1">
+          <p className="text-2xl font-bold text-emerald-700 mt-1">
             {clientsCount.toLocaleString()}
           </p>
-          <span className="text-[11px] text-slate-400 mt-0.5 block">Convertite în relații active CRM</span>
+          <span className="text-[11px] text-slate-500 font-medium mt-0.5 block">Convertite în relații active CRM</span>
         </div>
 
         <div
@@ -235,27 +235,27 @@ export function ContactsView({
             setActiveClientFilter('agenda_only')
             updateFilters({ clientFilter: 'agenda_only' })
           }}
-          className={`p-4 bg-white dark:bg-neutral-900 rounded-2xl border transition-all cursor-pointer shadow-xs ${
+          className={`p-4 bg-white rounded-2xl border transition-all cursor-pointer shadow-xs ${
             activeClientFilter === 'agenda_only'
               ? 'border-amber-500 ring-2 ring-amber-500/10'
-              : 'border-slate-200/80 dark:border-neutral-800 hover:border-slate-300'
+              : 'border-slate-200 hover:border-slate-300'
           }`}
         >
           <div className="flex items-center justify-between">
-            <span className="text-xs font-bold text-amber-700 dark:text-amber-400 uppercase tracking-wider">
+            <span className="text-xs font-bold text-amber-700 uppercase tracking-wider">
               Doar Agendă
             </span>
             <Users className="w-4 h-4 text-amber-600" />
           </div>
-          <p className="text-2xl font-bold text-amber-700 dark:text-amber-400 mt-1">
+          <p className="text-2xl font-bold text-amber-700 mt-1">
             {nonClientsCount.toLocaleString()}
           </p>
-          <span className="text-[11px] text-slate-400 mt-0.5 block">Persoane neconvertite în clienți</span>
+          <span className="text-[11px] text-slate-500 font-medium mt-0.5 block">Persoane neconvertite în clienți</span>
         </div>
       </div>
 
       {/* 3. Search & Filter Bar */}
-      <div className="bg-white dark:bg-neutral-900 rounded-2xl border border-slate-200/80 dark:border-neutral-800 p-4 shadow-xs space-y-3">
+      <div className="bg-white rounded-2xl border border-slate-200 p-4 shadow-xs space-y-3">
         <form onSubmit={handleSearchSubmit} className="grid grid-cols-1 sm:grid-cols-12 gap-3">
           <div className="relative sm:col-span-6">
             <Search className="w-4 h-4 text-slate-400 absolute left-3 top-3" />
@@ -264,7 +264,7 @@ export function ContactsView({
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
               placeholder="Caută după nume, telefon, email, companie..."
-              className="w-full pl-9 pr-3 py-2 text-sm bg-slate-50 dark:bg-neutral-800 border border-slate-200 dark:border-neutral-700 rounded-xl focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 outline-hidden text-slate-900 dark:text-neutral-100"
+              className="w-full pl-9 pr-3 py-2 text-sm bg-slate-50 hover:bg-white focus:bg-white border border-slate-300 rounded-xl focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 outline-hidden text-slate-900 placeholder:text-slate-400 font-medium transition-colors"
             />
           </div>
 
@@ -275,7 +275,7 @@ export function ContactsView({
                 setActiveCategory(e.target.value)
                 updateFilters({ category: e.target.value })
               }}
-              className="w-full px-3 py-2 text-sm bg-slate-50 dark:bg-neutral-800 border border-slate-200 dark:border-neutral-700 rounded-xl focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 outline-hidden text-slate-900 dark:text-neutral-100"
+              className="w-full px-3 py-2 text-sm bg-slate-50 hover:bg-white focus:bg-white border border-slate-300 rounded-xl focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 outline-hidden text-slate-900 font-medium transition-colors"
             >
               <option value="ALL">Toate categoriile</option>
               {CLIENT_CATEGORIES.map((cat) => (
@@ -289,7 +289,7 @@ export function ContactsView({
           <div className="sm:col-span-3 flex items-center gap-2">
             <button
               type="submit"
-              className="flex-1 px-4 py-2 bg-slate-900 hover:bg-slate-800 dark:bg-white dark:hover:bg-slate-100 text-white dark:text-slate-900 text-xs font-bold rounded-xl transition-colors shadow-xs"
+              className="flex-1 px-4 py-2 bg-slate-900 hover:bg-slate-800 text-white text-xs font-bold rounded-xl transition-colors shadow-xs"
             >
               Caută
             </button>
@@ -298,7 +298,7 @@ export function ContactsView({
               <button
                 type="button"
                 onClick={handleResetFilters}
-                className="px-3 py-2 text-xs font-medium text-slate-600 dark:text-neutral-300 hover:bg-slate-100 dark:hover:bg-neutral-800 rounded-xl border border-slate-200 dark:border-neutral-700 transition-colors flex items-center gap-1"
+                className="px-3 py-2 text-xs font-semibold text-slate-700 hover:bg-slate-100 rounded-xl border border-slate-300 transition-colors flex items-center gap-1"
                 title="Resetează filtrele"
               >
                 <RotateCcw className="w-3.5 h-3.5" />
@@ -311,21 +311,21 @@ export function ContactsView({
 
       {/* 4. Contacts Table */}
       {initialContacts.length === 0 ? (
-        <div className="text-center py-16 bg-white dark:bg-neutral-900 rounded-2xl border border-dashed border-slate-200 dark:border-neutral-800 space-y-3">
-          <div className="w-12 h-12 rounded-full bg-slate-100 dark:bg-neutral-800 text-slate-400 flex items-center justify-center mx-auto">
+        <div className="text-center py-16 bg-white rounded-2xl border border-dashed border-slate-300 space-y-3">
+          <div className="w-12 h-12 rounded-full bg-slate-100 text-slate-500 flex items-center justify-center mx-auto">
             <Users className="w-6 h-6" />
           </div>
-          <h3 className="text-base font-bold text-slate-800 dark:text-neutral-200">
+          <h3 className="text-base font-bold text-slate-900">
             Niciun contact găsit
           </h3>
-          <p className="text-xs text-slate-500 dark:text-neutral-400 max-w-sm mx-auto">
+          <p className="text-xs text-slate-600 max-w-sm mx-auto font-medium">
             Adaugă un contact manual sau importă lista din telefon folosind un fișier CSV/VCF.
           </p>
           <div className="flex items-center justify-center gap-2 pt-2">
             <button
               type="button"
               onClick={() => setImportModalOpen(true)}
-              className="px-4 py-2 bg-white hover:bg-slate-50 border border-slate-200 text-slate-700 text-xs font-bold rounded-xl shadow-xs"
+              className="px-4 py-2 bg-white hover:bg-slate-50 border border-slate-300 text-slate-700 text-xs font-bold rounded-xl shadow-xs"
             >
               Importă CSV
             </button>
@@ -342,12 +342,12 @@ export function ContactsView({
           </div>
         </div>
       ) : (
-        <div className="bg-white dark:bg-neutral-900 rounded-2xl border border-slate-200/80 dark:border-neutral-800 shadow-xs overflow-hidden">
+        <div className="bg-white rounded-2xl border border-slate-200 shadow-xs overflow-hidden">
           {/* Desktop Table */}
           <div className="hidden lg:block overflow-x-auto">
             <table className="w-full text-left border-collapse text-xs">
               <thead>
-                <tr className="bg-slate-50/80 dark:bg-neutral-800/60 border-b border-slate-200/80 dark:border-neutral-800 text-[11px] font-bold text-slate-500 dark:text-neutral-400 uppercase tracking-wider">
+                <tr className="bg-slate-50 border-b border-slate-200 text-[11px] font-bold text-slate-600 uppercase tracking-wider">
                   <th className="py-3.5 pl-6 pr-3">Persoană</th>
                   <th className="py-3.5 px-3">Telefon</th>
                   <th className="py-3.5 px-3">Email</th>
@@ -357,26 +357,26 @@ export function ContactsView({
                   <th className="py-3.5 pl-3 pr-6 text-right">Acțiuni</th>
                 </tr>
               </thead>
-              <tbody className="divide-y divide-slate-100 dark:divide-neutral-800/80">
+              <tbody className="divide-y divide-slate-100">
                 {initialContacts.map((contact) => {
                   const isClient = Boolean(contact.client_id)
                   return (
                     <tr
                       key={contact.id}
-                      className="hover:bg-slate-50/70 dark:hover:bg-neutral-800/40 transition-colors group"
+                      className="hover:bg-slate-50 transition-colors group"
                     >
                       {/* Name */}
                       <td className="py-3.5 pl-6 pr-3">
                         <div className="flex items-center gap-3">
-                          <div className="w-8 h-8 rounded-full bg-slate-100 dark:bg-neutral-800 text-slate-700 dark:text-neutral-300 font-bold text-xs flex items-center justify-center shrink-0 border border-slate-200 dark:border-neutral-700">
+                          <div className="w-8 h-8 rounded-full bg-slate-100 text-slate-700 font-bold text-xs flex items-center justify-center shrink-0 border border-slate-300">
                             {contact.first_name?.[0] || 'C'}{contact.last_name?.[0] || ''}
                           </div>
                           <div>
-                            <span className="font-bold text-slate-900 dark:text-neutral-100 block text-sm">
+                            <span className="font-bold text-slate-900 block text-sm">
                               {contact.first_name} {contact.last_name}
                             </span>
                             {contact.interest_summary && (
-                              <span className="text-[11px] text-slate-500 line-clamp-1">
+                              <span className="text-[11px] text-slate-600 font-medium line-clamp-1">
                                 💡 {contact.interest_summary}
                               </span>
                             )}
@@ -389,7 +389,7 @@ export function ContactsView({
                         {contact.phone ? (
                           <a
                             href={`tel:${contact.phone}`}
-                            className="font-mono text-slate-700 dark:text-neutral-300 hover:text-blue-600 transition-colors flex items-center gap-1.5"
+                            className="font-mono text-slate-800 font-medium hover:text-blue-600 transition-colors flex items-center gap-1.5"
                           >
                             <Phone className="w-3 h-3 text-slate-400" />
                             <span>{contact.phone}</span>
@@ -404,7 +404,7 @@ export function ContactsView({
                         {contact.email ? (
                           <a
                             href={`mailto:${contact.email}`}
-                            className="text-slate-700 dark:text-neutral-300 hover:text-blue-600 transition-colors flex items-center gap-1.5"
+                            className="text-slate-700 hover:text-blue-600 font-medium transition-colors flex items-center gap-1.5"
                           >
                             <Mail className="w-3 h-3 text-slate-400" />
                             <span>{contact.email}</span>
@@ -419,12 +419,12 @@ export function ContactsView({
                         {contact.company_name || contact.role ? (
                           <div>
                             {contact.company_name && (
-                              <span className="font-semibold text-slate-800 dark:text-neutral-200 block">
+                              <span className="font-semibold text-slate-800 block">
                                 {contact.company_name}
                               </span>
                             )}
                             {contact.role && (
-                              <span className="text-[11px] text-slate-500 block">{contact.role}</span>
+                              <span className="text-[11px] text-slate-500 font-medium block">{contact.role}</span>
                             )}
                           </div>
                         ) : (
@@ -435,7 +435,7 @@ export function ContactsView({
                       {/* Category */}
                       <td className="py-3.5 px-3">
                         {contact.category ? (
-                          <span className="px-2 py-0.5 rounded-full text-[10px] font-bold uppercase bg-slate-100 text-slate-700 dark:bg-neutral-800 dark:text-neutral-300">
+                          <span className="px-2 py-0.5 rounded-full text-[10px] font-bold uppercase bg-slate-100 text-slate-800 border border-slate-200">
                             {getCategoryLabel(contact.category)}
                           </span>
                         ) : (
@@ -455,7 +455,7 @@ export function ContactsView({
                             <ExternalLink className="w-2.5 h-2.5" />
                           </Link>
                         ) : (
-                          <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-[11px] font-semibold bg-slate-100 text-slate-600 dark:bg-neutral-800 dark:text-neutral-400">
+                          <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-[11px] font-semibold bg-slate-100 text-slate-700 border border-slate-200">
                             <span>Agendă</span>
                           </span>
                         )}
@@ -471,7 +471,7 @@ export function ContactsView({
                                 setSelectedContact(contact)
                                 setConvertModalOpen(true)
                               }}
-                              className="px-2.5 py-1 bg-blue-50 hover:bg-blue-100 text-blue-700 text-xs font-bold rounded-lg transition-colors flex items-center gap-1"
+                              className="px-2.5 py-1 bg-blue-50 hover:bg-blue-100 text-blue-700 text-xs font-bold rounded-lg transition-colors flex items-center gap-1 border border-blue-200"
                               title="Transformă în client CRM"
                             >
                               <UserCheck className="w-3.5 h-3.5" />
@@ -485,7 +485,7 @@ export function ContactsView({
                               setSelectedContact(contact)
                               setContactModalOpen(true)
                             }}
-                            className="p-1.5 text-slate-500 hover:text-slate-800 hover:bg-slate-100 rounded-lg transition-colors"
+                            className="p-1.5 text-slate-600 hover:text-slate-900 hover:bg-slate-100 rounded-lg transition-colors"
                             title="Editează contact"
                           >
                             <Edit2 className="w-3.5 h-3.5" />
@@ -509,21 +509,21 @@ export function ContactsView({
           </div>
 
           {/* Mobile Card View */}
-          <div className="lg:hidden divide-y divide-slate-100 dark:divide-neutral-800">
+          <div className="lg:hidden divide-y divide-slate-100">
             {initialContacts.map((contact) => {
               const isClient = Boolean(contact.client_id)
               return (
-                <div key={contact.id} className="p-4 space-y-3">
+                <div key={contact.id} className="p-4 space-y-3 bg-white">
                   <div className="flex items-start justify-between gap-2">
                     <div className="flex items-center gap-3 flex-1 min-w-0">
-                      <div className="w-9 h-9 rounded-full bg-slate-100 dark:bg-neutral-800 text-slate-700 font-bold text-xs flex items-center justify-center shrink-0">
+                      <div className="w-9 h-9 rounded-full bg-slate-100 text-slate-700 font-bold text-xs flex items-center justify-center shrink-0 border border-slate-300">
                         {contact.first_name?.[0] || 'C'}{contact.last_name?.[0] || ''}
                       </div>
                       <div className="min-w-0 flex-1">
-                        <h3 className="font-bold text-sm text-slate-900 dark:text-neutral-100 truncate">
+                        <h3 className="font-bold text-sm text-slate-900 truncate">
                           {contact.first_name} {contact.last_name}
                         </h3>
-                        <p className="text-xs text-slate-500 font-mono mt-0.5">{contact.phone || contact.email || '-'}</p>
+                        <p className="text-xs text-slate-600 font-mono mt-0.5 font-medium">{contact.phone || contact.email || '-'}</p>
                       </div>
                     </div>
 
@@ -535,7 +535,7 @@ export function ContactsView({
                         Client CRM
                       </Link>
                     ) : (
-                      <span className="px-2 py-0.5 rounded-full text-[10px] font-medium bg-slate-100 text-slate-600">
+                      <span className="px-2 py-0.5 rounded-full text-[10px] font-medium bg-slate-100 text-slate-700 border border-slate-200">
                         Agendă
                       </span>
                     )}
@@ -546,7 +546,7 @@ export function ContactsView({
                       {contact.phone && (
                         <a
                           href={`tel:${contact.phone}`}
-                          className="px-2.5 py-1 text-xs font-semibold text-slate-700 bg-slate-100 rounded-lg flex items-center gap-1"
+                          className="px-2.5 py-1 text-xs font-semibold text-slate-800 bg-slate-100 hover:bg-slate-200 rounded-lg flex items-center gap-1 border border-slate-200"
                         >
                           <Phone className="w-3 h-3" />
                           <span>Sună</span>
@@ -559,7 +559,7 @@ export function ContactsView({
                             setSelectedContact(contact)
                             setConvertModalOpen(true)
                           }}
-                          className="px-2.5 py-1 text-xs font-bold text-blue-700 bg-blue-50 rounded-lg flex items-center gap-1"
+                          className="px-2.5 py-1 text-xs font-bold text-blue-700 bg-blue-50 hover:bg-blue-100 rounded-lg flex items-center gap-1 border border-blue-200"
                         >
                           <UserCheck className="w-3 h-3" />
                           <span>Convert</span>
@@ -574,7 +574,7 @@ export function ContactsView({
                           setSelectedContact(contact)
                           setContactModalOpen(true)
                         }}
-                        className="p-1.5 text-slate-500 hover:bg-slate-100 rounded-lg"
+                        className="p-1.5 text-slate-600 hover:bg-slate-100 rounded-lg"
                       >
                         <Edit2 className="w-3.5 h-3.5" />
                       </button>
