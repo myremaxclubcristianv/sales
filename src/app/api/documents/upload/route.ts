@@ -30,7 +30,12 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
 
-    const fileExt = (file.name.split('.').pop() || 'bin').replace(/[^a-zA-Z0-9]/g, '')
+    const fileExt = (file.name.split('.').pop() || 'bin').toLowerCase().replace(/[^a-z0-9]/g, '')
+    const DANGEROUS_EXTENSIONS = ['html', 'htm', 'svg', 'exe', 'bat', 'sh', 'php', 'js', 'vbs', 'cmd', 'ps1', 'cgi', 'jar', 'apk', 'msi', 'com', 'scr']
+    if (DANGEROUS_EXTENSIONS.includes(fileExt)) {
+      return NextResponse.json({ error: 'Tipul de fișier nu este permis din motive de securitate' }, { status: 400 })
+    }
+
     const fileName = `${Date.now()}-${Math.random().toString(36).substring(7)}.${fileExt}`
     const filePath = `${clientId.trim()}/${fileName}`
 

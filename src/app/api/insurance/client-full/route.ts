@@ -1,8 +1,18 @@
 import { NextResponse } from 'next/server'
 import { createInsuranceClientFull } from '@/lib/db/insurance'
+import { createClient as createServerClient } from '@/lib/supabase/server'
 
 export async function POST(request: Request) {
   try {
+    const supabase = await createServerClient()
+    const {
+      data: { user },
+    } = await supabase.auth.getUser()
+
+    if (!user) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+    }
+
     const payload = await request.json()
 
     if (!payload?.client?.first_name && !payload?.client?.last_name) {

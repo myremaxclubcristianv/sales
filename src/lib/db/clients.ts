@@ -175,11 +175,14 @@ export async function updateClient(id: string, client: ClientUpdate) {
 
 export async function searchClients(query: string) {
   const supabase = await createServerClient()
+  const sanitizedQuery = (query || '').replace(/[^a-zA-Z0-9\s@._+-]/g, '').trim()
+  if (!sanitizedQuery) return []
+
   const { data, error } = await supabase
     .from('clients')
     .select('*')
     .or(
-      `first_name.ilike.%${query}%,last_name.ilike.%${query}%,email.ilike.%${query}%,phone.ilike.%${query}%,interest_summary.ilike.%${query}%`
+      `first_name.ilike.%${sanitizedQuery}%,last_name.ilike.%${sanitizedQuery}%,email.ilike.%${sanitizedQuery}%,phone.ilike.%${sanitizedQuery}%,interest_summary.ilike.%${sanitizedQuery}%`
     )
     .order('created_at', { ascending: false })
 
@@ -190,12 +193,15 @@ export async function searchClients(query: string) {
 export async function checkDuplicateClients(phone?: string, email?: string, name?: string) {
   const supabase = await createServerClient()
   const phoneVariants = phone ? getPhoneVariants(phone) : []
-  const normEmail = email ? normalizeEmail(email) : ''
+  const normEmail = email ? normalizeEmail(email).replace(/[^a-zA-Z0-9@._+-]/g, '') : ''
 
   const conditions: string[] = []
   phoneVariants.forEach((v) => {
-    conditions.push(`phone.eq.${v}`)
-    conditions.push(`whatsapp.eq.${v}`)
+    const safeV = v.replace(/[^0-9+]/g, '')
+    if (safeV) {
+      conditions.push(`phone.eq.${safeV}`)
+      conditions.push(`whatsapp.eq.${safeV}`)
+    }
   })
   if (normEmail) {
     conditions.push(`email.ilike.${normEmail}`)
@@ -203,11 +209,12 @@ export async function checkDuplicateClients(phone?: string, email?: string, name
 
   // If no phone or email, but name provided
   if (conditions.length === 0 && name && name.trim().length >= 3) {
-    const parts = name.trim().split(/\s+/)
+    const cleanName = name.replace(/[^a-zA-Z0-9\s-]/g, '').trim()
+    const parts = cleanName.split(/\s+/).filter(Boolean)
     if (parts.length >= 2) {
       conditions.push(`and(first_name.ilike.%${parts[0]}%,last_name.ilike.%${parts[parts.length - 1]}%)`)
-    } else {
-      conditions.push(`first_name.ilike.%${name.trim()}%,last_name.ilike.%${name.trim()}%`)
+    } else if (cleanName) {
+      conditions.push(`first_name.ilike.%${cleanName}%,last_name.ilike.%${cleanName}%`)
     }
   }
 

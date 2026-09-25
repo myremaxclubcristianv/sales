@@ -43,11 +43,24 @@ export async function proxy(request: NextRequest) {
     return res
   }
 
-  // Protect admin routes
+  // Protect admin UI routes
   if (request.nextUrl.pathname.startsWith('/admin') && !user) {
     const url = request.nextUrl.clone()
     url.pathname = '/login'
     return setSecurityHeaders(NextResponse.redirect(url))
+  }
+
+  // Protect private API routes (Defense-in-Depth)
+  const isPublicApi =
+    request.nextUrl.pathname === '/api/leads' ||
+    (request.nextUrl.pathname === '/api/properties' && request.method === 'GET') ||
+    (request.nextUrl.pathname.startsWith('/api/properties/') && request.method === 'GET' && !request.nextUrl.pathname.includes('/documents') && !request.nextUrl.pathname.includes('/media')) ||
+    (request.nextUrl.pathname === '/api/requests' && request.method === 'GET')
+
+  if (request.nextUrl.pathname.startsWith('/api/') && !isPublicApi && !user) {
+    return setSecurityHeaders(
+      NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+    )
   }
 
   return setSecurityHeaders(supabaseResponse)

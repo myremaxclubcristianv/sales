@@ -55,7 +55,10 @@ export async function POST(request: Request) {
 
     if (error) {
       console.error('Lead creation error:', error)
-      return NextResponse.json({ error: error.message }, { status: 500 })
+      return NextResponse.json(
+        { error: 'A apărut o eroare la trimiterea solicitării. Te rugăm să încerci din nou.' },
+        { status: 500 }
+      )
     }
 
     // Auto-create broker in-app notification (non-blocking)
