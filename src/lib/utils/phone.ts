@@ -1,41 +1,136 @@
 /**
- * Phone number normalization, variant generation, and duplicate matching utilities.
+ * Canonical Romanian Mobile Phone Number & International Utilities
+ *
+ * CANONICAL ROMANIAN MOBILE FORMAT:
+ * Exactly 10 digits starting with '07' -> '07xxxxxxxx'
+ *
+ * RULES:
+ * 1. Trim whitespace
+ * 2. Remove spaces, '-', '(', ')', '.', '/', etc.
+ * 3. If starts with '+4007' or '004007' -> '07xxxxxxxx'
+ * 4. If starts with '+40' or '0040' and followed by 7... (9 digits) -> '0' + 7... = '07xxxxxxxx'
+ * 5. If starts with '40' and followed by 7... (9 digits) -> '0' + 7... = '07xxxxxxxx'
+ * 6. If starts with 7 and total 9 digits -> '07xxxxxxxx'
+ * 7. If starts with 07 and total 10 digits -> '07xxxxxxxx'
+ * 8. If Romanian landline (starts with +402, +403, 402, 403, 02, 03) -> 10 digits starting with 02 or 03
+ * 9. If international (not matching Romanian mobile/landline): preserve international digits with leading +
  */
 
 export function normalizePhone(raw?: string | null): string {
   if (!raw) return ''
-  
-  // Strip whitespace, hyphens, dots, brackets, slashes
-  let cleaned = raw.replace(/[^\d+]/g, '').trim()
-  if (!cleaned) return ''
 
-  // Convert 0040... -> +40...
-  if (cleaned.startsWith('0040')) {
-    cleaned = '+40' + cleaned.slice(4)
+  // 1. Trim
+  let str = raw.trim()
+  if (!str) return ''
+
+  // 2. Clean non-digit and non-plus characters
+  str = str.replace(/[^\d+]/g, '')
+  if (!str) return ''
+
+  // 3. Handle '0040' prefix -> '+40'
+  if (str.startsWith('0040')) {
+    str = '+40' + str.slice(4)
   }
 
-  // Handle Romanian numbers
-  // +4007... -> +407...
-  if (cleaned.startsWith('+400')) {
-    cleaned = '+40' + cleaned.slice(4)
+  // 4. Handle '+400' prefix (e.g. +400767110439 -> 0767110439)
+  if (str.startsWith('+400') && /^(\+400[237]\d{8})$/.test(str)) {
+    return '0' + str.slice(4)
   }
 
-  // 07xxxxxxxx (10 digits) -> +407xxxxxxxx
-  if (/^0[237]\d{8}$/.test(cleaned)) {
-    cleaned = '+40' + cleaned.slice(1)
+  // 5. Romanian Mobile (+407xxxxxxxx -> 07xxxxxxxx)
+  if (/^\+407\d{8}$/.test(str)) {
+    return '0' + str.slice(3)
   }
 
-  // 7xxxxxxxx (9 digits) -> +407xxxxxxxx
-  if (/^[237]\d{8}$/.test(cleaned)) {
-    cleaned = '+40' + cleaned
+  // 6. Romanian Mobile (407xxxxxxxx -> 07xxxxxxxx)
+  if (/^407\d{8}$/.test(str)) {
+    return '0' + str.slice(2)
   }
 
-  // 407xxxxxxxx (11 digits without +) -> +407xxxxxxxx
-  if (/^40[237]\d{8}$/.test(cleaned)) {
-    cleaned = '+' + cleaned
+  // 7. Romanian Mobile (7xxxxxxxx - 9 digits -> 07xxxxxxxx)
+  if (/^7\d{8}$/.test(str)) {
+    return '0' + str
   }
 
-  return cleaned
+  // 8. Romanian Mobile (07xxxxxxxx - 10 digits)
+  if (/^07\d{8}$/.test(str)) {
+    return str
+  }
+
+  // 9. Romanian Landlines (+40[23]xxxxxxxx or 40[23]xxxxxxxx or [23]xxxxxxxx or 0[23]xxxxxxxx)
+  if (/^\+40[23]\d{8}$/.test(str)) {
+    return '0' + str.slice(3)
+  }
+  if (/^40[23]\d{8}$/.test(str)) {
+    return '0' + str.slice(2)
+  }
+  if (/^[23]\d{8}$/.test(str)) {
+    return '0' + str
+  }
+  if (/^0[23]\d{8}$/.test(str)) {
+    return str
+  }
+
+  // 10. Foreign / International Numbers: keep original or formatted digits with +
+  return str
+}
+
+/**
+ * Validates if the phone number is a valid canonical Romanian mobile number
+ */
+export function isValidRomanianPhone(phone?: string | null): boolean {
+  if (!phone) return false
+  const canonical = normalizePhone(phone)
+  return /^07\d{8}$/.test(canonical)
+}
+
+/**
+ * Generates the tel: URL for click-to-call actions
+ * For Romanian numbers: tel:07xxxxxxxx (starts with 07, NEVER +40 or 40)
+ * For international numbers: tel:<number>
+ */
+export function getTelUrl(phone?: string | null): string {
+  if (!phone) return ''
+  const canonical = normalizePhone(phone)
+  if (!canonical) return ''
+  return `tel:${canonical}`
+}
+
+/**
+ * Generates the WhatsApp wa.me URL
+ * WhatsApp wa.me requires digits only in international format WITHOUT '+'
+ * For Romanian canonical 07xxxxxxxx -> wa.me/407xxxxxxxx
+ * For international numbers -> wa.me/<digits_without_plus>
+ */
+export function getWhatsAppUrl(phone?: string | null, text?: string): string {
+  if (!phone) return ''
+  const canonical = normalizePhone(phone)
+  if (!canonical) return ''
+
+  let waNumber = ''
+  // Romanian mobile (07xxxxxxxx -> 407xxxxxxxx)
+  if (/^07\d{8}$/.test(canonical)) {
+    waNumber = '40' + canonical.slice(1)
+  } else if (/^0[23]\d{8}$/.test(canonical)) {
+    waNumber = '40' + canonical.slice(1)
+  } else {
+    // International: strip '+' and non-digits
+    waNumber = canonical.replace(/\D/g, '')
+  }
+
+  if (!waNumber) return ''
+  const base = `https://wa.me/${waNumber}`
+  return text ? `${base}?text=${encodeURIComponent(text)}` : base
+}
+
+/**
+ * Formats a phone number for display in the UI
+ * Canonical Romanian numbers are always displayed as 07xxxxxxxx (10 digits)
+ */
+export function formatPhoneDisplay(phone?: string | null): string {
+  if (!phone) return ''
+  const canonical = normalizePhone(phone)
+  return canonical || phone.trim()
 }
 
 /**
@@ -52,17 +147,22 @@ export function getPhoneVariants(phone?: string | null): string[] {
     // Digits only
     const digitsOnly = norm.replace(/\D/g, '')
     variants.add(digitsOnly)
-    
-    // If Romanian +40...
-    if (norm.startsWith('+40') && norm.length === 12) {
-      const national = '0' + norm.slice(3) // 07xxxxxxxx
-      variants.add(national)
-      variants.add(norm.slice(3)) // 7xxxxxxxx
+
+    // If canonical Romanian 07xxxxxxxx
+    if (/^07\d{8}$/.test(norm)) {
+      variants.add('+40' + norm.slice(1)) // +407xxxxxxxx
+      variants.add('40' + norm.slice(1))  // 407xxxxxxxx
+      variants.add(norm.slice(1))         // 7xxxxxxxx
       // Formatted with spaces: 07xx xxx xxx
-      if (national.length === 10) {
-        variants.add(`${national.slice(0, 4)} ${national.slice(4, 7)} ${national.slice(7)}`)
-        variants.add(`${national.slice(0, 4)}-${national.slice(4, 7)}-${national.slice(7)}`)
-      }
+      variants.add(`${norm.slice(0, 4)} ${norm.slice(4, 7)} ${norm.slice(7)}`)
+      variants.add(`${norm.slice(0, 4)}-${norm.slice(4, 7)}-${norm.slice(7)}`)
+      // +40 7xx xxx xxx
+      variants.add(`+40 ${norm.slice(1, 4)} ${norm.slice(4, 7)} ${norm.slice(7)}`)
+      variants.add(`40 ${norm.slice(1, 4)} ${norm.slice(4, 7)} ${norm.slice(7)}`)
+    } else if (norm.startsWith('+40') && norm.length === 12) {
+      const national = '0' + norm.slice(3)
+      variants.add(national)
+      variants.add('40' + norm.slice(3))
     }
   }
 
@@ -79,9 +179,12 @@ export function arePhonesMatching(p1?: string | null, p2?: string | null): boole
   if (!n1 || !n2) return false
   if (n1 === n2) return true
 
-  // Check last 9 digits if both are long enough
+  // Canonical Romanian comparison
   const d1 = n1.replace(/\D/g, '')
   const d2 = n2.replace(/\D/g, '')
+  if (d1 === d2) return true
+
+  // Check last 9 digits (national number without leading 0 / country code 40)
   if (d1.length >= 9 && d2.length >= 9) {
     return d1.slice(-9) === d2.slice(-9)
   }

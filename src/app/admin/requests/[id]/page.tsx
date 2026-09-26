@@ -14,6 +14,7 @@ import {
   Mail,
   MapPin,
 } from 'lucide-react'
+import { formatPhoneDisplay, getTelUrl } from '@/lib/utils/phone'
 import { RequestStatusActions } from './RequestStatusActions'
 import { ScheduleViewingModalButton } from './ScheduleViewingModalButton'
 
@@ -142,8 +143,8 @@ export default async function RequestDetailPage(props: PageProps) {
                   {buyer.phone && (
                     <div className="flex items-center gap-2 text-neutral-700 dark:text-neutral-300">
                       <Phone className="w-3.5 h-3.5 text-neutral-400" />
-                      <a href={`tel:${buyer.phone}`} className="hover:underline font-mono">
-                        {buyer.phone}
+                      <a href={getTelUrl(buyer.phone)} className="hover:underline font-mono">
+                        {formatPhoneDisplay(buyer.phone)}
                       </a>
                     </div>
                   )}

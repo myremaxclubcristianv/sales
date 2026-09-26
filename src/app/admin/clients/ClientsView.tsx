@@ -12,6 +12,7 @@ import {
   getSourceLabel,
   type ClientCategory,
 } from '@/lib/types/crm'
+import { formatPhoneDisplay, getTelUrl, getWhatsAppUrl } from '@/lib/utils/phone'
 import type { ClientWithRelations } from '@/lib/db/clients'
 import {
   Sparkles,
@@ -544,7 +545,7 @@ export function ClientsView({
                                 {client.phone && (
                                   <span className="font-mono flex items-center gap-1 text-slate-700">
                                     <Phone className="w-2.5 h-2.5 text-slate-400" />
-                                    {client.phone}
+                                    {formatPhoneDisplay(client.phone)}
                                   </span>
                                 )}
                                 {client.email && (
@@ -626,7 +627,7 @@ export function ClientsView({
                         <div className="flex items-center justify-end gap-1.5">
                           {client.phone && (
                             <a
-                              href={`https://wa.me/${client.phone.replace(/[^0-9]/g, '')}`}
+                              href={getWhatsAppUrl(client.whatsapp || client.phone)}
                               target="_blank"
                               rel="noopener noreferrer"
                               className="p-2 text-emerald-600 hover:bg-emerald-50 rounded-lg transition-colors min-h-[36px] min-w-[36px] flex items-center justify-center"
@@ -681,7 +682,7 @@ export function ClientsView({
                           {client.first_name} {client.last_name}
                         </h3>
                         <p className="text-xs text-slate-600 font-mono mt-0.5 font-medium truncate">
-                          {client.phone || client.email || '-'}
+                          {client.phone ? formatPhoneDisplay(client.phone) : client.email || '-'}
                         </p>
                       </div>
                     </Link>
@@ -753,7 +754,7 @@ export function ClientsView({
                     <div className="flex items-center gap-2">
                       {client.phone && (
                         <a
-                          href={`tel:${client.phone}`}
+                          href={getTelUrl(client.phone)}
                           className="px-3 py-2 text-xs font-semibold text-slate-800 bg-slate-100 hover:bg-slate-200 rounded-xl flex items-center gap-1.5 border border-slate-200 min-h-[44px] cursor-pointer"
                         >
                           <Phone className="w-3.5 h-3.5 text-slate-600" />
@@ -762,7 +763,7 @@ export function ClientsView({
                       )}
                       {client.phone && (
                         <a
-                          href={`https://wa.me/${client.phone.replace(/[^0-9]/g, '')}`}
+                          href={getWhatsAppUrl(client.whatsapp || client.phone)}
                           target="_blank"
                           rel="noopener noreferrer"
                           className="p-2.5 text-emerald-700 bg-emerald-50 hover:bg-emerald-100 rounded-xl border border-emerald-200 min-h-[44px] min-w-[44px] flex items-center justify-center transition-colors"

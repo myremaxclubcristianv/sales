@@ -3,6 +3,7 @@
 import React, { useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { CLIENT_CATEGORIES, CLIENT_SOURCES, CLIENT_STATUSES, type ClientCategory } from '@/lib/types/crm'
+import { formatPhoneDisplay } from '@/lib/utils/phone'
 import type { Database } from '@/types'
 import {
   User,
@@ -231,7 +232,7 @@ function QuickClientModalDialog({
                             {dup.first_name} {dup.last_name}
                           </p>
                           <p className="text-[11px] text-slate-600">
-                            {dup.phone} {dup.email ? `• ${dup.email}` : ''}
+                            {formatPhoneDisplay(dup.phone)} {dup.email ? `• ${dup.email}` : ''}
                           </p>
                         </div>
                         <a

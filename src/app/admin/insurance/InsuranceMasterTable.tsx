@@ -10,6 +10,7 @@ import {
   Home,
   ChevronRight
 } from 'lucide-react'
+import { formatPhoneDisplay, getTelUrl } from '@/lib/utils/phone'
 
 interface PolicyRow {
   id: string
@@ -293,9 +294,9 @@ export function InsuranceMasterTable({ initialPolicies }: InsuranceMasterTablePr
                       <td className="p-3 whitespace-nowrap">
                         <div className="space-y-0.5">
                           {p.client?.phone && (
-                            <a href={`tel:${p.client.phone}`} className="font-mono text-neutral-700 dark:text-neutral-300 hover:text-blue-600 flex items-center gap-1">
+                            <a href={getTelUrl(p.client.phone)} className="font-mono text-neutral-700 dark:text-neutral-300 hover:text-blue-600 flex items-center gap-1">
                               <Phone className="w-3 h-3 text-neutral-400" />
-                              <span>{p.client.phone}</span>
+                              <span>{formatPhoneDisplay(p.client.phone)}</span>
                             </a>
                           )}
                           {p.client?.email && (
@@ -429,7 +430,7 @@ export function InsuranceMasterTable({ initialPolicies }: InsuranceMasterTablePr
                   {p.client?.phone && (
                     <div className="flex justify-between">
                       <span className="text-neutral-400">Telefon:</span>
-                      <a href={`tel:${p.client.phone}`} className="font-mono text-blue-600">{p.client.phone}</a>
+                      <a href={getTelUrl(p.client.phone)} className="font-mono text-blue-600">{formatPhoneDisplay(p.client.phone)}</a>
                     </div>
                   )}
                   <div className="flex justify-between">

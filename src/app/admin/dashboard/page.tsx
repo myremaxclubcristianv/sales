@@ -20,6 +20,7 @@ import {
   Target,
   Plus
 } from 'lucide-react'
+import { getTelUrl, getWhatsAppUrl } from '@/lib/utils/phone'
 import type { Database } from '@/types'
 
 type ClientRow = Database['public']['Tables']['clients']['Row']
@@ -300,9 +301,9 @@ export default async function DashboardPage() {
                         </p>
                       </div>
                       <div className="flex items-center gap-2">
-                        {event.clients?.whatsapp && (
+                        {(event.clients?.whatsapp || event.clients?.phone) && (
                           <a
-                            href={`https://wa.me/${event.clients.whatsapp.replace(/[^0-9]/g, '')}`}
+                            href={getWhatsAppUrl(event.clients.whatsapp || event.clients.phone)}
                             target="_blank"
                             rel="noopener noreferrer"
                             className="px-2.5 py-1 text-xs font-medium text-emerald-700 bg-emerald-50 border border-emerald-200 rounded-lg hover:bg-emerald-100 transition-colors"
@@ -312,7 +313,7 @@ export default async function DashboardPage() {
                         )}
                         {event.clients?.phone && (
                           <a
-                            href={`tel:${event.clients.phone}`}
+                            href={getTelUrl(event.clients.phone)}
                             className="px-2.5 py-1 text-xs font-medium text-slate-700 bg-white border border-slate-200 rounded-lg hover:bg-slate-50 transition-colors"
                           >
                             Call

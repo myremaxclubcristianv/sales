@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation'
 import { Button } from '@/components/ui/Button'
 import { Select } from '@/components/ui/Select'
 import { UserPlus, Phone, Mail, MessageSquare, Home, Landmark } from 'lucide-react'
+import { formatPhoneDisplay, getTelUrl } from '@/lib/utils/phone'
 import Link from 'next/link'
 
 export interface LeadItem {
@@ -224,11 +225,11 @@ export function LeadsManager({ initialLeads }: Props) {
                     <div className="flex flex-wrap items-center gap-4 text-xs font-semibold">
                       {lead.phone && (
                         <a
-                          href={`tel:${lead.phone}`}
+                          href={getTelUrl(lead.phone)}
                           className="flex items-center gap-1.5 text-neutral-800 dark:text-neutral-200 font-mono hover:text-primary"
                         >
                           <Phone className="w-3.5 h-3.5 text-neutral-400" />
-                          {lead.phone}
+                          {formatPhoneDisplay(lead.phone)}
                         </a>
                       )}
                       {lead.email && (

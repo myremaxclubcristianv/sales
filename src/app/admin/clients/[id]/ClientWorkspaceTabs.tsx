@@ -27,6 +27,7 @@ import {
   CreditCard,
 } from 'lucide-react'
 import { getCategoryLabel, getSourceLabel } from '@/lib/types/crm'
+import { formatPhoneDisplay, getTelUrl, getWhatsAppUrl } from '@/lib/utils/phone'
 import type { Database } from '@/types'
 
 type ClientRow = Database['public']['Tables']['clients']['Row'] & {
@@ -214,9 +215,9 @@ export function ClientWorkspaceTabs({
 
               <div className="flex flex-wrap items-center gap-x-4 gap-y-1 text-xs text-neutral-500 dark:text-neutral-400 pt-0.5">
                 {client.phone && (
-                  <a href={`tel:${client.phone}`} className="font-mono flex items-center gap-1 hover:text-blue-600">
+                  <a href={getTelUrl(client.phone)} className="font-mono flex items-center gap-1 hover:text-blue-600">
                     <Phone className="w-3 h-3 text-neutral-400" />
-                    {client.phone}
+                    {formatPhoneDisplay(client.phone)}
                   </a>
                 )}
                 {client.email && (
@@ -241,16 +242,16 @@ export function ClientWorkspaceTabs({
           {/* Quick Action Buttons */}
           <div className="flex flex-wrap items-center gap-2 pt-2 lg:pt-0 border-t lg:border-t-0 border-neutral-100 dark:border-neutral-800 shrink-0">
             {client.phone && (
-              <a href={`tel:${client.phone}`}>
+              <a href={getTelUrl(client.phone)}>
                 <Button size="sm" variant="outline" className="gap-1.5 text-xs h-9">
                   <Phone className="w-3.5 h-3.5 text-emerald-600" />
                   <span>Sună</span>
                 </Button>
               </a>
             )}
-            {client.whatsapp && (
+            {(client.whatsapp || client.phone) && (
               <a
-                href={`https://wa.me/${client.whatsapp.replace(/[^0-9]/g, '')}`}
+                href={getWhatsAppUrl(client.whatsapp || client.phone)}
                 target="_blank"
                 rel="noopener noreferrer"
               >

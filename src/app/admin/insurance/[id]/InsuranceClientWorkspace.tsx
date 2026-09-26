@@ -24,6 +24,7 @@ import {
   ArrowLeft,
   Layers
 } from 'lucide-react'
+import { formatPhoneDisplay, getTelUrl, getWhatsAppUrl } from '@/lib/utils/phone'
 import Link from 'next/link'
 
 export type WorkspaceTab =
@@ -260,9 +261,9 @@ export function InsuranceClientWorkspace({
 
               <div className="flex flex-wrap items-center gap-x-4 gap-y-1 mt-1.5 text-xs text-neutral-500 font-medium">
                 {client.phone && (
-                  <a href={`tel:${client.phone}`} className="flex items-center gap-1 hover:text-blue-600">
+                  <a href={getTelUrl(client.phone)} className="flex items-center gap-1 hover:text-blue-600">
                     <Phone className="w-3.5 h-3.5 text-neutral-400" />
-                    <span>{client.phone}</span>
+                    <span>{formatPhoneDisplay(client.phone)}</span>
                   </a>
                 )}
                 {client.email && (
@@ -283,7 +284,7 @@ export function InsuranceClientWorkspace({
           <div className="flex flex-wrap items-center gap-2">
             {client.phone && (
               <a
-                href={`tel:${client.phone}`}
+                href={getTelUrl(client.phone)}
                 className="inline-flex items-center gap-1.5 px-3 py-2 bg-neutral-100 dark:bg-neutral-800 text-neutral-900 dark:text-neutral-100 rounded-xl text-xs font-semibold hover:bg-neutral-200 dark:hover:bg-neutral-700 transition"
               >
                 <Phone className="w-3.5 h-3.5 text-emerald-600" />
@@ -292,7 +293,7 @@ export function InsuranceClientWorkspace({
             )}
             {client.whatsapp || client.phone ? (
               <a
-                href={`https://wa.me/${(client.whatsapp || client.phone || '').replace(/[^0-9]/g, '')}`}
+                href={getWhatsAppUrl(client.whatsapp || client.phone)}
                 target="_blank"
                 rel="noopener noreferrer"
                 className="inline-flex items-center gap-1.5 px-3 py-2 bg-emerald-50 dark:bg-emerald-950/40 text-emerald-700 dark:text-emerald-300 rounded-xl text-xs font-semibold hover:bg-emerald-100 dark:hover:bg-emerald-900/40 transition"

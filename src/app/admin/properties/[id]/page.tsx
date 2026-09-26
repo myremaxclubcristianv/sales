@@ -10,6 +10,7 @@ import { getViewings } from '@/lib/db/viewings'
 import { getOffers } from '@/lib/db/offers'
 import { calculatePropertyRequestMatch } from '@/lib/utils/matching-engine'
 import { getMediaUrl } from '@/lib/utils/media'
+import { getTelUrl } from '@/lib/utils/phone'
 import { Sparkles, Calendar, DollarSign } from 'lucide-react'
 import type { Database } from '@/types'
 
@@ -494,7 +495,7 @@ export default async function AdminPropertyDetailPage(props: PageProps) {
                   )}
                   <div className="pt-2 flex gap-2">
                     {property.owner.phone && (
-                      <a href={`tel:${property.owner.phone}`} className="flex-1">
+                      <a href={getTelUrl(property.owner.phone)} className="flex-1">
                         <Button size="sm" variant="outline" className="w-full">Call Owner</Button>
                       </a>
                     )}

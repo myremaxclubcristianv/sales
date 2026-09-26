@@ -1,5 +1,5 @@
 import { createClient as createServerClient } from '@/lib/supabase/server'
-import { getPhoneVariants, normalizeEmail } from '@/lib/utils/phone'
+import { getPhoneVariants, normalizeEmail, normalizePhone } from '@/lib/utils/phone'
 import type { Database } from '@/types'
 
 export type ClientInsert = Database['public']['Tables']['clients']['Insert']
@@ -141,8 +141,13 @@ export async function createClientRecord(client: ClientInsert) {
   const supabase = await createServerClient()
   
   // Clean payload
+  const normPhone = client.phone ? normalizePhone(client.phone) : client.phone
+  const normWhatsapp = client.whatsapp ? normalizePhone(client.whatsapp) : (client.phone ? normalizePhone(client.phone) : client.whatsapp)
+
   const payload: ClientInsert = {
     ...client,
+    phone: normPhone,
+    whatsapp: normWhatsapp,
     country: client.country || 'Romania',
     status: client.status || 'NOT_CONTACTED',
     client_type: client.client_type || 'INDIVIDUAL',
@@ -162,9 +167,21 @@ export async function createClientRecord(client: ClientInsert) {
 
 export async function updateClient(id: string, client: ClientUpdate) {
   const supabase = await createServerClient()
+  const payload: ClientUpdate = {
+    ...client,
+    updated_at: new Date().toISOString()
+  }
+
+  if (payload.phone !== undefined) {
+    payload.phone = payload.phone ? normalizePhone(payload.phone) : payload.phone
+  }
+  if (payload.whatsapp !== undefined) {
+    payload.whatsapp = payload.whatsapp ? normalizePhone(payload.whatsapp) : payload.whatsapp
+  }
+
   const { data, error } = await supabase
     .from('clients')
-    .update({ ...client, updated_at: new Date().toISOString() })
+    .update(payload)
     .eq('id', id)
     .select()
     .single()

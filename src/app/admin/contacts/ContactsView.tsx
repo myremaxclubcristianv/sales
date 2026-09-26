@@ -8,6 +8,7 @@ import { ConvertContactModal } from '@/components/ConvertContactModal'
 import { ContactModal } from '@/components/ContactModal'
 import { generateContactsCSV } from '@/lib/utils/csv'
 import { CLIENT_CATEGORIES, getCategoryLabel } from '@/lib/types/crm'
+import { formatPhoneDisplay, getTelUrl, getWhatsAppUrl } from '@/lib/utils/phone'
 import type { ContactRow } from '@/lib/db/contacts'
 import {
   Users,
@@ -388,11 +389,11 @@ export function ContactsView({
                       <td className="py-3.5 px-3">
                         {contact.phone ? (
                           <a
-                            href={`tel:${contact.phone}`}
+                            href={getTelUrl(contact.phone)}
                             className="font-mono text-slate-800 font-medium hover:text-blue-600 transition-colors flex items-center gap-1.5"
                           >
                             <Phone className="w-3 h-3 text-slate-400" />
-                            <span>{contact.phone}</span>
+                            <span>{formatPhoneDisplay(contact.phone)}</span>
                           </a>
                         ) : (
                           <span className="text-slate-400">-</span>
@@ -545,11 +546,22 @@ export function ContactsView({
                     <div className="flex items-center gap-2">
                       {contact.phone && (
                         <a
-                          href={`tel:${contact.phone}`}
+                          href={getTelUrl(contact.phone)}
                           className="px-2.5 py-1 text-xs font-semibold text-slate-800 bg-slate-100 hover:bg-slate-200 rounded-lg flex items-center gap-1 border border-slate-200"
                         >
                           <Phone className="w-3 h-3" />
                           <span>Sună</span>
+                        </a>
+                      )}
+                      {(contact.whatsapp || contact.phone) && (
+                        <a
+                          href={getWhatsAppUrl(contact.whatsapp || contact.phone)}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="p-1 text-emerald-700 bg-emerald-50 hover:bg-emerald-100 rounded-lg border border-emerald-200 flex items-center justify-center"
+                          title="WhatsApp"
+                        >
+                          <span className="text-[11px] font-bold px-1 text-emerald-700">WA</span>
                         </a>
                       )}
                       {!isClient && (

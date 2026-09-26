@@ -4,6 +4,7 @@ import { getClientFollowUps } from '@/lib/db/follow-ups'
 import { PrivateLayout } from '@/components/layout/private/PrivateLayout'
 import Link from 'next/link'
 import { ArrowLeft, Phone, Mail, FileText } from 'lucide-react'
+import { formatPhoneDisplay, getTelUrl } from '@/lib/utils/phone'
 import { CreditStageStepper } from './CreditStageStepper'
 
 interface PageProps {
@@ -205,8 +206,8 @@ export default async function CreditCaseDetailPage(props: PageProps) {
                   {client.phone && (
                     <div className="flex items-center gap-2 text-neutral-700 dark:text-neutral-300">
                       <Phone className="w-3.5 h-3.5 text-neutral-400" />
-                      <a href={`tel:${client.phone}`} className="hover:underline font-mono">
-                        {client.phone}
+                      <a href={getTelUrl(client.phone)} className="hover:underline font-mono">
+                        {formatPhoneDisplay(client.phone)}
                       </a>
                     </div>
                   )}

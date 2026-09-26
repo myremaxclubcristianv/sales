@@ -1,5 +1,5 @@
 import { createClient as createServerClient } from '@/lib/supabase/server'
-import { getPhoneVariants, normalizeEmail } from '@/lib/utils/phone'
+import { getPhoneVariants, normalizeEmail, normalizePhone } from '@/lib/utils/phone'
 import type { Database } from '@/types'
 
 export type ContactRow = Database['public']['Tables']['contacts']['Row'] & {
@@ -191,11 +191,14 @@ export async function convertContactToClient(
   }
 
   // 2. Insert into clients
+  const normPhone = contact.phone ? normalizePhone(contact.phone) : contact.phone
+  const normWhatsapp = contact.whatsapp ? normalizePhone(contact.whatsapp) : normPhone
+
   const clientPayload = {
     first_name: contact.first_name,
     last_name: contact.last_name || '(Contact)',
-    phone: contact.phone,
-    whatsapp: contact.whatsapp || contact.phone,
+    phone: normPhone,
+    whatsapp: normWhatsapp,
     email: contact.email,
     address: contact.address,
     city: contact.city,

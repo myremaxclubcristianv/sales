@@ -7,6 +7,7 @@ import { Input } from '@/components/ui/Input'
 import { Select } from '@/components/ui/Select'
 import { Modal } from '@/components/ui/Modal'
 import { Calendar, Plus, CheckCircle, XCircle, Clock, MapPin, User, MessageSquare } from 'lucide-react'
+import { formatPhoneDisplay, getTelUrl } from '@/lib/utils/phone'
 import Link from 'next/link'
 
 export interface ViewingItem {
@@ -350,8 +351,8 @@ export function ViewingsManager({ initialViewings, clients, properties }: Props)
                         </Link>
                       </div>
                       {v.client.phone && (
-                        <a href={`tel:${v.client.phone}`} className="text-neutral-500 font-mono hover:underline">
-                          {v.client.phone}
+                        <a href={getTelUrl(v.client.phone)} className="text-neutral-500 font-mono hover:underline">
+                          {formatPhoneDisplay(v.client.phone)}
                         </a>
                       )}
                     </div>
