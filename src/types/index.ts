@@ -112,7 +112,25 @@ export interface Database {
           category?: string | null
           interest_summary?: string | null
           tags: string[] | null
-          status: 'ACTIVE' | 'INACTIVE' | 'ARCHIVED'
+          status:
+            | 'NEW'
+            | 'NOT_CONTACTED'
+            | 'CONTACTED'
+            | 'IN_DISCUSSION'
+            | 'ACTIVE'
+            | 'OFFERING'
+            | 'IN_PROGRESS'
+            | 'FOLLOW_UP'
+            | 'CALL_BACK'
+            | 'WAITING_CLIENT'
+            | 'WAITING_DOCUMENTS'
+            | 'CONVERTED'
+            | 'REFUSED'
+            | 'NO_RESPONSE'
+            | 'INACTIVE'
+            | 'LOST'
+            | 'ARCHIVED'
+            | string
           date_of_birth: string | null
           important_dates: Record<string, unknown> | null
           personal_notes: string | null
@@ -142,7 +160,25 @@ export interface Database {
           category?: string | null
           interest_summary?: string | null
           tags?: string[] | null
-          status?: 'ACTIVE' | 'INACTIVE' | 'ARCHIVED'
+          status?:
+            | 'NEW'
+            | 'NOT_CONTACTED'
+            | 'CONTACTED'
+            | 'IN_DISCUSSION'
+            | 'ACTIVE'
+            | 'OFFERING'
+            | 'IN_PROGRESS'
+            | 'FOLLOW_UP'
+            | 'CALL_BACK'
+            | 'WAITING_CLIENT'
+            | 'WAITING_DOCUMENTS'
+            | 'CONVERTED'
+            | 'REFUSED'
+            | 'NO_RESPONSE'
+            | 'INACTIVE'
+            | 'LOST'
+            | 'ARCHIVED'
+            | string
           date_of_birth?: string | null
           important_dates?: Record<string, unknown> | null
           personal_notes?: string | null
@@ -172,7 +208,25 @@ export interface Database {
           category?: string | null
           interest_summary?: string | null
           tags?: string[] | null
-          status?: 'ACTIVE' | 'INACTIVE' | 'ARCHIVED'
+          status?:
+            | 'NEW'
+            | 'NOT_CONTACTED'
+            | 'CONTACTED'
+            | 'IN_DISCUSSION'
+            | 'ACTIVE'
+            | 'OFFERING'
+            | 'IN_PROGRESS'
+            | 'FOLLOW_UP'
+            | 'CALL_BACK'
+            | 'WAITING_CLIENT'
+            | 'WAITING_DOCUMENTS'
+            | 'CONVERTED'
+            | 'REFUSED'
+            | 'NO_RESPONSE'
+            | 'INACTIVE'
+            | 'LOST'
+            | 'ARCHIVED'
+            | string
           date_of_birth?: string | null
           important_dates?: Record<string, unknown> | null
           personal_notes?: string | null

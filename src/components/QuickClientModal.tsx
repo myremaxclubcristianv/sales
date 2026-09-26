@@ -2,7 +2,7 @@
 
 import React, { useState } from 'react'
 import { useRouter } from 'next/navigation'
-import { CLIENT_CATEGORIES, CLIENT_SOURCES, type ClientCategory } from '@/lib/types/crm'
+import { CLIENT_CATEGORIES, CLIENT_SOURCES, CLIENT_STATUSES, type ClientCategory } from '@/lib/types/crm'
 import type { Database } from '@/types'
 import {
   User,
@@ -45,6 +45,7 @@ function QuickClientModalDialog({
   const [interestSummary, setInterestSummary] = useState('')
   const [category, setCategory] = useState<ClientCategory>(initialCategory)
   const [source, setSource] = useState('GENERALI_CRM')
+  const [status, setStatus] = useState<string>('NOT_CONTACTED')
 
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
@@ -95,6 +96,7 @@ function QuickClientModalDialog({
           interest_summary: interestSummary.trim() || undefined,
           category,
           source,
+          status,
           forceCreate: force,
         }),
       })
@@ -365,8 +367,25 @@ function QuickClientModalDialog({
                   </div>
                 </div>
 
-                {/* 4. Sursă & Email */}
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                {/* 4. Status Operațional & Sursă & Email */}
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                  <div>
+                    <label className="block text-[11px] font-bold uppercase tracking-wider text-slate-700 mb-1">
+                      Status Inițial *
+                    </label>
+                    <select
+                      value={status}
+                      onChange={(e) => setStatus(e.target.value)}
+                      className="w-full px-3 py-2 text-sm bg-white border border-slate-300 rounded-xl focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 outline-hidden font-medium text-slate-900"
+                    >
+                      {CLIENT_STATUSES.map((st) => (
+                        <option key={st.id} value={st.id}>
+                          {st.label}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+
                   <div>
                     <label className="block text-[11px] font-bold uppercase tracking-wider text-slate-700 mb-1">
                       Sursă Contact *

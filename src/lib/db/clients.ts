@@ -144,7 +144,7 @@ export async function createClientRecord(client: ClientInsert) {
   const payload: ClientInsert = {
     ...client,
     country: client.country || 'Romania',
-    status: client.status || 'ACTIVE',
+    status: client.status || 'NOT_CONTACTED',
     client_type: client.client_type || 'INDIVIDUAL',
     category: client.category || 'REAL_ESTATE',
     preferred_communication: client.preferred_communication || 'whatsapp',
@@ -171,6 +171,10 @@ export async function updateClient(id: string, client: ClientUpdate) {
 
   if (error) throw error
   return data as ClientRow
+}
+
+export async function updateClientStatus(id: string, status: string) {
+  return updateClient(id, { status })
 }
 
 export async function searchClients(query: string) {

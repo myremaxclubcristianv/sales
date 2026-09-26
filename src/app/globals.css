@@ -1,5 +1,7 @@
 @import "tailwindcss";
 
+@variant dark (&:is(.dark, .dark *));
+
 @layer base {
   :root {
     --background: #f8fafc;
@@ -31,6 +33,64 @@ body {
   -moz-osx-font-smoothing: grayscale;
 }
 
+/* Systemic Form Input Contrast & Deterministic Colors */
+input,
+textarea,
+select {
+  color: #0f172a !important;
+  caret-color: #2563eb;
+}
+
+input::placeholder,
+textarea::placeholder {
+  color: #94a3b8 !important;
+  opacity: 1;
+}
+
+/* Explicit Dark Background Inputs (e.g. Command Palette or dark widgets) */
+.bg-slate-900 input,
+.bg-slate-800 input,
+.bg-neutral-900 input,
+.bg-neutral-800 input,
+input.bg-slate-900,
+input.bg-slate-800,
+input.bg-neutral-900,
+input.bg-neutral-800,
+.bg-slate-900 textarea,
+.bg-slate-800 textarea,
+.bg-neutral-900 textarea,
+.bg-neutral-800 textarea,
+textarea.bg-slate-900,
+textarea.bg-slate-800,
+textarea.bg-neutral-900,
+textarea.bg-neutral-800,
+.bg-slate-900 select,
+.bg-slate-800 select,
+select.bg-slate-900,
+select.bg-slate-800 {
+  color: #f8fafc !important;
+  caret-color: #60a5fa;
+}
+
+.bg-slate-900 input::placeholder,
+.bg-slate-800 input::placeholder,
+.bg-neutral-900 input::placeholder,
+.bg-neutral-800 input::placeholder,
+input.bg-slate-900::placeholder,
+input.bg-slate-800::placeholder,
+.bg-slate-900 textarea::placeholder,
+.bg-slate-800 textarea::placeholder,
+textarea.bg-slate-900::placeholder,
+textarea.bg-slate-800::placeholder {
+  color: #64748b !important;
+}
+
+/* Select options readability */
+option {
+  color: #0f172a;
+  background-color: #ffffff;
+}
+
 /* Custom scrollbar for dense data views */
 ::-webkit-scrollbar {
   width: 6px;
@@ -54,4 +114,5 @@ body {
 .transition-fast {
   transition: all 0.15s ease-in-out;
 }
+
 

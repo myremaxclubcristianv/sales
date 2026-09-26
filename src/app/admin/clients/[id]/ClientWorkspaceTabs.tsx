@@ -9,6 +9,7 @@ import { Card } from '@/components/ui/Card'
 import { ActivityTimeline } from '@/components/ActivityTimeline'
 import { ActivityForm } from '@/components/ActivityForm'
 import { DocumentVault } from '@/components/DocumentVault'
+import { ClientStatusSelect } from '@/components/ClientStatusSelect'
 import {
   Shield,
   Phone,
@@ -160,27 +161,35 @@ export function ClientWorkspaceTabs({
   return (
     <div className="space-y-6">
       {/* 1. Client Context Header */}
-      <div className="bg-white dark:bg-neutral-900 rounded-2xl border border-neutral-200/80 dark:border-neutral-800 p-5 sm:p-6 shadow-sm">
+      <div className="bg-white rounded-2xl border border-slate-200 p-4 sm:p-6 shadow-xs">
         <div className="flex flex-col lg:flex-row lg:items-start justify-between gap-5">
           {/* Client Identity */}
           <div className="flex items-start gap-4">
-            <div className="w-14 h-14 rounded-2xl bg-neutral-900 dark:bg-neutral-100 text-white dark:text-neutral-900 font-serif font-bold text-xl flex items-center justify-center shrink-0 shadow-sm">
+            <div className="w-12 sm:w-14 h-12 sm:h-14 rounded-2xl bg-slate-900 text-white font-bold text-lg sm:text-xl flex items-center justify-center shrink-0 shadow-xs">
               {client.first_name?.[0] || 'C'}{client.last_name?.[0] || 'V'}
             </div>
-            <div className="space-y-1.5">
+            <div className="space-y-2 flex-1 min-w-0">
               <div className="flex flex-wrap items-center gap-2">
-                <h1 className="text-2xl font-bold tracking-tight text-neutral-900 dark:text-neutral-100">
+                <h1 className="text-xl sm:text-2xl font-bold tracking-tight text-slate-900">
                   {client.first_name} {client.last_name}
                 </h1>
 
+                {/* Editable Status Select */}
+                <ClientStatusSelect
+                  clientId={client.id}
+                  currentStatus={client.status}
+                  size="md"
+                  onStatusChange={() => router.refresh()}
+                />
+
                 {/* Category Badge */}
                 <span
-                  className={`inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-bold uppercase tracking-wider ${
+                  className={`inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-bold uppercase tracking-wider ${
                     clientCategory === 'INSURANCE'
-                      ? 'bg-emerald-50 text-emerald-700 dark:bg-emerald-950/40 dark:text-emerald-400 border border-emerald-200 dark:border-emerald-800'
+                      ? 'bg-emerald-50 text-emerald-700 border border-emerald-200'
                       : clientCategory === 'CREDIT'
-                      ? 'bg-amber-50 text-amber-700 dark:bg-amber-950/40 dark:text-amber-400 border border-amber-200 dark:border-amber-800'
-                      : 'bg-blue-50 text-blue-700 dark:bg-blue-950/40 dark:text-blue-400 border border-blue-200 dark:border-blue-800'
+                      ? 'bg-amber-50 text-amber-700 border border-amber-200'
+                      : 'bg-blue-50 text-blue-700 border border-blue-200'
                   }`}
                 >
                   {clientCategory === 'REAL_ESTATE' && <Building2 className="w-3 h-3" />}
@@ -189,19 +198,8 @@ export function ClientWorkspaceTabs({
                   <span>{getCategoryLabel(client.category)}</span>
                 </span>
 
-                {/* Status Badge */}
-                <span
-                  className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-semibold uppercase tracking-wider ${
-                    client.status === 'ACTIVE'
-                      ? 'bg-emerald-50 text-emerald-700 dark:bg-emerald-950/40 dark:text-emerald-400 border border-emerald-200 dark:border-emerald-800'
-                      : 'bg-neutral-100 text-neutral-600 dark:bg-neutral-800 dark:text-neutral-400'
-                  }`}
-                >
-                  {client.status}
-                </span>
-
                 {/* Source Badge */}
-                <span className="text-xs font-semibold bg-neutral-100 dark:bg-neutral-800 text-neutral-600 dark:text-neutral-400 px-2 py-0.5 rounded-md border border-neutral-200/60 dark:border-neutral-700">
+                <span className="text-xs font-semibold bg-slate-100 text-slate-700 px-2.5 py-1 rounded-lg border border-slate-200">
                   {getSourceLabel(client.lead_source)}
                 </span>
               </div>

@@ -17,6 +17,8 @@ export function PrivateLayout({ children }: PrivateLayoutProps) {
   const [quickAddOpen, setQuickAddOpen] = useState(false)
   const [commandPaletteOpen, setCommandPaletteOpen] = useState(false)
 
+  const [mobileMenuOpen, setMobileMenuOpen] = useState(false)
+
   const handleSignOut = async () => {
     try {
       const supabase = createBrowserClient()
@@ -26,6 +28,11 @@ export function PrivateLayout({ children }: PrivateLayoutProps) {
       console.error('Sign out error:', err)
       router.push('/login')
     }
+  }
+
+  // Close mobile drawer on navigation
+  const handleNavClick = () => {
+    setMobileMenuOpen(false)
   }
 
   const navSections = [
@@ -200,26 +207,26 @@ export function PrivateLayout({ children }: PrivateLayoutProps) {
       name: 'Today',
       href: '/admin/dashboard',
       icon: (
-        <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+        <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6" />
         </svg>
       ),
     },
     {
-      name: 'Clients',
+      name: 'Clienți',
       href: '/admin/clients',
       icon: (
-        <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+        <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z" />
         </svg>
       ),
     },
     {
-      name: 'Properties',
-      href: '/admin/properties',
+      name: 'Contacte',
+      href: '/admin/contacts',
       icon: (
-        <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4" />
+        <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z" />
         </svg>
       ),
     },
@@ -227,17 +234,8 @@ export function PrivateLayout({ children }: PrivateLayoutProps) {
       name: 'Follow-ups',
       href: '/admin/follow-ups',
       icon: (
-        <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+        <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
-        </svg>
-      ),
-    },
-    {
-      name: 'Tasks',
-      href: '/admin/tasks',
-      icon: (
-        <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-6 9l2 2 4-4" />
         </svg>
       ),
     },
@@ -245,7 +243,7 @@ export function PrivateLayout({ children }: PrivateLayoutProps) {
 
   return (
     <div className="min-h-screen bg-slate-50 text-slate-900 flex flex-col md:flex-row font-sans">
-      {/* Desktop Sidebar */}
+      {/* Desktop Sidebar (Preserved Exactly) */}
       <aside className="hidden md:flex flex-col w-64 bg-slate-900 text-slate-200 border-r border-slate-800 flex-shrink-0 min-h-screen">
         <div className="p-5 flex items-center justify-between border-b border-slate-800">
           <Link href="/admin/dashboard" className="flex items-center gap-2.5">
@@ -263,7 +261,7 @@ export function PrivateLayout({ children }: PrivateLayoutProps) {
         <div className="p-3">
           <button
             onClick={() => setCommandPaletteOpen(true)}
-            className="w-full flex items-center justify-between px-3 py-2 text-xs font-medium text-slate-400 bg-slate-800/80 hover:bg-slate-800 rounded-lg border border-slate-700/60 transition-colors"
+            className="w-full flex items-center justify-between px-3 py-2 text-xs font-medium text-slate-400 bg-slate-800/80 hover:bg-slate-800 rounded-lg border border-slate-700/60 transition-colors cursor-pointer"
           >
             <span className="flex items-center gap-2">
               <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -284,7 +282,7 @@ export function PrivateLayout({ children }: PrivateLayoutProps) {
               </h4>
               <div className="space-y-1">
                 {section.items.map((item) => {
-                  const isActive = pathname === item.href || pathname.startsWith(`${item.href}/`)
+                  const isActive = pathname === item.href || (item.href !== '/admin/dashboard' && pathname.startsWith(`${item.href}/`))
                   return (
                     <Link
                       key={item.name}
@@ -319,7 +317,7 @@ export function PrivateLayout({ children }: PrivateLayoutProps) {
             </div>
             <button
               onClick={handleSignOut}
-              className="text-slate-400 hover:text-rose-400 p-1.5 rounded-md hover:bg-slate-700 transition-colors"
+              className="text-slate-400 hover:text-rose-400 p-1.5 rounded-md hover:bg-slate-700 transition-colors cursor-pointer"
               title="Sign Out"
             >
               <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -330,49 +328,179 @@ export function PrivateLayout({ children }: PrivateLayoutProps) {
         </div>
       </aside>
 
+      {/* Mobile Slide-Over Navigation Drawer */}
+      {mobileMenuOpen && (
+        <div className="md:hidden fixed inset-0 z-50 flex">
+          {/* Backdrop */}
+          <div
+            className="fixed inset-0 bg-slate-950/70 backdrop-blur-xs transition-opacity"
+            onClick={() => setMobileMenuOpen(false)}
+          />
+
+          {/* Drawer Content */}
+          <div className="relative flex-1 flex flex-col max-w-xs w-full bg-slate-900 text-slate-200 shadow-2xl z-10 animate-in slide-in-from-left duration-200">
+            {/* Drawer Header */}
+            <div className="p-4 flex items-center justify-between border-b border-slate-800 bg-slate-900/90">
+              <Link
+                href="/admin/dashboard"
+                onClick={handleNavClick}
+                className="flex items-center gap-2.5"
+              >
+                <div className="w-8 h-8 rounded-lg bg-blue-600 flex items-center justify-center font-bold text-white tracking-wider text-sm shadow-sm">
+                  OS
+                </div>
+                <div>
+                  <span className="font-bold text-sm tracking-tight text-white block">CRM OPERATING OS</span>
+                  <span className="text-[10px] text-slate-400 font-mono uppercase tracking-widest">v1.0 Pro</span>
+                </div>
+              </Link>
+              <button
+                type="button"
+                onClick={() => setMobileMenuOpen(false)}
+                aria-label="Închide meniul"
+                className="p-2 text-slate-400 hover:text-white rounded-lg hover:bg-slate-800 min-w-[44px] min-h-[44px] flex items-center justify-center"
+              >
+                <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                </svg>
+              </button>
+            </div>
+
+            {/* Quick Search */}
+            <div className="p-3">
+              <button
+                onClick={() => {
+                  setMobileMenuOpen(false)
+                  setCommandPaletteOpen(true)
+                }}
+                className="w-full flex items-center justify-between px-3.5 py-2.5 text-xs font-medium text-slate-300 bg-slate-800 hover:bg-slate-700/80 rounded-xl border border-slate-700 min-h-[44px]"
+              >
+                <span className="flex items-center gap-2">
+                  <svg className="w-4 h-4 text-slate-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+                  </svg>
+                  Caută în tot CRM-ul...
+                </span>
+                <kbd className="px-2 py-0.5 text-[10px] bg-slate-900 rounded text-slate-400 font-mono">⌘K</kbd>
+              </button>
+            </div>
+
+            {/* Nav Sections list */}
+            <nav className="flex-1 px-3 py-2 space-y-5 overflow-y-auto">
+              {navSections.map((section) => (
+                <div key={section.title}>
+                  <h4 className="px-3 text-[11px] font-bold tracking-wider text-slate-400 uppercase mb-1.5">
+                    {section.title}
+                  </h4>
+                  <div className="space-y-1">
+                    {section.items.map((item) => {
+                      const isActive = pathname === item.href || (item.href !== '/admin/dashboard' && pathname.startsWith(`${item.href}/`))
+                      return (
+                        <Link
+                          key={item.name}
+                          href={item.href}
+                          onClick={handleNavClick}
+                          className={`flex items-center gap-3 px-3.5 py-2.5 rounded-xl text-xs font-semibold transition-colors min-h-[44px] ${
+                            isActive
+                              ? 'bg-blue-600 text-white shadow-xs'
+                              : 'text-slate-300 hover:bg-slate-800 hover:text-white'
+                          }`}
+                        >
+                          <span className={isActive ? 'text-white' : 'text-slate-400'}>{item.icon}</span>
+                          <span>{item.name}</span>
+                        </Link>
+                      )
+                    })}
+                  </div>
+                </div>
+              ))}
+            </nav>
+
+            {/* User Profile & Sign Out Footer in Drawer */}
+            <div className="p-3 border-t border-slate-800 bg-slate-900">
+              <div className="flex items-center justify-between px-3 py-2.5 rounded-xl bg-slate-800/80">
+                <div className="flex items-center gap-2.5 overflow-hidden">
+                  <div className="w-8 h-8 rounded-full bg-blue-600 flex items-center justify-center text-xs font-bold text-white shrink-0">
+                    CV
+                  </div>
+                  <div className="truncate">
+                    <p className="text-xs font-bold text-white truncate">Cristian Văduva</p>
+                    <p className="text-[10px] text-slate-400 font-mono truncate">Principal Broker</p>
+                  </div>
+                </div>
+                <button
+                  onClick={handleSignOut}
+                  className="text-slate-300 hover:text-rose-400 p-2 rounded-lg hover:bg-slate-700 min-w-[44px] min-h-[44px] flex items-center justify-center transition-colors"
+                  title="Sign Out"
+                >
+                  <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" />
+                  </svg>
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* Main Content Area */}
       <div className="flex-1 flex flex-col min-h-screen overflow-x-hidden pb-20 md:pb-6">
         {/* Top Header */}
-        <header className="sticky top-0 z-30 bg-white/95 backdrop-blur-xs border-b border-slate-200/80 px-4 sm:px-8 py-3 flex items-center justify-between">
+        <header className="sticky top-0 z-30 bg-white/95 backdrop-blur-xs border-b border-slate-200/80 px-4 sm:px-8 py-2.5 sm:py-3 flex items-center justify-between">
           <div className="flex items-center gap-3">
+            {/* Mobile Menu Hamburger Button (44px touch target) */}
+            <button
+              type="button"
+              onClick={() => setMobileMenuOpen(true)}
+              aria-label="Deschide meniul de navigare"
+              className="md:hidden flex items-center justify-center p-2 text-slate-700 hover:text-slate-900 hover:bg-slate-100 rounded-xl min-w-[44px] min-h-[44px] transition-colors"
+            >
+              <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h16" />
+              </svg>
+            </button>
+
             <div className="md:hidden flex items-center gap-2">
-              <div className="w-7 h-7 rounded-lg bg-blue-600 flex items-center justify-center font-bold text-white text-xs">
+              <div className="w-7 h-7 rounded-lg bg-blue-600 flex items-center justify-center font-bold text-white text-xs shadow-xs">
                 OS
               </div>
               <span className="font-bold text-sm tracking-tight text-slate-900">CRM OS</span>
             </div>
+
             <div className="hidden md:block">
               <span className="text-xs font-semibold text-slate-800 font-mono">Workspace: Main Operating Hub</span>
             </div>
           </div>
 
-          <div className="flex items-center gap-2.5">
-            {/* Search Button for Mobile & Desktop */}
+          <div className="flex items-center gap-2 sm:gap-2.5">
+            {/* Search Button */}
             <button
               onClick={() => setCommandPaletteOpen(true)}
-              className="p-2 text-slate-600 hover:text-slate-900 hover:bg-slate-100 rounded-lg transition-colors"
+              className="p-2 sm:p-2 text-slate-600 hover:text-slate-900 hover:bg-slate-100 rounded-xl min-w-[44px] min-h-[44px] flex items-center justify-center transition-colors cursor-pointer"
               title="Global Search"
+              aria-label="Căutare rapidă"
             >
               <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
               </svg>
             </button>
 
-            {/* Quick Action Desktop Button */}
+            {/* Quick Action Button */}
             <button
               onClick={() => setQuickAddOpen(true)}
-              className="hidden sm:inline-flex items-center gap-1.5 px-3.5 py-1.5 bg-blue-600 hover:bg-blue-700 text-white rounded-lg text-xs font-medium shadow-xs transition-colors"
+              className="inline-flex items-center gap-1.5 px-3.5 py-2 bg-blue-600 hover:bg-blue-700 active:scale-98 text-white rounded-xl text-xs font-bold shadow-xs min-h-[44px] sm:min-h-0 transition-all cursor-pointer"
             >
               <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M12 4v16m8-8H4" />
               </svg>
-              <span>Quick Action</span>
+              <span className="hidden sm:inline">Quick Action</span>
+              <span className="sm:hidden font-bold">+ Acțiune</span>
             </button>
           </div>
         </header>
 
         {/* Content Container */}
-        <main className="flex-1 px-4 sm:px-8 py-6 max-w-7xl w-full mx-auto">
+        <main className="flex-1 px-3 sm:px-8 py-4 sm:py-6 max-w-7xl w-full mx-auto">
           {children}
         </main>
       </div>
@@ -380,7 +508,7 @@ export function PrivateLayout({ children }: PrivateLayoutProps) {
       {/* Floating Mobile Quick Add Button */}
       <button
         onClick={() => setQuickAddOpen(true)}
-        className="md:hidden fixed right-4 bottom-20 z-40 w-13 h-13 rounded-full bg-blue-600 text-white flex items-center justify-center shadow-lg active:scale-95 transition-transform"
+        className="md:hidden fixed right-4 bottom-20 z-40 w-12 h-12 rounded-full bg-blue-600 text-white flex items-center justify-center shadow-lg active:scale-95 transition-transform cursor-pointer"
         aria-label="Quick Action"
       >
         <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -388,16 +516,16 @@ export function PrivateLayout({ children }: PrivateLayoutProps) {
         </svg>
       </button>
 
-      {/* Mobile Bottom Navigation Bar (1-3 taps optimized) */}
-      <nav className="md:hidden fixed bottom-0 left-0 right-0 z-30 bg-white/95 backdrop-blur-md border-t border-slate-200/90 py-1.5 px-2 flex justify-around items-center">
+      {/* Mobile Bottom Navigation Bar (1-3 taps optimized + All Sections Menu trigger) */}
+      <nav className="md:hidden fixed bottom-0 left-0 right-0 z-30 bg-white/95 backdrop-blur-md border-t border-slate-200/90 py-1 px-1.5 flex justify-around items-center">
         {mobileNavItems.map((item) => {
           const isActive = pathname === item.href || (item.href !== '/admin/dashboard' && pathname.startsWith(`${item.href}/`))
           return (
             <Link
               key={item.name}
               href={item.href}
-              className={`flex flex-col items-center justify-center py-1 px-2.5 rounded-lg text-[10px] font-medium transition-colors ${
-                isActive ? 'text-blue-600 font-semibold' : 'text-slate-500 hover:text-slate-800'
+              className={`flex flex-col items-center justify-center py-1.5 px-2 rounded-xl text-[10px] font-bold min-w-[56px] min-h-[44px] transition-colors ${
+                isActive ? 'text-blue-600' : 'text-slate-500 hover:text-slate-800'
               }`}
             >
               <span className={isActive ? 'text-blue-600' : 'text-slate-400'}>{item.icon}</span>
@@ -405,6 +533,18 @@ export function PrivateLayout({ children }: PrivateLayoutProps) {
             </Link>
           )
         })}
+
+        {/* 5th Bottom Item: Drawer Menu trigger */}
+        <button
+          type="button"
+          onClick={() => setMobileMenuOpen(true)}
+          className="flex flex-col items-center justify-center py-1.5 px-2 rounded-xl text-[10px] font-bold text-slate-500 hover:text-slate-800 min-w-[56px] min-h-[44px] transition-colors"
+        >
+          <svg className="w-5 h-5 text-slate-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h16" />
+          </svg>
+          <span className="mt-0.5">Meniu</span>
+        </button>
       </nav>
 
       {/* Quick Add & Command Palette Modals */}

@@ -48,48 +48,48 @@ export function ActivityForm({ clientId, onActivityCreated }: ActivityFormProps)
 
   return (
     <form onSubmit={handleSubmit} className="space-y-4">
-      <div className="flex flex-col gap-1">
-        <label className="text-xs font-semibold text-slate-700 uppercase tracking-wider">Activity Type</label>
+      <div className="flex flex-col gap-1.5">
+        <label className="text-xs font-bold text-slate-700 uppercase tracking-wider">Tip Activitate *</label>
         <select
           value={formData.type}
           onChange={(e) => setFormData({ ...formData, type: e.target.value })}
-          className="px-3 py-2 text-sm border border-slate-200 rounded-lg focus:outline-hidden focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 bg-white"
+          className="w-full px-3.5 py-2.5 text-sm border border-slate-300 rounded-xl focus:outline-hidden focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 bg-white text-slate-900 font-medium min-h-[44px]"
         >
-          <option value="CALL">Call</option>
+          <option value="CALL">Apel telefonic (Call)</option>
           <option value="WHATSAPP">WhatsApp</option>
           <option value="EMAIL">Email</option>
-          <option value="MEETING">Meeting</option>
-          <option value="NOTE">Note</option>
-          <option value="VIEWING">Viewing</option>
+          <option value="MEETING">Întâlnire (Meeting)</option>
+          <option value="NOTE">Notă internă (Note)</option>
+          <option value="VIEWING">Vizionare (Viewing)</option>
           <option value="FOLLOW_UP">Follow-up</option>
           <option value="TASK">Task</option>
           <option value="DOCUMENT">Document</option>
-          <option value="OFFER">Offer</option>
-          <option value="STATUS_CHANGE">Status Change</option>
+          <option value="OFFER">Ofertă (Offer)</option>
+          <option value="STATUS_CHANGE">Schimbare Status</option>
         </select>
       </div>
 
       <Input
-        label="Title"
+        label="Titlu *"
         value={formData.title}
         onChange={(e) => setFormData({ ...formData, title: e.target.value })}
         required
-        placeholder="e.g., Follow-up on penthouse offer"
+        placeholder="ex: Discuție ofertă RCA / cerere credit"
       />
 
-      <div className="flex flex-col gap-1">
-        <label className="text-xs font-semibold text-slate-700 uppercase tracking-wider">Notes</label>
+      <div className="flex flex-col gap-1.5">
+        <label className="text-xs font-bold text-slate-700 uppercase tracking-wider">Detalii / Notițe</label>
         <textarea
           value={formData.notes}
           onChange={(e) => setFormData({ ...formData, notes: e.target.value })}
           rows={3}
-          className="px-3 py-2 text-sm border border-slate-200 rounded-lg focus:outline-hidden focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 bg-white"
-          placeholder="Enter notes from conversation or meeting..."
+          className="w-full px-3.5 py-2.5 text-sm border border-slate-300 rounded-xl focus:outline-hidden focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 bg-white text-slate-900 placeholder:text-slate-400 font-medium"
+          placeholder="Notează concluziile discuției..."
         />
       </div>
 
-      <Button type="submit" disabled={loading} className="w-full">
-        {loading ? 'Recording...' : 'Record Activity'}
+      <Button type="submit" disabled={loading} className="w-full min-h-[44px]">
+        {loading ? 'Se înregistrează...' : 'Înregistrează Activitatea'}
       </Button>
     </form>
   )
