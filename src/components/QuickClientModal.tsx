@@ -4,11 +4,13 @@ import React, { useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { CLIENT_CATEGORIES, CLIENT_SOURCES, CLIENT_STATUSES, type ClientCategory } from '@/lib/types/crm'
 import { formatPhoneDisplay } from '@/lib/utils/phone'
+import { validateCnp } from '@/lib/utils/cnp'
 import type { Database } from '@/types'
 import {
   User,
   Phone,
   Mail,
+  Fingerprint,
   FileText,
   AlertTriangle,
   CheckCircle2,
@@ -27,6 +29,7 @@ interface QuickClientModalProps {
   onClose: () => void
   onSuccess?: (newClient: ClientRow) => void
   initialCategory?: ClientCategory
+  clientToEdit?: ClientRow | null
 }
 
 export function QuickClientModal(props: QuickClientModalProps) {
@@ -38,15 +41,26 @@ function QuickClientModalDialog({
   onClose,
   onSuccess,
   initialCategory = 'INSURANCE',
+  clientToEdit,
 }: QuickClientModalProps) {
   const router = useRouter()
-  const [name, setName] = useState('')
-  const [phone, setPhone] = useState('')
-  const [email, setEmail] = useState('')
-  const [interestSummary, setInterestSummary] = useState('')
-  const [category, setCategory] = useState<ClientCategory>(initialCategory)
-  const [source, setSource] = useState('GENERALI_CRM')
-  const [status, setStatus] = useState<string>('NOT_CONTACTED')
+  const isEditMode = Boolean(clientToEdit)
+
+  const [name, setName] = useState(
+    clientToEdit
+      ? `${clientToEdit.first_name || ''} ${clientToEdit.last_name || ''}`.trim()
+      : ''
+  )
+  const [phone, setPhone] = useState(clientToEdit?.phone || '')
+  const [email, setEmail] = useState(clientToEdit?.email || '')
+  const [cnp, setCnp] = useState(clientToEdit?.cnp || '')
+  const [cnpError, setCnpError] = useState<string | null>(null)
+  const [interestSummary, setInterestSummary] = useState(clientToEdit?.interest_summary || '')
+  const [category, setCategory] = useState<ClientCategory>(
+    (clientToEdit?.category as ClientCategory) || initialCategory
+  )
+  const [source, setSource] = useState(clientToEdit?.lead_source || 'GENERALI_CRM')
+  const [status, setStatus] = useState<string>(clientToEdit?.status || 'NOT_CONTACTED')
 
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
@@ -54,7 +68,21 @@ function QuickClientModalDialog({
   const [showDuplicateWarning, setShowDuplicateWarning] = useState(false)
   const [createdClient, setCreatedClient] = useState<ClientRow | null>(null)
 
+  const handleCnpBlur = () => {
+    if (!cnp || !cnp.trim()) {
+      setCnpError(null)
+      return
+    }
+    const validation = validateCnp(cnp, true)
+    if (!validation.isValid) {
+      setCnpError(validation.error || 'CNP-ul trebuie să conțină exact 13 cifre.')
+    } else {
+      setCnpError(null)
+    }
+  }
+
   const handlePhoneBlur = async () => {
+    if (isEditMode) return
     if (!phone || phone.trim().length < 6) return
     try {
       const res = await fetch('/api/clients/check-duplicates', {
@@ -75,6 +103,8 @@ function QuickClientModalDialog({
 
   const handleSave = async (force: boolean = false) => {
     setError(null)
+    setCnpError(null)
+
     if (!name.trim()) {
       setError('Numele clientului este obligatoriu.')
       return
@@ -84,6 +114,22 @@ function QuickClientModalDialog({
       return
     }
 
+    // Validate CNP if supplied
+    let cleanCnp: string | undefined = undefined
+    if (cnp && cnp.trim()) {
+      const cnpValidation = validateCnp(cnp, true)
+      if (!cnpValidation.isValid) {
+        const errorMsg = cnpValidation.error || 'CNP-ul trebuie să conțină exact 13 cifre.'
+        setCnpError(errorMsg)
+        setError(errorMsg)
+        return
+      }
+      cleanCnp = cnpValidation.normalized || undefined
+    } else if (isEditMode && clientToEdit?.cnp) {
+      // Preserve existing CNP if empty on edit
+      cleanCnp = clientToEdit.cnp
+    }
+
     setLoading(true)
 
     try {
@@ -91,9 +137,11 @@ function QuickClientModalDialog({
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
+          id: clientToEdit?.id,
           name: name.trim(),
           phone: phone.trim(),
           email: email.trim() || undefined,
+          cnp: cleanCnp,
           interest_summary: interestSummary.trim() || undefined,
           category,
           source,
@@ -134,6 +182,8 @@ function QuickClientModalDialog({
     setName('')
     setPhone('')
     setEmail('')
+    setCnp('')
+    setCnpError(null)
     setInterestSummary('')
     setDuplicates([])
     setShowDuplicateWarning(false)
@@ -307,7 +357,7 @@ function QuickClientModalDialog({
                   </div>
                 </div>
 
-                {/* 2. Name & Phone */}
+                {/* 2. Identity & Contact Coordinates (Nume, Telefon, Email, CNP) */}
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                   <div>
                     <label className="block text-[11px] font-bold uppercase tracking-wider text-slate-700 mb-1">
@@ -343,6 +393,54 @@ function QuickClientModalDialog({
                       />
                     </div>
                   </div>
+
+                  <div>
+                    <label className="block text-[11px] font-bold uppercase tracking-wider text-slate-700 mb-1">
+                      Email (Opțional)
+                    </label>
+                    <div className="relative">
+                      <Mail className="w-4 h-4 text-slate-400 absolute left-3 top-2.5" />
+                      <input
+                        type="email"
+                        value={email}
+                        onChange={(e) => setEmail(e.target.value)}
+                        onBlur={handlePhoneBlur}
+                        placeholder="client@exemplu.ro"
+                        className="w-full pl-9 pr-3 py-2 text-sm bg-white border border-slate-300 rounded-xl focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 outline-hidden font-medium text-slate-900 placeholder:text-slate-400"
+                      />
+                    </div>
+                  </div>
+
+                  <div>
+                    <label className="block text-[11px] font-bold uppercase tracking-wider text-slate-700 mb-1">
+                      CNP (Opțional)
+                    </label>
+                    <div className="relative">
+                      <Fingerprint className="w-4 h-4 text-slate-400 absolute left-3 top-2.5" />
+                      <input
+                        type="text"
+                        inputMode="numeric"
+                        value={cnp}
+                        onChange={(e) => {
+                          setCnp(e.target.value)
+                          if (cnpError) setCnpError(null)
+                        }}
+                        onBlur={handleCnpBlur}
+                        placeholder="13 cifre (ex: 1234567890123)"
+                        maxLength={18}
+                        className={`w-full pl-9 pr-3 py-2 text-sm bg-white border rounded-xl focus:ring-2 outline-hidden font-mono font-medium text-slate-900 placeholder:text-slate-400 ${
+                          cnpError
+                            ? 'border-rose-400 focus:ring-rose-500/20 focus:border-rose-500'
+                            : 'border-slate-300 focus:ring-blue-500/20 focus:border-blue-500'
+                        }`}
+                      />
+                    </div>
+                    {cnpError && (
+                      <p className="text-[11px] text-rose-600 font-semibold mt-1">
+                        {cnpError}
+                      </p>
+                    )}
+                  </div>
                 </div>
 
                 {/* 3. Interest Summary / Ce dorește */}
@@ -368,8 +466,8 @@ function QuickClientModalDialog({
                   </div>
                 </div>
 
-                {/* 4. Status Operațional & Sursă & Email */}
-                <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                {/* 4. Status Operațional & Sursă */}
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                   <div>
                     <label className="block text-[11px] font-bold uppercase tracking-wider text-slate-700 mb-1">
                       Status Inițial *
@@ -402,23 +500,6 @@ function QuickClientModalDialog({
                         </option>
                       ))}
                     </select>
-                  </div>
-
-                  <div>
-                    <label className="block text-[11px] font-bold uppercase tracking-wider text-slate-700 mb-1">
-                      Email (Opțional)
-                    </label>
-                    <div className="relative">
-                      <Mail className="w-4 h-4 text-slate-400 absolute left-3 top-2.5" />
-                      <input
-                        type="email"
-                        value={email}
-                        onChange={(e) => setEmail(e.target.value)}
-                        onBlur={handlePhoneBlur}
-                        placeholder="client@exemplu.ro"
-                        className="w-full pl-9 pr-3 py-2 text-sm bg-white border border-slate-300 rounded-xl focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 outline-hidden font-medium text-slate-900 placeholder:text-slate-400"
-                      />
-                    </div>
                   </div>
                 </div>
               </div>

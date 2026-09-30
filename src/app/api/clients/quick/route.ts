@@ -1,6 +1,7 @@
-import { createClientRecord, checkDuplicateClients } from '@/lib/db/clients'
+import { createClientRecord, updateClient, getClientById, checkDuplicateClients } from '@/lib/db/clients'
 import { createClient as createServerClient } from '@/lib/supabase/server'
 import { normalizePhone } from '@/lib/utils/phone'
+import { validateCnp } from '@/lib/utils/cnp'
 import { NextResponse } from 'next/server'
 
 export async function POST(request: Request) {
@@ -14,13 +15,26 @@ export async function POST(request: Request) {
     }
 
     const body = await request.json()
-    const { name, phone, email, interest_summary, category, source, status, forceCreate } = body
+    const { id, name, phone, email, cnp, interest_summary, category, source, status, forceCreate } = body
 
     if (!name || !name.trim()) {
       return NextResponse.json({ error: 'Numele clientului este obligatoriu' }, { status: 400 })
     }
     if (!phone || !phone.trim()) {
       return NextResponse.json({ error: 'Numărul de telefon este obligatoriu' }, { status: 400 })
+    }
+
+    // CNP Validation (Optional: empty/null allowed, if provided must be exactly 13 numeric digits)
+    let validatedCnp: string | null = null
+    if (cnp !== undefined && cnp !== null && String(cnp).trim() !== '') {
+      const cnpValidation = validateCnp(String(cnp), true)
+      if (!cnpValidation.isValid) {
+        return NextResponse.json(
+          { error: cnpValidation.error || 'CNP-ul trebuie să conțină exact 13 cifre.' },
+          { status: 400 }
+        )
+      }
+      validatedCnp = cnpValidation.normalized
     }
 
     // Parse name into first_name and last_name
@@ -33,6 +47,38 @@ export async function POST(request: Request) {
     }
 
     const normPhone = normalizePhone(phone) || phone.trim()
+
+    // If edit mode with existing id
+    if (id) {
+      const existingClient = await getClientById(id)
+      if (!existingClient) {
+        return NextResponse.json({ error: 'Clientul nu a fost găsit' }, { status: 404 })
+      }
+
+      // Preserve existing CNP if empty on edit; otherwise update if new valid CNP supplied
+      const finalCnp = validatedCnp !== null ? validatedCnp : (existingClient.cnp || null)
+
+      const updated = await updateClient(id, {
+        first_name: firstName,
+        last_name: lastName,
+        phone: normPhone,
+        whatsapp: normPhone,
+        email: email ? email.trim() : null,
+        category: category || existingClient.category || 'REAL_ESTATE',
+        lead_source: source || existingClient.lead_source || 'DIRECT_CONTACT',
+        interest_summary: interest_summary !== undefined ? (interest_summary ? interest_summary.trim() : null) : existingClient.interest_summary,
+        status: status || existingClient.status || 'NOT_CONTACTED',
+        cnp: finalCnp,
+      })
+
+      // Mask CNP in API response
+      const sanitizedClient = {
+        ...updated,
+        cnp: updated.cnp ? '•••••••••••••' : null,
+      }
+
+      return NextResponse.json({ client: sanitizedClient, success: true }, { status: 200 })
+    }
 
     // Check duplicate unless forceCreate is true
     if (!forceCreate) {
@@ -62,9 +108,16 @@ export async function POST(request: Request) {
       client_type: 'INDIVIDUAL',
       preferred_communication: 'whatsapp',
       country: 'Romania',
+      cnp: validatedCnp,
     })
 
-    return NextResponse.json({ client: newClient, success: true }, { status: 201 })
+    // Mask CNP in API response
+    const sanitizedClient = {
+      ...newClient,
+      cnp: newClient.cnp ? '•••••••••••••' : null,
+    }
+
+    return NextResponse.json({ client: sanitizedClient, success: true }, { status: 201 })
   } catch (error: unknown) {
     const message = error instanceof Error ? error.message : 'Failed to create quick client'
     return NextResponse.json({ error: message }, { status: 500 })

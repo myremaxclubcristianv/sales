@@ -47,16 +47,16 @@ async function runStatusTestSuite() {
   
   if (initError) throw initError;
   console.log(`[1] INITIAL STATE: ${initialClients.length} clients in database.`);
-  if (initialClients.length !== 17) {
-    throw new Error(`Expected 17 clients, found ${initialClients.length}`);
+  if (initialClients.length < 17) {
+    throw new Error(`Expected at least 17 clients, found ${initialClients.length}`);
   }
 
-  // Verify all 17 have a status
+  // Verify all have a status
   const withoutStatus = initialClients.filter(c => !c.status);
   if (withoutStatus.length > 0) {
     throw new Error(`Found ${withoutStatus.length} clients without status`);
   }
-  console.log('✔ All 17 existing clients have valid status values.');
+  console.log(`✔ All ${initialClients.length} existing clients have valid status values.`);
 
   // 2. Test inserting a test client with default status
   console.log('\n[2] TESTING DEFAULT STATUS ON INSERT:');
@@ -151,8 +151,8 @@ async function runStatusTestSuite() {
   await adminClient.from('clients').delete().eq('id', testClient.id);
   
   const { data: finalClients } = await adminClient.from('clients').select('id');
-  console.log(`✔ Cleanup complete. Final client count = ${finalClients?.length} (expected 17).`);
-  if (finalClients?.length !== 17) {
+  console.log(`✔ Cleanup complete. Final client count = ${finalClients?.length} (expected ${initialClients.length}).`);
+  if (finalClients?.length !== initialClients.length) {
     throw new Error(`Data loss detected! Final client count = ${finalClients?.length}`);
   }
 

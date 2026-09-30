@@ -12,6 +12,7 @@ import {
   type ClientCategory,
   type ClientStatus,
 } from '@/lib/types/crm'
+import { validateCnp } from '@/lib/utils/cnp'
 import type { Database } from '@/types'
 import { Building2, Shield, CreditCard } from 'lucide-react'
 
@@ -21,11 +22,13 @@ export default function NewClientPage() {
   const router = useRouter()
   const [loading, setLoading] = useState(false)
   const [duplicateCheck, setDuplicateCheck] = useState<DuplicateClient[]>([])
+  const [cnpError, setCnpError] = useState<string | null>(null)
   const [formData, setFormData] = useState({
     first_name: '',
     last_name: '',
     phone: '',
     email: '',
+    cnp: '',
     category: 'REAL_ESTATE' as ClientCategory,
     status: 'NOT_CONTACTED' as ClientStatus,
     interest_summary: '',
@@ -60,13 +63,28 @@ export default function NewClientPage() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
+    setCnpError(null)
+
+    let normalizedCnp: string | null = null
+    if (formData.cnp && formData.cnp.trim()) {
+      const validation = validateCnp(formData.cnp, true)
+      if (!validation.isValid) {
+        setCnpError(validation.error || 'CNP-ul trebuie să conțină exact 13 cifre.')
+        return
+      }
+      normalizedCnp = validation.normalized
+    }
+
     setLoading(true)
 
     try {
       const response = await fetch('/api/clients', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(formData),
+        body: JSON.stringify({
+          ...formData,
+          cnp: normalizedCnp,
+        }),
       })
 
       if (response.ok) {
@@ -172,8 +190,8 @@ export default function NewClientPage() {
             />
           </div>
 
-          {/* Telefon & Email */}
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+          {/* Telefon, Email & CNP */}
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
             <Input
               label="Telefon *"
               name="phone"
@@ -193,6 +211,38 @@ export default function NewClientPage() {
               onBlur={checkDuplicates}
               placeholder="client@domeniu.ro"
             />
+
+            <div>
+              <Input
+                label="CNP (Opțional)"
+                name="cnp"
+                inputMode="numeric"
+                value={formData.cnp}
+                onChange={(e) => {
+                  handleInputChange(e)
+                  if (cnpError) setCnpError(null)
+                }}
+                onBlur={() => {
+                  if (formData.cnp && formData.cnp.trim()) {
+                    const validation = validateCnp(formData.cnp, true)
+                    if (!validation.isValid) {
+                      setCnpError(validation.error || 'CNP-ul trebuie să conțină exact 13 cifre.')
+                    } else {
+                      setCnpError(null)
+                    }
+                  } else {
+                    setCnpError(null)
+                  }
+                }}
+                placeholder="13 cifre"
+                maxLength={18}
+              />
+              {cnpError && (
+                <p className="text-[11px] text-rose-600 font-medium mt-1">
+                  {cnpError}
+                </p>
+              )}
+            </div>
           </div>
 
           {/* Status Operațional & Sursă Lead */}

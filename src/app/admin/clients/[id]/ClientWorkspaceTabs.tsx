@@ -25,6 +25,8 @@ import {
   History,
   Building2,
   CreditCard,
+  Eye,
+  EyeOff,
 } from 'lucide-react'
 import { getCategoryLabel, getSourceLabel } from '@/lib/types/crm'
 import { formatPhoneDisplay, getTelUrl, getWhatsAppUrl } from '@/lib/utils/phone'
@@ -76,6 +78,7 @@ export function ClientWorkspaceTabs({
   const searchParams = useSearchParams()
   const initialTab = searchParams.get('tab') || (searchParams.get('from') === 'insurance' ? 'policies' : defaultTab)
   const [activeTab, setActiveTab] = useState<string>(initialTab)
+  const [showCnp, setShowCnp] = useState(false)
 
   const now = new Date()
 
@@ -619,6 +622,22 @@ export function ClientWorkspaceTabs({
               <div className="flex justify-between py-1.5 border-b border-neutral-100 dark:border-neutral-800/50">
                 <dt className="text-neutral-400">Primary Email</dt>
                 <dd className="font-medium text-neutral-900 dark:text-neutral-100">{client.email || '—'}</dd>
+              </div>
+              <div className="flex justify-between items-center py-1.5 border-b border-neutral-100 dark:border-neutral-800/50">
+                <dt className="text-neutral-400">CNP</dt>
+                <dd className="font-mono font-semibold text-neutral-900 dark:text-neutral-100 flex items-center gap-2">
+                  <span>{client.cnp ? (showCnp ? client.cnp : '•••••••••••••') : '—'}</span>
+                  {client.cnp && (
+                    <button
+                      type="button"
+                      onClick={() => setShowCnp(!showCnp)}
+                      className="p-1 text-neutral-400 hover:text-neutral-600 dark:hover:text-neutral-200 transition-colors"
+                      title={showCnp ? 'Ascunde CNP' : 'Afișează CNP'}
+                    >
+                      {showCnp ? <EyeOff className="w-3.5 h-3.5" /> : <Eye className="w-3.5 h-3.5" />}
+                    </button>
+                  )}
+                </dd>
               </div>
               <div className="flex justify-between py-1.5 border-b border-neutral-100 dark:border-neutral-800/50">
                 <dt className="text-neutral-400">Preferred Channel</dt>

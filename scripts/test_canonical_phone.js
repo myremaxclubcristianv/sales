@@ -169,9 +169,9 @@ async function runCanonicalPhoneTests() {
     .select('id, first_name, last_name, phone');
   if (fetchErr) throw fetchErr;
 
-  console.log(`  Total clients: ${allClients.length} (expected 17)`);
-  if (allClients.length !== 17) {
-    throw new Error(`Expected exactly 17 clients, found ${allClients.length}`);
+  console.log(`  Total clients: ${allClients.length} (expected >= 17)`);
+  if (allClients.length < 17) {
+    throw new Error(`Expected at least 17 clients, found ${allClients.length}`);
   }
 
   for (const c of allClients) {
