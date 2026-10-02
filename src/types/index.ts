@@ -1486,6 +1486,210 @@ export interface Database {
           created_at?: string
         }
       }
+      insurance_clients: {
+        Row: {
+          id: string
+          import_source_id: string | null
+          full_name: string
+          phone: string | null
+          canonical_phone: string | null
+          email: string | null
+          cnp: string | null
+          address: string | null
+          city: string | null
+          county: string | null
+          postal_code: string | null
+          status: 'ACTIVE' | 'INACTIVE'
+          source: string | null
+          last_interaction: string | null
+          notes: string | null
+          source_data: Record<string, unknown>
+          created_at: string
+          updated_at: string
+          created_by: string | null
+          updated_by: string | null
+        }
+        Insert: {
+          id?: string
+          import_source_id?: string | null
+          full_name: string
+          phone?: string | null
+          canonical_phone?: string | null
+          email?: string | null
+          cnp?: string | null
+          address?: string | null
+          city?: string | null
+          county?: string | null
+          postal_code?: string | null
+          status?: 'ACTIVE' | 'INACTIVE'
+          source?: string | null
+          last_interaction?: string | null
+          notes?: string | null
+          source_data?: Record<string, unknown>
+          created_at?: string
+          updated_at?: string
+          created_by?: string | null
+          updated_by?: string | null
+        }
+        Update: {
+          id?: string
+          import_source_id?: string | null
+          full_name?: string
+          phone?: string | null
+          canonical_phone?: string | null
+          email?: string | null
+          cnp?: string | null
+          address?: string | null
+          city?: string | null
+          county?: string | null
+          postal_code?: string | null
+          status?: 'ACTIVE' | 'INACTIVE'
+          source?: string | null
+          last_interaction?: string | null
+          notes?: string | null
+          source_data?: Record<string, unknown>
+          created_at?: string
+          updated_at?: string
+          created_by?: string | null
+          updated_by?: string | null
+        }
+      }
+      insurance_client_policies: {
+        Row: {
+          id: string
+          insurance_client_id: string
+          import_source_id: string | null
+          policy_type: string
+          insurer: string | null
+          insurer_raw: string | null
+          policy_number: string | null
+          issue_date: string | null
+          expiry_date: string
+          premium_amount: number | null
+          premium_currency: 'RON' | 'EUR' | 'USD'
+          commission_amount: number | null
+          commission_rate: string | null
+          status: 'ACTIVE' | 'EXPIRING_SOON' | 'EXPIRED' | 'CANCELLED' | 'PENDING_RENEWAL'
+          vin: string | null
+          vehicle_registration: string | null
+          property_details: string | null
+          details: string | null
+          notes: string | null
+          source_data: Record<string, unknown>
+          created_at: string
+          updated_at: string
+          created_by: string | null
+          updated_by: string | null
+        }
+        Insert: {
+          id?: string
+          insurance_client_id: string
+          import_source_id?: string | null
+          policy_type: string
+          insurer?: string | null
+          insurer_raw?: string | null
+          policy_number?: string | null
+          issue_date?: string | null
+          expiry_date: string
+          premium_amount?: number | null
+          premium_currency?: 'RON' | 'EUR' | 'USD'
+          commission_amount?: number | null
+          commission_rate?: string | null
+          status?: 'ACTIVE' | 'EXPIRING_SOON' | 'EXPIRED' | 'CANCELLED' | 'PENDING_RENEWAL'
+          vin?: string | null
+          vehicle_registration?: string | null
+          property_details?: string | null
+          details?: string | null
+          notes?: string | null
+          source_data?: Record<string, unknown>
+          created_at?: string
+          updated_at?: string
+          created_by?: string | null
+          updated_by?: string | null
+        }
+        Update: {
+          id?: string
+          insurance_client_id?: string
+          import_source_id?: string | null
+          policy_type?: string
+          insurer?: string | null
+          insurer_raw?: string | null
+          policy_number?: string | null
+          issue_date?: string | null
+          expiry_date?: string
+          premium_amount?: number | null
+          premium_currency?: 'RON' | 'EUR' | 'USD'
+          commission_amount?: number | null
+          commission_rate?: string | null
+          status?: 'ACTIVE' | 'EXPIRING_SOON' | 'EXPIRED' | 'CANCELLED' | 'PENDING_RENEWAL'
+          vin?: string | null
+          vehicle_registration?: string | null
+          property_details?: string | null
+          details?: string | null
+          notes?: string | null
+          source_data?: Record<string, unknown>
+          created_at?: string
+          updated_at?: string
+          created_by?: string | null
+          updated_by?: string | null
+        }
+      }
+      insurance_client_notes: {
+        Row: {
+          id: string
+          insurance_client_id: string
+          content: string
+          created_by: string | null
+          created_at: string
+          updated_at: string
+        }
+        Insert: {
+          id?: string
+          insurance_client_id: string
+          content: string
+          created_by?: string | null
+          created_at?: string
+          updated_at?: string
+        }
+        Update: {
+          id?: string
+          insurance_client_id?: string
+          content?: string
+          created_by?: string | null
+          created_at?: string
+          updated_at?: string
+        }
+      }
+      insurance_client_activities: {
+        Row: {
+          id: string
+          insurance_client_id: string
+          activity_type: 'CALL' | 'WHATSAPP' | 'EMAIL' | 'MEETING' | 'NOTE' | 'POLICY_CREATED' | 'EXPIRATION_ALERT' | 'MANUAL_UPDATE' | 'IMPORT'
+          title: string
+          description: string | null
+          performed_by: string | null
+          created_at: string
+        }
+        Insert: {
+          id?: string
+          insurance_client_id: string
+          activity_type?: 'CALL' | 'WHATSAPP' | 'EMAIL' | 'MEETING' | 'NOTE' | 'POLICY_CREATED' | 'EXPIRATION_ALERT' | 'MANUAL_UPDATE' | 'IMPORT'
+          title: string
+          description?: string | null
+          performed_by?: string | null
+          created_at?: string
+        }
+        Update: {
+          id?: string
+          insurance_client_id?: string
+          activity_type?: 'CALL' | 'WHATSAPP' | 'EMAIL' | 'MEETING' | 'NOTE' | 'POLICY_CREATED' | 'EXPIRATION_ALERT' | 'MANUAL_UPDATE' | 'IMPORT'
+          title?: string
+          description?: string | null
+          performed_by?: string | null
+          created_at?: string
+        }
+      }
     }
   }
 }
+
