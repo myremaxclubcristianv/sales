@@ -40,6 +40,8 @@ export function RequestInquiryForm({ requestId, requestTitle }: Props) {
 
     try {
       const marketingTag = formData.marketing_consent ? ' [Marketing Consent: OPT-IN]' : ' [Marketing Consent: NONE]'
+      const vIntel = typeof window !== 'undefined' ? window.__CV_VISITOR_INTELLIGENCE__ : null
+
       const res = await fetch('/api/leads', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -50,6 +52,12 @@ export function RequestInquiryForm({ requestId, requestTitle }: Props) {
           message: `[Matching Property Submission for Request: ${requestTitle}] Details: ${formData.property_details} | Asking: ${formData.asking_price}${marketingTag}`,
           source: 'website',
           request_id: requestId,
+          visitor_id: vIntel?.visitorId || null,
+          session_id: vIntel?.sessionId || null,
+          traffic_source: vIntel?.trafficSource || null,
+          device_details: vIntel?.device || null,
+          visitor_history: vIntel?.visitorHistory || null,
+          page_journey: vIntel?.pageJourney || null,
         }),
       })
 

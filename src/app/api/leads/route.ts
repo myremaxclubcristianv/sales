@@ -21,7 +21,21 @@ export async function POST(request: Request) {
     }
 
     const body = await request.json()
-    const { name, phone, email, message, property_id, request_id, honeypot } = body
+    const {
+      name,
+      phone,
+      email,
+      message,
+      property_id,
+      request_id,
+      honeypot,
+      visitor_id,
+      session_id,
+      traffic_source,
+      device_details,
+      visitor_history,
+      page_journey,
+    } = body
 
     // Basic spam bot protection
     if (honeypot) {
@@ -47,7 +61,7 @@ export async function POST(request: Request) {
         message: message ? message.trim() : null,
         property_id: property_id || null,
         request_id: request_id || null,
-        source: sourceVal,
+        source: traffic_source?.source || sourceVal,
         status: 'NEW',
       })
       .select()
@@ -59,6 +73,18 @@ export async function POST(request: Request) {
         { error: 'A apărut o eroare la trimiterea solicitării. Te rugăm să încerci din nou.' },
         { status: 500 }
       )
+    }
+
+    // Correlate lead with visitor_sessions if session_id exists (non-blocking)
+    if (session_id) {
+      try {
+        await supabase
+          .from('visitor_sessions')
+          .update({ lead_id: lead.id })
+          .eq('session_id', session_id)
+      } catch {
+        // Safe ignore
+      }
     }
 
     // Auto-create broker in-app notification (non-blocking)
@@ -105,19 +131,48 @@ export async function POST(request: Request) {
       }
     }
 
-    // Dispatch Telegram notification as safe side-effect
+    // Dispatch enriched Telegram notification as safe side-effect (Section 12)
     try {
-      await notifyNewLeadTelegram({
-        id: lead.id,
-        name: lead.name,
-        phone: lead.phone,
-        email: lead.email,
-        message: lead.message,
-        source: lead.source,
-        property_title: propertyTitle,
-        request_title: requestTitle,
-        created_at: lead.created_at,
-      })
+      if (visitor_id || session_id || page_journey || traffic_source) {
+        const { formatVisitorLeadTelegramMessage } = await import('@/lib/visitor/telegram-formatter')
+        const { sendTelegramMessage } = await import('@/lib/telegram/telegram')
+
+        const msg = formatVisitorLeadTelegramMessage({
+          leadId: lead.id,
+          name: lead.name,
+          phone: lead.phone,
+          email: lead.email,
+          message: lead.message,
+          propertyTitle,
+          requestTitle,
+          source: lead.source,
+          visitorId: visitor_id || null,
+          sessionId: session_id || null,
+          trafficSource: traffic_source || null,
+          device: device_details || null,
+          visitorHistory: visitor_history || null,
+          pageJourney: page_journey || null,
+          createdAt: lead.created_at,
+        })
+
+        await sendTelegramMessage(msg, {
+          parseMode: 'HTML',
+          disableWebPagePreview: true,
+          timeoutMs: 5000,
+        })
+      } else {
+        await notifyNewLeadTelegram({
+          id: lead.id,
+          name: lead.name,
+          phone: lead.phone,
+          email: lead.email,
+          message: lead.message,
+          source: lead.source,
+          property_title: propertyTitle,
+          request_title: requestTitle,
+          created_at: lead.created_at,
+        })
+      }
     } catch (telegramErr) {
       // Telegram failure must never block lead confirmation
       console.warn('[Telegram Side-Effect] Notification skipped or failed safely:', telegramErr)

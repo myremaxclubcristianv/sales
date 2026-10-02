@@ -28,6 +28,8 @@ export function PropertyInquiryForm({ propertyId, propertyTitle }: PropertyInqui
       const marketingTag = marketingConsent ? ' [Marketing Consent: OPT-IN]' : ' [Marketing Consent: NONE]'
       const fullMessage = `${message.trim()}${marketingTag}`
 
+      const vIntel = typeof window !== 'undefined' ? window.__CV_VISITOR_INTELLIGENCE__ : null
+
       const res = await fetch('/api/leads', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -38,6 +40,12 @@ export function PropertyInquiryForm({ propertyId, propertyTitle }: PropertyInqui
           message: fullMessage,
           property_id: propertyId,
           honeypot,
+          visitor_id: vIntel?.visitorId || null,
+          session_id: vIntel?.sessionId || null,
+          traffic_source: vIntel?.trafficSource || null,
+          device_details: vIntel?.device || null,
+          visitor_history: vIntel?.visitorHistory || null,
+          page_journey: vIntel?.pageJourney || null,
         }),
       })
 

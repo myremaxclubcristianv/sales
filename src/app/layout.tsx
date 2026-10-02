@@ -1,5 +1,7 @@
 import type { Metadata } from "next";
+import { Suspense } from "react";
 import { Geist, Geist_Mono } from "next/font/google";
+import VisitorTracker from "@/components/analytics/VisitorTracker";
 import "./globals.css";
 
 const geistSans = Geist({
@@ -38,7 +40,12 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
       lang="en"
       className={`${geistSans.variable} ${geistMono.variable} h-full antialiased`}
     >
-      <body className="min-h-full flex flex-col">{children}</body>
+      <body className="min-h-full flex flex-col">
+        <Suspense fallback={null}>
+          <VisitorTracker />
+        </Suspense>
+        {children}
+      </body>
     </html>
   );
 }
