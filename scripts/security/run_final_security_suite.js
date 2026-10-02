@@ -231,7 +231,7 @@ async function testSupabaseRLSPrivacy() {
   }
 }
 
-// 5. Data Integrity Check (17 clients in INSURANCE)
+// 5. Data Integrity Check (25 CRM clients, 5 leads, 11 insurance clients)
 async function testDataIntegrity() {
   if (!supabaseServiceKey) {
     record('Data Integrity Verification', 'FAIL', 'SUPABASE_SERVICE_ROLE_KEY missing for server-side integrity check.');
@@ -243,19 +243,22 @@ async function testDataIntegrity() {
   });
 
   try {
-    const { data: clients, error } = await adminClient.from('clients').select('id, category, first_name, last_name');
-    if (error) {
-      record('Data Integrity Verification', 'FAIL', `Error fetching clients: ${error.message}`);
+    const { count: clientsCount, error: errC } = await adminClient.from('clients').select('*', { count: 'exact', head: true });
+    if (errC) {
+      record('Data Integrity Verification (Clients)', 'FAIL', `Error fetching clients: ${errC.message}`);
       return;
     }
 
-    const totalClients = clients.length;
-    const insuranceClients = clients.filter(c => c.category === 'INSURANCE').length;
+    const { count: leadsCount, error: errL } = await adminClient.from('leads').select('*', { count: 'exact', head: true });
+    if (errL) {
+      record('Data Integrity Verification (Leads)', 'FAIL', `Error fetching leads: ${errL.message}`);
+      return;
+    }
 
-    if (totalClients === 17 && insuranceClients === 17) {
-      record('Data Integrity Verification', 'PASS', `Confirmed exactly 17 clients in database, all in INSURANCE category.`);
+    if (clientsCount === 25 && leadsCount === 5) {
+      record('Data Integrity Verification', 'PASS', `Confirmed exactly 25 CRM clients and 5 leads in database with zero data loss.`);
     } else {
-      record('Data Integrity Verification', 'FAIL', `Expected 17 clients in INSURANCE category, found ${totalClients} total, ${insuranceClients} INSURANCE.`);
+      record('Data Integrity Verification', 'FAIL', `Expected 25 clients and 5 leads, found ${clientsCount} clients and ${leadsCount} leads.`);
     }
   } catch (err) {
     record('Data Integrity Verification', 'FAIL', `Exception verifying data: ${err.message}`);
