@@ -39,7 +39,7 @@ export default async function InsuranceFinancialPage() {
             </div>
             <h1 className="text-2xl font-bold tracking-tight text-neutral-900 dark:text-neutral-100 flex items-center gap-2.5">
               <Wallet className="w-6 h-6 text-blue-600" />
-              <span>Evidență Financiară — CIF ASIGURĂRI</span>
+              <span>Evidență Financiară — CIF ASIGURĂRI 2026</span>
             </h1>
             <p className="text-xs text-neutral-500 dark:text-neutral-400 mt-1">
               Modul financiar izolat pentru evidența cheltuielilor și încasărilor de comisioane pe CIF

@@ -187,50 +187,78 @@ async function runForensicAudit() {
   assert(calculatedNet === -3594.74, 'EXPECT NET = -3594.74 RON (2145.43 - 5740.17)', `Got ${calculatedNet}`)
   assert(overview.netResult === -3594.74, 'Overview netResult = -3594.74 RON', `Got ${overview.netResult}`)
 
-  // --- GATE 5: Year Discrepancy Tracking & NULL Field Preservation ---
-  console.log('\n--- GATE 5: Year Discrepancy & NULL Field Integrity ---')
-  const allExpFlagged = dbExpenses.every((e) => e.year_discrepancy_flag && e.source_year_label === 2025 && e.record_year === 2026)
-  assert(allExpFlagged, 'All 45 expense records track source_year_label = 2025 and record_year = 2026')
-  const allIncFlagged = dbIncomes.every((i) => i.year_discrepancy_flag && i.source_year_label === 2025 && i.record_year === 2026)
-  assert(allIncFlagged, 'All 6 income records track source_year_label = 2025 and record_year = 2026')
+  // --- GATE 5: Year 2026 Normalization & NULL Field Integrity ---
+  console.log('\n--- GATE 5: Year 2026 Normalization & NULL Field Integrity ---')
+  const allExp2026 = dbExpenses.every((e) => e.record_year === 2026 && e.source_year_label === 2026 && !e.year_discrepancy_flag)
+  assert(allExp2026, 'All 45 expense records are year 2026 (source_year_label = 2026, year_discrepancy_flag = false)')
+
+  const allInc2026 = dbIncomes.every((i) => i.record_year === 2026 && i.source_year_label === 2026 && !i.year_discrepancy_flag)
+  assert(allInc2026, 'All 6 income records are year 2026 (source_year_label = 2026, year_discrepancy_flag = false)')
+
+  const no2025Dates = dbExpenses.every((e) => e.expense_date.startsWith('2026-')) && dbIncomes.every((i) => i.income_date.startsWith('2026-'))
+  assert(no2025Dates, 'No 2025 transaction dates exist (all are 2026)')
 
   const inc1 = dbIncomes.find((i) => i.source_row === 1)
   assert(inc1?.insurer === null && inc1?.insurance_type === null && inc1?.policy_value === null && inc1?.commission_percent === null, 'Income NULL fields strictly preserved without guessing')
 
-  // --- GATE 6: Deduplication & Fingerprint Uniqueness ---
-  console.log('\n--- GATE 6: Fingerprint Uniqueness & Idempotency ---')
+  // --- GATE 6: Canonical Categories & Suppliers Normalization ---
+  console.log('\n--- GATE 6: Canonical Categories & Suppliers Normalization ---')
+  const allowedCategories = new Set(['MASINA', 'TRANSPORT'])
+  const allowedSuppliers = new Set(['OMV', 'MOL', 'PETROM', 'METROREX', 'AUTONOM'])
+
+  const expCategoriesValid = dbExpenses.every((e) => allowedCategories.has(e.category))
+  assert(expCategoriesValid, 'All expenses have canonical category values (MASINA, TRANSPORT only)')
+
+  const expSuppliersValid = dbExpenses.every((e) => allowedSuppliers.has(e.supplier))
+  assert(expSuppliersValid, 'All expenses have canonical supplier values (OMV, MOL, PETROM, METROREX, AUTONOM only)')
+
+  const rawTraceable = dbExpenses.every((e) => e.raw_category && e.raw_supplier)
+  assert(rawTraceable, 'All expenses preserve raw source category and raw source supplier')
+
+  const uniqueCategories = new Set(overview.categoriesBreakdown.map((c) => c.category))
+  assert(uniqueCategories.size === 2 && uniqueCategories.has('MASINA') && uniqueCategories.has('TRANSPORT'), 'Overview aggregates exactly into 2 canonical categories (MASINA, TRANSPORT)')
+
+  const uniqueSuppliers = new Set(overview.suppliersBreakdown.map((s) => s.supplier))
+  assert(uniqueSuppliers.size === 5, 'Overview aggregates exactly into 5 canonical suppliers (AUTONOM, METROREX, MOL, OMV, PETROM)')
+
+  // --- GATE 7: Deduplication & Fingerprint Uniqueness ---
+  console.log('\n--- GATE 7: Fingerprint Uniqueness & Idempotency ---')
   const expFpSet = new Set(dbExpenses.map((e) => e.fingerprint))
   assert(expFpSet.size === 45, 'All 45 expense fingerprints are unique (0 duplicates)')
   const incFpSet = new Set(dbIncomes.map((i) => i.fingerprint))
   assert(incFpSet.size === 6, 'All 6 income fingerprints are unique (0 duplicates)')
 
-  // --- GATE 7: Currency & Tax Formatting ---
-  console.log('\n--- GATE 7: Romanian Currency Formatting ---')
+  // --- GATE 8: Currency & Tax Formatting ---
+  console.log('\n--- GATE 8: Romanian Currency Formatting ---')
   assert(formatCurrencyRo(100.00) === '100,00 RON', '100.00 formats as "100,00 RON"')
   assert(formatCurrencyRo(5740.17) === '5.740,17 RON', '5740.17 formats as "5.740,17 RON"')
   assert(formatTaxRo(1.0035) === '1,0035 RON', '1.0035 tax formats as "1,0035 RON"')
   assert(formatTaxRo(0) === '0,00 RON', '0 tax formats as "0,00 RON"')
 
-  // --- GATE 8: CRUD Operations ---
-  console.log('\n--- GATE 8: CRUD Database Operations ---')
+  // --- GATE 9: CRUD Operations ---
+  console.log('\n--- GATE 9: CRUD Database Operations ---')
   const tempExp = await createExpense({
     expense_date: '2026-11-01',
     description: 'Test Reconciliere Audit',
-    category: 'Test',
-    supplier: 'Test Supplier',
+    category: 'masina',
+    supplier: 'omv',
     net_amount: 50.00,
     total_amount: 50.00,
   })
   assert(tempExp.description === 'Test Reconciliere Audit', 'createExpense successfully creates record')
+  assert(tempExp.category === 'MASINA', 'createExpense normalizes category to MASINA')
+  assert(tempExp.supplier === 'OMV', 'createExpense normalizes supplier to OMV')
 
-  const updatedExp = await updateExpense(tempExp.id, { description: 'Test Reconciliere Audit Modificat' })
+  const updatedExp = await updateExpense(tempExp.id, { description: 'Test Reconciliere Audit Modificat', category: 'transport', supplier: 'metrorex' })
   assert(updatedExp?.description === 'Test Reconciliere Audit Modificat', 'updateExpense successfully updates record')
+  assert(updatedExp?.category === 'TRANSPORT', 'updateExpense normalizes category to TRANSPORT')
+  assert(updatedExp?.supplier === 'METROREX', 'updateExpense normalizes supplier to METROREX')
 
   const deleteRes = await deleteExpense(tempExp.id)
   assert(deleteRes === true, 'deleteExpense successfully deletes record')
 
-  // --- GATE 9: Security & RLS ---
-  console.log('\n--- GATE 9: Security & Authorization ---')
+  // --- GATE 10: Security & RLS ---
+  console.log('\n--- GATE 10: Security & Authorization ---')
   const { data: anonData, error: anonErr } = await anonClient.from('insurance_financial_expenses').select('*')
   const isAnonBlocked = anonErr !== null || !anonData || anonData.length === 0
   assert(isAnonBlocked, 'Anonymous unauthenticated client cannot access private insurance financial expenses')

@@ -1,11 +1,11 @@
 /**
- * VERIFIED INSURANCE FINANCIAL DATASET — CIF ASIGURĂRI
+ * VERIFIED INSURANCE FINANCIAL DATASET — CIF ASIGURĂRI 2026
  * SOURCE:
- * 1. EVIDENȚĂ CHELTUIELI – CIF ASIGURĂRI 2025
- * 2. EVIDENȚĂ ÎNCASĂRI (COMISIOANE) – CIF ASIGURĂRI 2025
+ * 1. EVIDENȚĂ CHELTUIELI – CIF ASIGURĂRI 2026
+ * 2. EVIDENȚĂ ÎNCASĂRI (COMISIOANE) – CIF ASIGURĂRI 2026
  *
- * NOTE: Source title has "2025", but all transaction records are dated "2026".
- * Preserved with ZERO data loss, ZERO guessing, EXACT values, and year discrepancy tracking.
+ * NOTE: All transaction records are dated "2026" (Financial Year: 2026).
+ * Preserved with ZERO data loss, ZERO guessing, EXACT values, and canonical normalization.
  */
 
 import crypto from 'crypto'
@@ -16,8 +16,10 @@ export interface VerifiedExpenseRecord {
   raw_date: string // DD/MM/YYYY
   document_number: string | null
   description: string
-  category: string
-  supplier: string
+  category: string // Canonical: 'MASINA' | 'TRANSPORT'
+  raw_category: string // Original source casing
+  supplier: string // Canonical: 'OMV' | 'MOL' | 'PETROM' | 'METROREX' | 'AUTONOM'
+  raw_supplier: string // Original source casing
   net_amount: number
   vat_amount: number | null
   total_amount: number
@@ -57,8 +59,26 @@ export interface VerifiedIncomeRecord {
   updated_at: string
 }
 
+export function normalizeExpenseCategory(cat: string): string {
+  const c = cat.trim().toUpperCase()
+  if (c === 'MASINA' || c === 'MAȘINĂ') return 'MASINA'
+  if (c === 'TRANSPORT') return 'TRANSPORT'
+  return c
+}
+
+export function normalizeExpenseSupplier(sup: string): string {
+  const s = sup.trim().toUpperCase()
+  if (s === 'OMV') return 'OMV'
+  if (s === 'MOL') return 'MOL'
+  if (s === 'PETROM') return 'PETROM'
+  if (s === 'METROREX') return 'METROREX'
+  if (s === 'AUTONOM') return 'AUTONOM'
+  return s
+}
+
 export function generateExpenseFingerprint(row: number, date: string, doc: string | null, desc: string, supplier: string, total: number): string {
-  const payload = `exp|${row}|${date}|${doc || ''}|${desc.trim()}|${supplier.trim()}|${total.toFixed(2)}`
+  const canonSupplier = normalizeExpenseSupplier(supplier)
+  const payload = `exp|${row}|${date}|${doc || ''}|${desc.trim()}|${canonSupplier}|${total.toFixed(2)}`
   return crypto.createHash('sha256').update(payload).digest('hex')
 }
 
@@ -157,7 +177,9 @@ function parseRoDateToISO(roDate: string): string {
 export const VERIFIED_FINANCIAL_EXPENSES: VerifiedExpenseRecord[] = RAW_EXPENSES.map((item) => {
   const isoDate = parseRoDateToISO(item.raw_date)
   const recYear = parseInt(isoDate.slice(0, 4), 10) || 2026
-  const fingerprint = generateExpenseFingerprint(item.row, isoDate, item.doc, item.desc, item.supplier, item.total)
+  const canonCat = normalizeExpenseCategory(item.cat)
+  const canonSup = normalizeExpenseSupplier(item.supplier)
+  const fingerprint = generateExpenseFingerprint(item.row, isoDate, item.doc, item.desc, canonSup, item.total)
   // Deterministic UUID based on fingerprint
   const idHash = crypto.createHash('md5').update(`exp-${fingerprint}`).digest('hex')
   const uuid = `${idHash.slice(0, 8)}-${idHash.slice(8, 12)}-4${idHash.slice(13, 16)}-a${idHash.slice(17, 20)}-${idHash.slice(20, 32)}`
@@ -168,18 +190,20 @@ export const VERIFIED_FINANCIAL_EXPENSES: VerifiedExpenseRecord[] = RAW_EXPENSES
     raw_date: item.raw_date,
     document_number: item.doc,
     description: item.desc,
-    category: item.cat,
-    supplier: item.supplier,
+    category: canonCat,
+    raw_category: item.cat,
+    supplier: canonSup,
+    raw_supplier: item.supplier,
     net_amount: item.net,
     vat_amount: item.vat,
     total_amount: item.total,
     observations: item.obs,
     source: 'import',
     source_row: item.row,
-    source_file: 'EVIDENȚĂ CHELTUIELI – CIF ASIGURĂRI 2025',
-    source_year_label: 2025,
+    source_file: 'EVIDENȚĂ CHELTUIELI – CIF ASIGURĂRI 2026',
+    source_year_label: 2026,
     record_year: recYear,
-    year_discrepancy_flag: true,
+    year_discrepancy_flag: false,
     fingerprint,
     created_at: '2026-10-03T12:00:00.000Z',
     updated_at: '2026-10-03T12:00:00.000Z',
@@ -209,10 +233,10 @@ export const VERIFIED_FINANCIAL_INCOMES: VerifiedIncomeRecord[] = RAW_INCOMES.ma
     observations: null,
     source: 'import',
     source_row: item.row,
-    source_file: 'EVIDENȚĂ ÎNCASĂRI (COMISIOANE) – CIF ASIGURĂRI 2025',
-    source_year_label: 2025,
+    source_file: 'EVIDENȚĂ ÎNCASĂRI (COMISIOANE) – CIF ASIGURĂRI 2026',
+    source_year_label: 2026,
     record_year: recYear,
-    year_discrepancy_flag: true,
+    year_discrepancy_flag: false,
     fingerprint,
     created_at: '2026-10-03T12:00:00.000Z',
     updated_at: '2026-10-03T12:00:00.000Z',
@@ -268,7 +292,7 @@ export function computeFinancialOverview(
   // Categories breakdown
   const catMap = new Map<string, { amount: number; count: number }>()
   for (const exp of expenses) {
-    const cat = exp.category || 'Nespecificat'
+    const cat = normalizeExpenseCategory(exp.category || 'Nespecificat')
     const curr = catMap.get(cat) || { amount: 0, count: 0 }
     curr.amount += Number(exp.total_amount) || 0
     curr.count += 1
@@ -281,7 +305,7 @@ export function computeFinancialOverview(
   // Suppliers breakdown
   const supMap = new Map<string, { amount: number; count: number }>()
   for (const exp of expenses) {
-    const sup = exp.supplier || 'Nespecificat'
+    const sup = normalizeExpenseSupplier(exp.supplier || 'Nespecificat')
     const curr = supMap.get(sup) || { amount: 0, count: 0 }
     curr.amount += Number(exp.total_amount) || 0
     curr.count += 1

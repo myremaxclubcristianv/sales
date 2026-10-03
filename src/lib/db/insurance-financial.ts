@@ -6,6 +6,8 @@ import {
   VerifiedIncomeRecord,
   FinancialOverviewSummary,
   computeFinancialOverview,
+  normalizeExpenseCategory,
+  normalizeExpenseSupplier,
   generateExpenseFingerprint,
   generateIncomeFingerprint,
 } from '@/lib/data/verified-insurance-financial-dataset'
@@ -41,10 +43,12 @@ export async function getExpenses(filters?: ExpenseFilters): Promise<{ expenses:
     let query = admin.from('insurance_financial_expenses').select('*', { count: 'exact' })
 
     if (filters?.category && filters.category !== 'ALL') {
-      query = query.ilike('category', filters.category)
+      const canonCat = normalizeExpenseCategory(filters.category)
+      query = query.eq('category', canonCat)
     }
     if (filters?.supplier && filters.supplier !== 'ALL') {
-      query = query.ilike('supplier', filters.supplier)
+      const canonSup = normalizeExpenseSupplier(filters.supplier)
+      query = query.eq('supplier', canonSup)
     }
     if (filters?.year && filters.year !== 'ALL') {
       query = query.eq('record_year', Number(filters.year))
@@ -79,10 +83,12 @@ export async function getExpenses(filters?: ExpenseFilters): Promise<{ expenses:
   let result = [...inMemoryExpenses]
 
   if (filters?.category && filters.category !== 'ALL') {
-    result = result.filter((e) => e.category.toLowerCase() === filters.category!.toLowerCase())
+    const canonCat = normalizeExpenseCategory(filters.category)
+    result = result.filter((e) => normalizeExpenseCategory(e.category) === canonCat)
   }
   if (filters?.supplier && filters.supplier !== 'ALL') {
-    result = result.filter((e) => e.supplier.toLowerCase() === filters.supplier!.toLowerCase())
+    const canonSup = normalizeExpenseSupplier(filters.supplier)
+    result = result.filter((e) => normalizeExpenseSupplier(e.supplier) === canonSup)
   }
   if (filters?.year && filters.year !== 'ALL') {
     result = result.filter((e) => e.record_year === Number(filters.year))
@@ -141,7 +147,9 @@ export async function createExpense(data: {
 }): Promise<VerifiedExpenseRecord> {
   const row = inMemoryExpenses.length + 1
   const recYear = parseInt(data.expense_date.slice(0, 4), 10) || 2026
-  const fingerprint = generateExpenseFingerprint(row, data.expense_date, data.document_number || null, data.description, data.supplier, data.total_amount)
+  const canonCat = normalizeExpenseCategory(data.category)
+  const canonSup = normalizeExpenseSupplier(data.supplier)
+  const fingerprint = generateExpenseFingerprint(row, data.expense_date, data.document_number || null, data.description, canonSup, data.total_amount)
   const idHash = crypto.createHash('md5').update(`exp-${fingerprint}-${Date.now()}`).digest('hex')
   const uuid = `${idHash.slice(0, 8)}-${idHash.slice(8, 12)}-4${idHash.slice(13, 16)}-a${idHash.slice(17, 20)}-${idHash.slice(20, 32)}`
 
@@ -151,8 +159,10 @@ export async function createExpense(data: {
     raw_date: data.expense_date,
     document_number: data.document_number || null,
     description: data.description,
-    category: data.category,
-    supplier: data.supplier,
+    category: canonCat,
+    raw_category: data.category,
+    supplier: canonSup,
+    raw_supplier: data.supplier,
     net_amount: data.net_amount,
     vat_amount: data.vat_amount ?? null,
     total_amount: data.total_amount,
@@ -160,7 +170,7 @@ export async function createExpense(data: {
     source: 'manual',
     source_row: row,
     source_file: 'Manual Entry',
-    source_year_label: recYear,
+    source_year_label: 2026,
     record_year: recYear,
     year_discrepancy_flag: false,
     fingerprint,
@@ -200,9 +210,16 @@ export async function updateExpense(
   const existing = await getExpenseById(id)
   if (!existing) return null
 
+  const canonCat = data.category ? normalizeExpenseCategory(data.category) : existing.category
+  const canonSup = data.supplier ? normalizeExpenseSupplier(data.supplier) : existing.supplier
+
   const updated: VerifiedExpenseRecord = {
     ...existing,
     ...data,
+    category: canonCat,
+    raw_category: data.category || existing.raw_category,
+    supplier: canonSup,
+    raw_supplier: data.supplier || existing.raw_supplier,
     updated_at: new Date().toISOString(),
   }
 

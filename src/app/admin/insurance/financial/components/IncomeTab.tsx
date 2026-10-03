@@ -178,10 +178,10 @@ export function IncomeTab({ incomes, onRefresh }: IncomeTabProps) {
         <div>
           <h2 className="text-base font-bold text-neutral-900 dark:text-white flex items-center gap-2">
             <TrendingUp className="w-5 h-5 text-emerald-600" />
-            <span>Evidență Încasări &amp; Comisioane — CIF Asigurări</span>
+            <span>Evidență Încasări (Comisioane) — CIF Asigurări 2026</span>
           </h2>
           <p className="text-xs text-neutral-500 dark:text-neutral-400 mt-0.5">
-            Sursă: EVIDENȚĂ ÎNCASĂRI (COMISIOANE) – CIF ASIGURĂRI 2025 ({incomes.length} înregistrări exacte)
+            Sursă: EVIDENȚĂ ÎNCASĂRI (COMISIOANE) – CIF ASIGURĂRI 2026 ({incomes.length} înregistrări exacte)
           </p>
         </div>
 

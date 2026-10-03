@@ -16,7 +16,6 @@ import {
   formatCurrencyRo,
   formatTaxRo,
 } from '@/lib/data/verified-insurance-financial-dataset'
-import { YearDiscrepancyBadge } from './YearDiscrepancyBadge'
 
 interface FinancialOverviewTabProps {
   overview: FinancialOverviewSummary
@@ -28,9 +27,6 @@ export function FinancialOverviewTab({ overview, onSelectTab }: FinancialOvervie
 
   return (
     <div className="space-y-6">
-      {/* Year Discrepancy Note */}
-      <YearDiscrepancyBadge />
-
       {/* Top Real-time Dynamic KPI Cards */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
         {/* Total Cheltuieli */}

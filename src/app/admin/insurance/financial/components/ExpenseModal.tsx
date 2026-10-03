@@ -26,7 +26,7 @@ function ExpenseForm({
   const [expenseDate, setExpenseDate] = useState(expense?.expense_date || new Date().toISOString().slice(0, 10))
   const [documentNumber, setDocumentNumber] = useState(expense?.document_number || '')
   const [description, setDescription] = useState(expense?.description || '')
-  const [category, setCategory] = useState(expense?.category || 'Masina')
+  const [category, setCategory] = useState(expense?.category || 'MASINA')
   const [supplier, setSupplier] = useState(expense?.supplier || '')
   const [netAmount, setNetAmount] = useState(
     expense?.net_amount !== null && expense?.net_amount !== undefined ? String(expense.net_amount) : ''
@@ -108,7 +108,7 @@ function ExpenseForm({
               {expense ? 'Editează Cheltuială' : 'Adaugă Cheltuială Nouă'}
             </h3>
             <p className="text-xs text-neutral-500 dark:text-neutral-400">
-              Evidență Financiară CIF Asigurări
+              Evidență Financiară CIF Asigurări 2026
             </p>
           </div>
         </div>
@@ -186,7 +186,7 @@ function ExpenseForm({
             <input
               type="text"
               required
-              placeholder="ex: Masina, Transport, Birotica"
+              placeholder="ex: MASINA, TRANSPORT"
               value={category}
               onChange={(e) => setCategory(e.target.value)}
               className="w-full px-3 py-2 rounded-xl border border-neutral-300 dark:border-neutral-700 bg-white dark:bg-neutral-800 text-neutral-900 dark:text-white focus:outline-hidden focus:ring-2 focus:ring-blue-500"
@@ -202,7 +202,7 @@ function ExpenseForm({
             <input
               type="text"
               required
-              placeholder="ex: OMV, Petrom, Metrorex, Autonom"
+              placeholder="ex: OMV, MOL, PETROM, METROREX, AUTONOM"
               value={supplier}
               onChange={(e) => setSupplier(e.target.value)}
               className="w-full px-3 py-2 rounded-xl border border-neutral-300 dark:border-neutral-700 bg-white dark:bg-neutral-800 text-neutral-900 dark:text-white focus:outline-hidden focus:ring-2 focus:ring-blue-500"
