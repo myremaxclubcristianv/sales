@@ -7,7 +7,8 @@ import {
   Clock, 
   AlertTriangle, 
   ArrowUpRight, 
-  Plus
+  Plus,
+  Wallet
 } from 'lucide-react'
 import { getInsuranceMetrics, getInsuranceClients, getAllInsurancePolicies } from '@/lib/db/insurance-isolated'
 import { calculateExpiration } from '@/lib/utils/insurance-expiration'
@@ -41,6 +42,14 @@ export default async function InsuranceDashboardPage() {
           </div>
 
           <div className="flex flex-wrap items-center gap-2.5">
+            <Link
+              href="/admin/insurance/financial"
+              className="inline-flex items-center gap-2 px-3.5 py-2.5 bg-neutral-900 hover:bg-neutral-800 dark:bg-white dark:hover:bg-neutral-100 text-white dark:text-neutral-900 rounded-xl font-bold text-xs transition active:scale-95 shadow-sm"
+            >
+              <Wallet className="w-4 h-4 text-emerald-400 dark:text-emerald-600" />
+              <span>Financiar CIF</span>
+            </Link>
+
             <Link
               href="/admin/insurance/clients"
               className="inline-flex items-center gap-2 px-4 py-2.5 bg-blue-600 hover:bg-blue-700 text-white rounded-xl font-bold text-xs transition active:scale-95 shadow-sm"
