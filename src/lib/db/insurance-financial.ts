@@ -7,6 +7,7 @@ import {
   FinancialOverviewSummary,
   computeFinancialOverview,
   normalizeExpenseCategory,
+  inferExpenseType,
   normalizeExpenseSupplier,
   generateExpenseFingerprint,
   generateIncomeFingerprint,
@@ -16,7 +17,9 @@ import crypto from 'crypto'
 export interface ExpenseFilters {
   search?: string
   category?: string
+  expenseType?: string
   supplier?: string
+  isAsset?: boolean | string
   year?: number | string
   startDate?: string
   endDate?: string
@@ -46,9 +49,15 @@ export async function getExpenses(filters?: ExpenseFilters): Promise<{ expenses:
       const canonCat = normalizeExpenseCategory(filters.category)
       query = query.eq('category', canonCat)
     }
+    if (filters?.expenseType && filters.expenseType !== 'ALL') {
+      query = query.eq('expense_type', filters.expenseType)
+    }
     if (filters?.supplier && filters.supplier !== 'ALL') {
       const canonSup = normalizeExpenseSupplier(filters.supplier)
       query = query.eq('supplier', canonSup)
+    }
+    if (filters?.isAsset !== undefined && filters.isAsset !== 'ALL') {
+      query = query.eq('is_asset', String(filters.isAsset) === 'true')
     }
     if (filters?.year && filters.year !== 'ALL') {
       query = query.eq('record_year', Number(filters.year))
@@ -67,7 +76,7 @@ export async function getExpenses(filters?: ExpenseFilters): Promise<{ expenses:
     }
     if (filters?.search) {
       const term = `%${filters.search.trim()}%`
-      query = query.or(`description.ilike.${term},supplier.ilike.${term},category.ilike.${term},document_number.ilike.${term},observations.ilike.${term}`)
+      query = query.or(`description.ilike.${term},supplier.ilike.${term},category.ilike.${term},expense_type.ilike.${term},document_number.ilike.${term},observations.ilike.${term}`)
     }
 
     const { data, count, error } = await query.order('expense_date', { ascending: false }).order('source_row', { ascending: true })
@@ -86,18 +95,26 @@ export async function getExpenses(filters?: ExpenseFilters): Promise<{ expenses:
     const canonCat = normalizeExpenseCategory(filters.category)
     result = result.filter((e) => normalizeExpenseCategory(e.category) === canonCat)
   }
+  if (filters?.expenseType && filters.expenseType !== 'ALL') {
+    const targetType = filters.expenseType.trim().toUpperCase()
+    result = result.filter((e) => (e.expense_type || inferExpenseType(e.description, e.category)).toUpperCase() === targetType)
+  }
   if (filters?.supplier && filters.supplier !== 'ALL') {
     const canonSup = normalizeExpenseSupplier(filters.supplier)
     result = result.filter((e) => normalizeExpenseSupplier(e.supplier) === canonSup)
+  }
+  if (filters?.isAsset !== undefined && filters.isAsset !== 'ALL') {
+    const isAssetBool = String(filters.isAsset) === 'true'
+    result = result.filter((e) => Boolean(e.is_asset) === isAssetBool)
   }
   if (filters?.year && filters.year !== 'ALL') {
     result = result.filter((e) => e.record_year === Number(filters.year))
   }
   if (filters?.startDate) {
-    result = result.filter((e) => e.expense_date >= filters.startDate!)
+    result = result.filter((e) => e.expense_date && e.expense_date >= filters.startDate!)
   }
   if (filters?.endDate) {
-    result = result.filter((e) => e.expense_date <= filters.endDate!)
+    result = result.filter((e) => e.expense_date && e.expense_date <= filters.endDate!)
   }
   if (filters?.minAmount !== undefined) {
     result = result.filter((e) => Number(e.total_amount) >= filters.minAmount!)
@@ -112,13 +129,24 @@ export async function getExpenses(filters?: ExpenseFilters): Promise<{ expenses:
         e.description.toLowerCase().includes(term) ||
         e.supplier.toLowerCase().includes(term) ||
         e.category.toLowerCase().includes(term) ||
+        (e.expense_type && e.expense_type.toLowerCase().includes(term)) ||
         (e.document_number && e.document_number.toLowerCase().includes(term)) ||
         (e.observations && e.observations.toLowerCase().includes(term))
     )
   }
 
-  // Sort descending by date
-  result.sort((a, b) => b.expense_date.localeCompare(a.expense_date) || (a.source_row - b.source_row))
+  // Sort descending by date (handling empty dates by sorting last or by source_row)
+  result.sort((a, b) => {
+    if (a.expense_date && b.expense_date) {
+      const c = b.expense_date.localeCompare(a.expense_date)
+      if (c !== 0) return c
+    } else if (a.expense_date && !b.expense_date) {
+      return -1
+    } else if (!a.expense_date && b.expense_date) {
+      return 1
+    }
+    return a.source_row - b.source_row
+  })
 
   return { expenses: result, total: result.length }
 }
@@ -135,41 +163,60 @@ export async function getExpenseById(id: string): Promise<VerifiedExpenseRecord 
 }
 
 export async function createExpense(data: {
-  expense_date: string
+  expense_date?: string | null
   document_number?: string | null
   description: string
   category: string
+  expense_type?: string | null
   supplier: string
   net_amount: number
   vat_amount?: number | null
   total_amount: number
   observations?: string | null
+  is_asset?: boolean
+  asset_name?: string | null
+  purchase_value?: number | null
+  depreciation_years?: number | null
+  annual_depreciation_rate?: number | null
+  annual_depreciation?: number | null
+  monthly_depreciation?: number | null
+  depreciation_method?: string | null
 }): Promise<VerifiedExpenseRecord> {
   const row = inMemoryExpenses.length + 1
-  const recYear = parseInt(data.expense_date.slice(0, 4), 10) || 2026
+  const recYear = data.expense_date ? parseInt(data.expense_date.slice(0, 4), 10) || 2026 : 2026
   const canonCat = normalizeExpenseCategory(data.category)
   const canonSup = normalizeExpenseSupplier(data.supplier)
-  const fingerprint = generateExpenseFingerprint(row, data.expense_date, data.document_number || null, data.description, canonSup, data.total_amount)
+  const expenseType = data.expense_type || inferExpenseType(data.description, canonCat)
+  const fingerprint = generateExpenseFingerprint(row, data.expense_date || 'no-date', data.document_number || null, data.description, canonSup, data.total_amount)
   const idHash = crypto.createHash('md5').update(`exp-${fingerprint}-${Date.now()}`).digest('hex')
   const uuid = `${idHash.slice(0, 8)}-${idHash.slice(8, 12)}-4${idHash.slice(13, 16)}-a${idHash.slice(17, 20)}-${idHash.slice(20, 32)}`
 
   const newRecord: VerifiedExpenseRecord = {
     id: uuid,
-    expense_date: data.expense_date,
-    raw_date: data.expense_date,
+    expense_date: data.expense_date || '',
+    raw_date: data.expense_date || 'NECOMPLETATĂ',
     document_number: data.document_number || null,
     description: data.description,
     category: canonCat,
     raw_category: data.category,
+    expense_type: expenseType,
     supplier: canonSup,
     raw_supplier: data.supplier,
     net_amount: data.net_amount,
     vat_amount: data.vat_amount ?? null,
     total_amount: data.total_amount,
     observations: data.observations || null,
+    is_asset: data.is_asset ?? (canonCat === 'IT / ECHIPAMENTE' || expenseType === 'LAPTOP'),
+    asset_name: data.asset_name || (expenseType === 'LAPTOP' ? data.description : null),
+    purchase_value: data.purchase_value ?? data.total_amount,
+    depreciation_years: data.depreciation_years ?? (expenseType === 'LAPTOP' ? 3 : null),
+    annual_depreciation_rate: data.annual_depreciation_rate ?? (expenseType === 'LAPTOP' ? 33 : null),
+    annual_depreciation: data.annual_depreciation ?? (expenseType === 'LAPTOP' ? Math.round((data.total_amount * 0.33) * 100) / 100 : null),
+    monthly_depreciation: data.monthly_depreciation ?? (expenseType === 'LAPTOP' ? Math.round((data.total_amount * 0.33 / 12) * 100) / 100 : null),
+    depreciation_method: data.depreciation_method ?? (expenseType === 'LAPTOP' ? 'STRAIGHT_LINE' : null),
     source: 'manual',
     source_row: row,
-    source_file: 'Manual Entry',
+    source_file: data.is_asset ? 'ACHIZIȚII ACTIVE – CIF ASIGURĂRI 2026' : 'Manual Entry',
     source_year_label: 2026,
     record_year: recYear,
     year_discrepancy_flag: false,
@@ -200,11 +247,20 @@ export async function updateExpense(
     document_number: string | null
     description: string
     category: string
+    expense_type: string
     supplier: string
     net_amount: number
     vat_amount: number | null
     total_amount: number
     observations: string | null
+    is_asset: boolean
+    asset_name: string | null
+    purchase_value: number | null
+    depreciation_years: number | null
+    annual_depreciation_rate: number | null
+    annual_depreciation: number | null
+    monthly_depreciation: number | null
+    depreciation_method: string | null
   }>
 ): Promise<VerifiedExpenseRecord | null> {
   const existing = await getExpenseById(id)
@@ -212,12 +268,14 @@ export async function updateExpense(
 
   const canonCat = data.category ? normalizeExpenseCategory(data.category) : existing.category
   const canonSup = data.supplier ? normalizeExpenseSupplier(data.supplier) : existing.supplier
+  const expenseType = data.expense_type || (data.description ? inferExpenseType(data.description, canonCat) : existing.expense_type)
 
   const updated: VerifiedExpenseRecord = {
     ...existing,
     ...data,
     category: canonCat,
     raw_category: data.category || existing.raw_category,
+    expense_type: expenseType,
     supplier: canonSup,
     raw_supplier: data.supplier || existing.raw_supplier,
     updated_at: new Date().toISOString(),

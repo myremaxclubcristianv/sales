@@ -23,9 +23,10 @@ function ExpenseForm({
   onSave: (data: Partial<VerifiedExpenseRecord>) => Promise<void>
   onDelete?: (id: string) => Promise<void>
 }) {
-  const [expenseDate, setExpenseDate] = useState(expense?.expense_date || new Date().toISOString().slice(0, 10))
+  const [expenseDate, setExpenseDate] = useState(expense?.expense_date || (expense?.is_asset ? '' : new Date().toISOString().slice(0, 10)))
   const [documentNumber, setDocumentNumber] = useState(expense?.document_number || '')
   const [description, setDescription] = useState(expense?.description || '')
+  const [expenseType, setExpenseType] = useState(expense?.expense_type || 'MOTORINĂ')
   const [category, setCategory] = useState(expense?.category || 'MASINA')
   const [supplier, setSupplier] = useState(expense?.supplier || '')
   const [netAmount, setNetAmount] = useState(
@@ -38,6 +39,13 @@ function ExpenseForm({
     expense?.total_amount !== null && expense?.total_amount !== undefined ? String(expense.total_amount) : ''
   )
   const [observations, setObservations] = useState(expense?.observations || '')
+  const [isAsset, setIsAsset] = useState(expense?.is_asset || false)
+  const [depreciationYears, setDepreciationYears] = useState(
+    expense?.depreciation_years !== null && expense?.depreciation_years !== undefined ? String(expense.depreciation_years) : '3'
+  )
+  const [annualDepreciationRate, setAnnualDepreciationRate] = useState(
+    expense?.annual_depreciation_rate !== null && expense?.annual_depreciation_rate !== undefined ? String(expense.annual_depreciation_rate) : '33'
+  )
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [error, setError] = useState<string | null>(null)
 
@@ -45,8 +53,8 @@ function ExpenseForm({
     e.preventDefault()
     setError(null)
 
-    if (!expenseDate || !description.trim() || !category.trim() || !supplier.trim() || !totalAmount) {
-      setError('Te rugăm să completezi câmpurile obligatorii: Data, Descriere, Categorie, Furnizor și Total.')
+    if (!description.trim() || !category.trim() || !supplier.trim() || !totalAmount) {
+      setError('Te rugăm să completezi câmpurile obligatorii: Descriere, Categorie, Furnizor și Total.')
       return
     }
 
@@ -62,15 +70,22 @@ function ExpenseForm({
     try {
       setIsSubmitting(true)
       await onSave({
-        expense_date: expenseDate,
+        expense_date: expenseDate || '',
         document_number: documentNumber.trim() || null,
         description: description.trim(),
+        expense_type: expenseType.trim(),
         category: category.trim(),
         supplier: supplier.trim(),
         net_amount: net,
         vat_amount: vat,
         total_amount: total,
         observations: observations.trim() || null,
+        is_asset: isAsset,
+        asset_name: isAsset ? description.trim() : null,
+        purchase_value: isAsset ? total : null,
+        depreciation_years: isAsset ? parseInt(depreciationYears, 10) || 3 : null,
+        annual_depreciation_rate: isAsset ? parseFloat(annualDepreciationRate) || 33 : null,
+        depreciation_method: isAsset ? 'STRAIGHT_LINE' : null,
       })
       onClose()
     } catch (err: unknown) {
@@ -133,11 +148,11 @@ function ExpenseForm({
           <div>
             <label className="block font-semibold text-neutral-700 dark:text-neutral-300 mb-1 flex items-center gap-1.5">
               <Calendar className="w-3.5 h-3.5 text-neutral-400" />
-              Data Tranzacției *
+              Data Tranzacției {isAsset ? '(Opțională pentru active)' : '*'}
             </label>
             <input
               type="date"
-              required
+              required={!isAsset}
               value={expenseDate}
               onChange={(e) => setExpenseDate(e.target.value)}
               className="w-full px-3 py-2 rounded-xl border border-neutral-300 dark:border-neutral-700 bg-white dark:bg-neutral-800 text-neutral-900 dark:text-white focus:outline-hidden focus:ring-2 focus:ring-blue-500"
@@ -169,14 +184,30 @@ function ExpenseForm({
           <input
             type="text"
             required
-            placeholder="ex: Motorina, Spalatorie Masina, Abonament Asistenta Rutiera"
+            placeholder="ex: Motorina, Spalatorie Masina, LAPTOP MACBOOK M5"
             value={description}
             onChange={(e) => setDescription(e.target.value)}
             className="w-full px-3 py-2 rounded-xl border border-neutral-300 dark:border-neutral-700 bg-white dark:bg-neutral-800 text-neutral-900 dark:text-white focus:outline-hidden focus:ring-2 focus:ring-blue-500"
           />
         </div>
 
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+          {/* Expense Type */}
+          <div>
+            <label className="block font-semibold text-neutral-700 dark:text-neutral-300 mb-1 flex items-center gap-1.5">
+              <Tag className="w-3.5 h-3.5 text-neutral-400" />
+              Tip Cheltuială *
+            </label>
+            <input
+              type="text"
+              required
+              placeholder="ex: MOTORINĂ, LAPTOP"
+              value={expenseType}
+              onChange={(e) => setExpenseType(e.target.value)}
+              className="w-full px-3 py-2 rounded-xl border border-neutral-300 dark:border-neutral-700 bg-white dark:bg-neutral-800 text-neutral-900 dark:text-white focus:outline-hidden focus:ring-2 focus:ring-blue-500"
+            />
+          </div>
+
           {/* Category */}
           <div>
             <label className="block font-semibold text-neutral-700 dark:text-neutral-300 mb-1 flex items-center gap-1.5">
@@ -186,7 +217,7 @@ function ExpenseForm({
             <input
               type="text"
               required
-              placeholder="ex: MASINA, TRANSPORT"
+              placeholder="ex: MASINA, IT / ECHIPAMENTE"
               value={category}
               onChange={(e) => setCategory(e.target.value)}
               className="w-full px-3 py-2 rounded-xl border border-neutral-300 dark:border-neutral-700 bg-white dark:bg-neutral-800 text-neutral-900 dark:text-white focus:outline-hidden focus:ring-2 focus:ring-blue-500"
@@ -202,12 +233,55 @@ function ExpenseForm({
             <input
               type="text"
               required
-              placeholder="ex: OMV, MOL, PETROM, METROREX, AUTONOM"
+              placeholder="ex: OMV, ALTEX"
               value={supplier}
               onChange={(e) => setSupplier(e.target.value)}
               className="w-full px-3 py-2 rounded-xl border border-neutral-300 dark:border-neutral-700 bg-white dark:bg-neutral-800 text-neutral-900 dark:text-white focus:outline-hidden focus:ring-2 focus:ring-blue-500"
             />
           </div>
+        </div>
+
+        {/* Asset / Amortization Toggle */}
+        <div className="p-3 bg-neutral-50 dark:bg-neutral-800/60 rounded-xl border border-neutral-200 dark:border-neutral-700 space-y-2">
+          <label className="flex items-center gap-2 cursor-pointer">
+            <input
+              type="checkbox"
+              checked={isAsset}
+              onChange={(e) => setIsAsset(e.target.checked)}
+              className="rounded text-blue-600 focus:ring-blue-500 w-4 h-4"
+            />
+            <span className="font-semibold text-neutral-800 dark:text-neutral-200">
+              Este un Activ / Echipament amortizabil (ex: Laptop, Echipamente IT)
+            </span>
+          </label>
+
+          {isAsset && (
+            <div className="grid grid-cols-2 gap-3 pt-2">
+              <div>
+                <label className="block text-[11px] font-medium text-neutral-500 mb-1">
+                  Durată amortizare (Ani)
+                </label>
+                <input
+                  type="number"
+                  value={depreciationYears}
+                  onChange={(e) => setDepreciationYears(e.target.value)}
+                  className="w-full px-2.5 py-1.5 rounded-lg border border-neutral-300 dark:border-neutral-700 bg-white dark:bg-neutral-800 text-neutral-900 dark:text-white font-mono"
+                />
+              </div>
+              <div>
+                <label className="block text-[11px] font-medium text-neutral-500 mb-1">
+                  Cotă anuală amortizare (%)
+                </label>
+                <input
+                  type="number"
+                  step="0.01"
+                  value={annualDepreciationRate}
+                  onChange={(e) => setAnnualDepreciationRate(e.target.value)}
+                  className="w-full px-2.5 py-1.5 rounded-lg border border-neutral-300 dark:border-neutral-700 bg-white dark:bg-neutral-800 text-neutral-900 dark:text-white font-mono"
+                />
+              </div>
+            </div>
+          )}
         </div>
 
         <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">

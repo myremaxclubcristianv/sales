@@ -24,6 +24,7 @@ interface ExpensesTabProps {
 export function ExpensesTab({ expenses, onRefresh }: ExpensesTabProps) {
   const [search, setSearch] = useState('')
   const [categoryFilter, setCategoryFilter] = useState('ALL')
+  const [expenseTypeFilter, setExpenseTypeFilter] = useState('ALL')
   const [supplierFilter, setSupplierFilter] = useState('ALL')
   const [yearFilter, setYearFilter] = useState('ALL')
   const [startDate, setStartDate] = useState('')
@@ -36,13 +37,31 @@ export function ExpensesTab({ expenses, onRefresh }: ExpensesTabProps) {
   const [selectedExpense, setSelectedExpense] = useState<VerifiedExpenseRecord | null>(null)
   const [toastMessage, setToastMessage] = useState<string | null>(null)
 
-  // Extract unique categories, suppliers, and years
+  // Extract unique categories, types, suppliers, and years
   const categories = useMemo(() => {
     const set = new Set<string>()
     expenses.forEach((e) => {
       if (e.category) set.add(e.category)
     })
     return Array.from(set).sort()
+  }, [expenses])
+
+  const expenseTypes = useMemo(() => {
+    const standardOrder = [
+      'MOTORINĂ',
+      'SPĂLĂTORIE MAȘINĂ',
+      'TRECERE FETEȘTI',
+      'ABONAMENT ASISTENȚĂ RUTIERĂ',
+      'METROREX ABONAMENT',
+      'LAPTOP',
+      'ACCESORIU IT',
+    ]
+    const set = new Set<string>()
+    expenses.forEach((e) => {
+      if (e.expense_type) set.add(e.expense_type)
+    })
+    const found = Array.from(set)
+    return standardOrder.filter((t) => found.includes(t)).concat(found.filter((t) => !standardOrder.includes(t)))
   }, [expenses])
 
   const suppliers = useMemo(() => {
@@ -67,16 +86,19 @@ export function ExpensesTab({ expenses, onRefresh }: ExpensesTabProps) {
       if (categoryFilter !== 'ALL' && e.category.toLowerCase() !== categoryFilter.toLowerCase()) {
         return false
       }
+      if (expenseTypeFilter !== 'ALL' && (e.expense_type || '').toUpperCase() !== expenseTypeFilter.toUpperCase()) {
+        return false
+      }
       if (supplierFilter !== 'ALL' && e.supplier.toLowerCase() !== supplierFilter.toLowerCase()) {
         return false
       }
       if (yearFilter !== 'ALL' && String(e.record_year) !== String(yearFilter)) {
         return false
       }
-      if (startDate && e.expense_date < startDate) {
+      if (startDate && e.expense_date && e.expense_date < startDate) {
         return false
       }
-      if (endDate && e.expense_date > endDate) {
+      if (endDate && e.expense_date && e.expense_date > endDate) {
         return false
       }
       if (minAmount && Number(e.total_amount) < parseFloat(minAmount)) {
@@ -89,17 +111,18 @@ export function ExpensesTab({ expenses, onRefresh }: ExpensesTabProps) {
         const term = search.toLowerCase().trim()
         const matches =
           e.description.toLowerCase().includes(term) ||
+          (e.expense_type && e.expense_type.toLowerCase().includes(term)) ||
           e.supplier.toLowerCase().includes(term) ||
           e.category.toLowerCase().includes(term) ||
           (e.document_number && e.document_number.toLowerCase().includes(term)) ||
           (e.observations && e.observations.toLowerCase().includes(term)) ||
           (e.raw_date && e.raw_date.includes(term)) ||
-          e.expense_date.includes(term)
+          (e.expense_date && e.expense_date.includes(term))
         if (!matches) return false
       }
       return true
     })
-  }, [expenses, categoryFilter, supplierFilter, yearFilter, startDate, endDate, minAmount, maxAmount, search])
+  }, [expenses, categoryFilter, expenseTypeFilter, supplierFilter, yearFilter, startDate, endDate, minAmount, maxAmount, search])
 
   // Total filtered amount
   const filteredTotalAmount = useMemo(() => {
@@ -152,6 +175,7 @@ export function ExpensesTab({ expenses, onRefresh }: ExpensesTabProps) {
   const resetFilters = () => {
     setSearch('')
     setCategoryFilter('ALL')
+    setExpenseTypeFilter('ALL')
     setSupplierFilter('ALL')
     setYearFilter('ALL')
     setStartDate('')
@@ -163,6 +187,7 @@ export function ExpensesTab({ expenses, onRefresh }: ExpensesTabProps) {
   const hasActiveFilters =
     search ||
     categoryFilter !== 'ALL' ||
+    expenseTypeFilter !== 'ALL' ||
     supplierFilter !== 'ALL' ||
     yearFilter !== 'ALL' ||
     startDate ||
@@ -211,13 +236,13 @@ export function ExpensesTab({ expenses, onRefresh }: ExpensesTabProps) {
 
       {/* Filters Section */}
       <div className="bg-white dark:bg-neutral-900 p-4 rounded-2xl border border-neutral-200/80 dark:border-neutral-800 shadow-2xs space-y-3">
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 text-xs">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-3 text-xs">
           {/* Search Box */}
           <div className="relative">
             <Search className="w-4 h-4 text-neutral-400 absolute left-3 top-2.5" />
             <input
               type="text"
-              placeholder="Caută descriere, furnizor, doc..."
+              placeholder="Caută descriere, tip, furnizor..."
               value={search}
               onChange={(e) => setSearch(e.target.value)}
               className="w-full pl-9 pr-3 py-2 rounded-xl border border-neutral-300 dark:border-neutral-700 bg-white dark:bg-neutral-800 text-neutral-900 dark:text-white focus:outline-hidden focus:ring-2 focus:ring-blue-500"
@@ -235,6 +260,22 @@ export function ExpensesTab({ expenses, onRefresh }: ExpensesTabProps) {
               {categories.map((cat) => (
                 <option key={cat} value={cat}>
                   {cat}
+                </option>
+              ))}
+            </select>
+          </div>
+
+          {/* Expense Type Filter */}
+          <div>
+            <select
+              value={expenseTypeFilter}
+              onChange={(e) => setExpenseTypeFilter(e.target.value)}
+              className="w-full px-3 py-2 rounded-xl border border-neutral-300 dark:border-neutral-700 bg-white dark:bg-neutral-800 text-neutral-900 dark:text-white focus:outline-hidden focus:ring-2 focus:ring-blue-500 font-medium"
+            >
+              <option value="ALL">Toate Tipurile</option>
+              {expenseTypes.map((type) => (
+                <option key={type} value={type}>
+                  {type}
                 </option>
               ))}
             </select>
@@ -310,7 +351,7 @@ export function ExpensesTab({ expenses, onRefresh }: ExpensesTabProps) {
             <span className="text-neutral-500">Max RON:</span>
             <input
               type="number"
-              placeholder="500"
+              placeholder="5000"
               value={maxAmount}
               onChange={(e) => setMaxAmount(e.target.value)}
               className="w-20 px-2.5 py-1.5 rounded-lg border border-neutral-300 dark:border-neutral-700 bg-white dark:bg-neutral-800 text-neutral-900 dark:text-white text-xs font-mono"
@@ -343,6 +384,7 @@ export function ExpensesTab({ expenses, onRefresh }: ExpensesTabProps) {
                 <th className="px-4 py-3">Data</th>
                 <th className="px-4 py-3">Nr. Document</th>
                 <th className="px-4 py-3">Descriere Cheltuială</th>
+                <th className="px-4 py-3">Tip Cheltuială</th>
                 <th className="px-4 py-3">Categorie</th>
                 <th className="px-4 py-3">Furnizor</th>
                 <th className="px-4 py-3 text-right">Valoare Netă</th>
@@ -355,7 +397,7 @@ export function ExpensesTab({ expenses, onRefresh }: ExpensesTabProps) {
             <tbody className="divide-y divide-neutral-200 dark:divide-neutral-800">
               {filteredExpenses.length === 0 ? (
                 <tr>
-                  <td colSpan={11} className="px-4 py-8 text-center text-neutral-400">
+                  <td colSpan={12} className="px-4 py-8 text-center text-neutral-400">
                     Nicio cheltuială nu corespunde criteriilor de filtrare.
                   </td>
                 </tr>
@@ -374,7 +416,15 @@ export function ExpensesTab({ expenses, onRefresh }: ExpensesTabProps) {
 
                     {/* Date */}
                     <td className="px-4 py-3 font-mono font-medium text-neutral-800 dark:text-neutral-200 whitespace-nowrap">
-                      {item.raw_date || item.expense_date}
+                      {item.raw_date ? (
+                        item.raw_date
+                      ) : item.expense_date ? (
+                        item.expense_date
+                      ) : (
+                        <span className="px-2 py-0.5 rounded bg-amber-50 dark:bg-amber-950/50 text-amber-700 dark:text-amber-400 text-[10px] font-bold">
+                          DATA ACHIZIȚIE: NECOMPLETATĂ
+                        </span>
+                      )}
                     </td>
 
                     {/* Document Number */}
@@ -390,7 +440,21 @@ export function ExpensesTab({ expenses, onRefresh }: ExpensesTabProps) {
 
                     {/* Description */}
                     <td className="px-4 py-3 font-semibold text-neutral-900 dark:text-neutral-100">
-                      {item.description}
+                      <div>{item.description}</div>
+                      {item.is_asset && (
+                        <div className="mt-0.5">
+                          <span className="px-1.5 py-0.5 rounded bg-purple-100 dark:bg-purple-950 text-purple-700 dark:text-purple-300 text-[10px] font-bold font-mono">
+                            ACTIV • Amortizare {item.depreciation_years ? `${item.depreciation_years} ani (${item.annual_depreciation_rate}%)` : 'contabilă'}
+                          </span>
+                        </div>
+                      )}
+                    </td>
+
+                    {/* Expense Type */}
+                    <td className="px-4 py-3">
+                      <span className="px-2 py-0.5 rounded-md bg-neutral-100 dark:bg-neutral-800 text-neutral-800 dark:text-neutral-200 text-[11px] font-bold">
+                        {item.expense_type || '-'}
+                      </span>
                     </td>
 
                     {/* Category */}
@@ -475,7 +539,14 @@ export function ExpensesTab({ expenses, onRefresh }: ExpensesTabProps) {
             >
               <div className="flex items-center justify-between">
                 <span className="font-mono text-[11px] text-neutral-400">
-                  Rând #{item.source_row} • {item.raw_date || item.expense_date}
+                  R#{item.source_row} •{' '}
+                  {item.raw_date ? (
+                    item.raw_date
+                  ) : item.expense_date ? (
+                    item.expense_date
+                  ) : (
+                    <span className="text-amber-600 font-bold">DATA: NECOMPLETATĂ</span>
+                  )}
                 </span>
                 <span className="font-mono font-bold text-rose-600 text-sm">
                   {formatCurrencyRo(item.total_amount)}
@@ -486,7 +557,19 @@ export function ExpensesTab({ expenses, onRefresh }: ExpensesTabProps) {
                 <p className="font-bold text-sm text-neutral-900 dark:text-white">
                   {item.description}
                 </p>
-                <div className="flex items-center gap-2 mt-1 flex-wrap">
+                {item.is_asset && (
+                  <div className="mt-1">
+                    <span className="px-2 py-0.5 rounded bg-purple-100 dark:bg-purple-950 text-purple-700 dark:text-purple-300 text-[10px] font-bold font-mono">
+                      ACTIV • Amortizare {item.depreciation_years ? `${item.depreciation_years} ani (${item.annual_depreciation_rate}%)` : 'contabilă'}
+                    </span>
+                  </div>
+                )}
+                <div className="flex items-center gap-1.5 mt-1.5 flex-wrap">
+                  {item.expense_type && (
+                    <span className="px-2 py-0.5 rounded-md bg-neutral-100 dark:bg-neutral-800 text-neutral-800 dark:text-neutral-200 text-[10px] font-bold">
+                      {item.expense_type}
+                    </span>
+                  )}
                   <span className="px-2 py-0.5 rounded bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 text-[10px] font-semibold">
                     {item.category}
                   </span>
