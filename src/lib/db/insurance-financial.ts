@@ -184,6 +184,7 @@ export async function createExpense(data: {
 }): Promise<VerifiedExpenseRecord> {
   const row = inMemoryExpenses.length + 1
   const recYear = data.expense_date ? parseInt(data.expense_date.slice(0, 4), 10) || 2026 : 2026
+  const recMonth = data.expense_date && data.expense_date.length >= 7 ? parseInt(data.expense_date.slice(5, 7), 10) || null : null
   const canonCat = normalizeExpenseCategory(data.category)
   const canonSup = normalizeExpenseSupplier(data.supplier)
   const expenseType = data.expense_type || inferExpenseType(data.description, canonCat)
@@ -219,6 +220,7 @@ export async function createExpense(data: {
     source_file: data.is_asset ? 'ACHIZIȚII ACTIVE – CIF ASIGURĂRI 2026' : 'Manual Entry',
     source_year_label: 2026,
     record_year: recYear,
+    record_month: recMonth,
     year_discrepancy_flag: false,
     fingerprint,
     created_at: new Date().toISOString(),

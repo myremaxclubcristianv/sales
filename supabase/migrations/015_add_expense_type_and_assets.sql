@@ -1,13 +1,13 @@
 -- ==============================================================================
--- Migration 015: Add Expense Type & Asset Tracking (CIF Asigurări 2026)
+-- Migration 015: Add Expense Type & Asset Tracking in June 2026 (CIF Asigurări)
 -- Safe, Idempotent:
 -- 1. Adds expense_type, is_asset, asset_name, purchase_value, depreciation_years,
---    annual_depreciation_rate, annual_depreciation, monthly_depreciation, depreciation_method
--- 2. Backfills expense_type for existing 45 operational expenses
--- 3. Idempotently inserts 2 new asset/equipment records (MacBook M5 & Cooler Laptop)
+--    annual_depreciation_rate, annual_depreciation, monthly_depreciation, depreciation_method, record_month
+-- 2. Backfills expense_type and record_month for existing 45 operational expenses
+-- 3. Idempotently inserts/updates 2 new asset/equipment records (MacBook & Cooler Laptop) for June 2026
 -- ==============================================================================
 
--- 1. Add asset and expense_type columns
+-- 1. Add asset, expense_type, and record_month columns
 ALTER TABLE public.insurance_financial_expenses
   ADD COLUMN IF NOT EXISTS expense_type TEXT,
   ADD COLUMN IF NOT EXISTS is_asset BOOLEAN DEFAULT false,
@@ -17,9 +17,22 @@ ALTER TABLE public.insurance_financial_expenses
   ADD COLUMN IF NOT EXISTS annual_depreciation_rate NUMERIC(6, 2),
   ADD COLUMN IF NOT EXISTS annual_depreciation NUMERIC(12, 2),
   ADD COLUMN IF NOT EXISTS monthly_depreciation NUMERIC(12, 2),
-  ADD COLUMN IF NOT EXISTS depreciation_method TEXT;
+  ADD COLUMN IF NOT EXISTS depreciation_method TEXT,
+  ADD COLUMN IF NOT EXISTS record_month INTEGER;
 
--- 2. Backfill expense_type for existing records
+ALTER TABLE public.insurance_financial_income
+  ADD COLUMN IF NOT EXISTS record_month INTEGER;
+
+-- 2. Backfill record_month on existing records
+UPDATE public.insurance_financial_expenses
+SET record_month = EXTRACT(MONTH FROM expense_date::date)
+WHERE expense_date IS NOT NULL AND expense_date != '' AND record_month IS NULL;
+
+UPDATE public.insurance_financial_income
+SET record_month = EXTRACT(MONTH FROM income_date::date)
+WHERE income_date IS NOT NULL AND income_date != '' AND record_month IS NULL;
+
+-- 3. Backfill expense_type for existing records
 UPDATE public.insurance_financial_expenses
 SET
   expense_type = 'MOTORINĂ',
@@ -50,7 +63,10 @@ SET
   category = 'TRANSPORT'
 WHERE LOWER(description) LIKE '%metrorex%';
 
--- 3. Idempotent insert of Row 46: LAPTOP MACBOOK M5
+-- 4. Idempotent insert or update of Row 46: MacBook (June 2026)
+DELETE FROM public.insurance_financial_expenses
+WHERE supplier = 'ALTEX' AND total_amount = 5498.99 AND (LOWER(description) LIKE '%macbook%' OR source_row = 46);
+
 INSERT INTO public.insurance_financial_expenses (
   source,
   source_file,
@@ -79,21 +95,22 @@ INSERT INTO public.insurance_financial_expenses (
   monthly_depreciation,
   depreciation_method,
   record_year,
+  record_month,
   year_discrepancy_flag,
   fingerprint
 )
-SELECT
+VALUES (
   'EXPENSE_ENTRY_2026',
-  'EVIDENȚĂ CHELTUIELI – CIF ASIGURĂRI 2026',
+  'ACHIZIȚII ACTIVE – CIF ASIGURĂRI 2026',
   2026,
   46,
-  '',
-  '2026-01-01',
+  '06/2026',
+  '2026-06',
   NULL,
-  'LAPTOP MACBOOK M5',
-  'LAPTOP MACBOOK M5',
+  'MacBook',
+  'MacBook',
   'LAPTOP',
-  'IT / ECHIPAMENTE',
+  'IT / Echipamente',
   'IT / ECHIPAMENTE',
   'ALTEX',
   'ALTEX',
@@ -102,7 +119,7 @@ SELECT
   5498.99,
   NULL,
   true,
-  'LAPTOP MACBOOK M5',
+  'MacBook',
   5498.99,
   3,
   33.00,
@@ -110,14 +127,15 @@ SELECT
   151.22,
   'STRAIGHT_LINE',
   2026,
+  6,
   false,
-  'FINGERPRINT_EXPENSE_46_MACBOOK_M5'
-WHERE NOT EXISTS (
-  SELECT 1 FROM public.insurance_financial_expenses
-  WHERE description = 'LAPTOP MACBOOK M5' OR source_row = 46
+  'FINGERPRINT_EXPENSE_46_MACBOOK_JUNE_2026'
 );
 
--- 4. Idempotent insert of Row 47: COOLER LAPTOP
+-- 5. Idempotent insert or update of Row 47: Cooler laptop (June 2026)
+DELETE FROM public.insurance_financial_expenses
+WHERE supplier = 'ALTEX' AND total_amount = 109.90 AND (LOWER(description) LIKE '%cooler%' OR source_row = 47);
+
 INSERT INTO public.insurance_financial_expenses (
   source,
   source_file,
@@ -146,22 +164,23 @@ INSERT INTO public.insurance_financial_expenses (
   monthly_depreciation,
   depreciation_method,
   record_year,
+  record_month,
   year_discrepancy_flag,
   fingerprint
 )
-SELECT
+VALUES (
   'EXPENSE_ENTRY_2026',
-  'EVIDENȚĂ CHELTUIELI – CIF ASIGURĂRI 2026',
+  'ACHIZIȚII ACTIVE – CIF ASIGURĂRI 2026',
   2026,
   47,
-  '',
-  '2026-01-01',
+  '06/2026',
+  '2026-06',
   NULL,
-  'COOLER LAPTOP',
-  'COOLER LAPTOP',
+  'Cooler laptop',
+  'Cooler laptop',
   'ACCESORIU IT',
-  'IT / ECHIPAMENTE',
-  'IT / ECHIPAMENTE',
+  'IT / Accesorii',
+  'IT / ACCESORII',
   'ALTEX',
   'ALTEX',
   109.90,
@@ -177,9 +196,7 @@ SELECT
   NULL,
   NULL,
   2026,
+  6,
   false,
-  'FINGERPRINT_EXPENSE_47_COOLER_LAPTOP'
-WHERE NOT EXISTS (
-  SELECT 1 FROM public.insurance_financial_expenses
-  WHERE description = 'COOLER LAPTOP' OR source_row = 47
+  'FINGERPRINT_EXPENSE_47_COOLER_JUNE_2026'
 );

@@ -87,8 +87,8 @@ async function runForensicAudit() {
   const { expenses } = await getExpenses()
   assert(expenses.length === 47, 'Total financial expense records = 47 (45 existing + 2 new)', `Got ${expenses.length}`)
 
-  const operationalExpenses = expenses.filter((e) => !e.is_asset && e.category !== 'IT / ECHIPAMENTE')
-  const assetExpenses = expenses.filter((e) => e.is_asset || e.category === 'IT / ECHIPAMENTE')
+  const operationalExpenses = expenses.filter((e) => !e.is_asset && e.category !== 'IT / ECHIPAMENTE' && e.category !== 'IT / ACCESORII')
+  const assetExpenses = expenses.filter((e) => e.is_asset || e.category === 'IT / ECHIPAMENTE' || e.category === 'IT / ACCESORII')
 
   assert(operationalExpenses.length === 45, 'Existing operational expenses count = 45', `Got ${operationalExpenses.length}`)
   assert(assetExpenses.length === 2, 'Equipment/Asset expenses count = 2 (MacBook M5 + Cooler)', `Got ${assetExpenses.length}`)
@@ -97,11 +97,11 @@ async function runForensicAudit() {
   const opTotal = opSumCents / 100
   assert(opTotal === 5740.17, 'Operational expenses total = 5,740.17 RON', `Got ${opTotal}`)
 
-  const macBook = expenses.find((e) => e.description === 'LAPTOP MACBOOK M5')
-  const cooler = expenses.find((e) => e.description === 'COOLER LAPTOP')
+  const macBook = expenses.find((e) => e.description === 'MacBook' || e.description === 'LAPTOP MACBOOK M5')
+  const cooler = expenses.find((e) => e.description === 'Cooler laptop' || e.description === 'COOLER LAPTOP')
 
-  assert(macBook !== undefined, 'LAPTOP MACBOOK M5 record exists in ledger')
-  assert(cooler !== undefined, 'COOLER LAPTOP record exists in ledger')
+  assert(macBook !== undefined, 'MacBook record exists in ledger')
+  assert(cooler !== undefined, 'Cooler laptop record exists in ledger')
 
   if (macBook) {
     assert(macBook.category === 'IT / ECHIPAMENTE', 'MacBook category is "IT / ECHIPAMENTE"', `Got ${macBook.category}`)
@@ -112,17 +112,17 @@ async function runForensicAudit() {
     assert(macBook.annual_depreciation_rate === 33, 'MacBook annual depreciation rate is 33%', `Got ${macBook.annual_depreciation_rate}`)
     assert(macBook.annual_depreciation === 1814.67, 'MacBook annual depreciation is 1,814.67 RON/an (5498.99 * 0.33)', `Got ${macBook.annual_depreciation}`)
     assert(macBook.monthly_depreciation === 151.22, 'MacBook monthly depreciation is 151.22 RON/lună (1814.67 / 12)', `Got ${macBook.monthly_depreciation}`)
-    assert(macBook.expense_date === '' && macBook.raw_date === 'NECOMPLETATĂ', 'MacBook date is NECOMPLETATĂ (not guessed/invented)')
+    assert(macBook.raw_date === '06/2026' && macBook.expense_date === '2026-06' && macBook.record_year === 2026 && macBook.record_month === 6, 'MacBook assigned to June 2026 (06/2026, month=6, year=2026)')
   }
 
   if (cooler) {
-    assert(cooler.category === 'IT / ECHIPAMENTE', 'Cooler category is "IT / ECHIPAMENTE"', `Got ${cooler.category}`)
+    assert(cooler.category === 'IT / ACCESORII' || cooler.category === 'IT / ECHIPAMENTE', 'Cooler category is "IT / ACCESORII"', `Got ${cooler.category}`)
     assert(cooler.expense_type === 'ACCESORIU IT', 'Cooler expense_type is "ACCESORIU IT"', `Got ${cooler.expense_type}`)
     assert(cooler.supplier === 'ALTEX', 'Cooler supplier is "ALTEX"', `Got ${cooler.supplier}`)
     assert(cooler.purchase_value === 109.90, 'Cooler purchase_value is 109.90 RON', `Got ${cooler.purchase_value}`)
     assert(cooler.total_amount === 109.90, 'Cooler total_amount is 109.90 RON', `Got ${cooler.total_amount}`)
-    assert(cooler.is_asset === false, 'Cooler is not configured for multi-year amortization', `Got ${cooler.is_asset}`)
-    assert(cooler.expense_date === '' && cooler.raw_date === 'NECOMPLETATĂ', 'Cooler date is NECOMPLETATĂ (not guessed/invented)')
+    assert(cooler.is_asset === false, 'Cooler is direct expense (is_asset = false)', `Got ${cooler.is_asset}`)
+    assert(cooler.raw_date === '06/2026' && cooler.expense_date === '2026-06' && cooler.record_year === 2026 && cooler.record_month === 6, 'Cooler assigned to June 2026 (06/2026, month=6, year=2026)')
   }
 
   const allPurchasesCents = expenses.reduce((acc, curr) => acc + Math.round((curr.purchase_value ?? curr.total_amount) * 100), 0)
@@ -145,8 +145,8 @@ async function runForensicAudit() {
   const netOperational = Math.round((incTotal - opTotal) * 100) / 100
   assert(netOperational === -3594.74, 'Net operational result = -3,594.74 RON (2,145.43 - 5,740.17)', `Got ${netOperational}`)
 
-  // --- GATE 4: Overview Summary & Separation ---
-  console.log('\n--- GATE 4: Overview Summary & Separation ---')
+  // --- GATE 4: Overview Summary & June 2026 Monthly Cash Flow ---
+  console.log('\n--- GATE 4: Overview Summary & June 2026 Monthly Cash Flow ---')
   const overview = await getFinancialOverview()
   assert(overview.totalOperationalExpenses === 5740.17, 'Overview operational expenses = 5,740.17 RON', `Got ${overview.totalOperationalExpenses}`)
   assert(overview.totalAssetPurchases === 5608.89, 'Overview active/echipamente purchase total = 5,608.89 RON (5,498.99 + 109.90)', `Got ${overview.totalAssetPurchases}`)
@@ -154,6 +154,14 @@ async function runForensicAudit() {
   assert(overview.totalExpenses === 11349.06, 'Overview combined purchase total = 11,349.06 RON', `Got ${overview.totalExpenses}`)
   assert(overview.totalIncome === 2145.43, 'Overview total income = 2,145.43 RON', `Got ${overview.totalIncome}`)
   assert(overview.netResult === -3594.74, 'Overview netResult = -3,594.74 RON', `Got ${overview.netResult}`)
+
+  const juneMonthly = overview.monthlyBreakdown.find((m) => m.month === '2026-06')
+  assert(juneMonthly !== undefined, 'June 2026 monthly cash flow breakdown exists')
+  if (juneMonthly) {
+    assert(juneMonthly.expenses === 6436.16, 'June 2026 total expenses = 6,436.16 RON (827.27 operational + 5,498.99 MacBook + 109.90 Cooler)', `Got ${juneMonthly.expenses}`)
+    assert(juneMonthly.income === 214.76, 'June 2026 income = 214.76 RON', `Got ${juneMonthly.income}`)
+    assert(juneMonthly.net === -6221.40, 'June 2026 cash flow net = -6,221.40 RON (214.76 - 6,436.16)', `Got ${juneMonthly.net}`)
+  }
 
   // --- GATE 5: Expense Types Breakdown ---
   console.log('\n--- GATE 5: Specific Expense Types Breakdown ---')

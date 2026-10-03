@@ -12,11 +12,11 @@ import crypto from 'crypto'
 
 export interface VerifiedExpenseRecord {
   id: string
-  expense_date: string // YYYY-MM-DD (or empty for undated purchase records)
-  raw_date: string // DD/MM/YYYY or 'NECOMPLETATĂ'
+  expense_date: string // YYYY-MM-DD or YYYY-MM
+  raw_date: string // DD/MM/YYYY or MM/YYYY or 'NECOMPLETATĂ'
   document_number: string | null
   description: string
-  category: string // Canonical: 'MASINA' | 'TRANSPORT' | 'IT / ECHIPAMENTE'
+  category: string // Canonical: 'MASINA' | 'TRANSPORT' | 'IT / ECHIPAMENTE' | 'IT / ACCESORII'
   raw_category: string // Original source casing
   expense_type: string // Canonical: 'MOTORINĂ' | 'SPĂLĂTORIE MAȘINĂ' | 'TRECERE FETEȘTI' | 'ABONAMENT ASISTENȚĂ RUTIERĂ' | 'METROREX ABONAMENT' | 'LAPTOP' | 'ACCESORIU IT'
   supplier: string // Canonical: 'OMV' | 'MOL' | 'PETROM' | 'METROREX' | 'AUTONOM' | 'ALTEX'
@@ -38,6 +38,7 @@ export interface VerifiedExpenseRecord {
   source_file: string
   source_year_label: number
   record_year: number
+  record_month?: number | null
   year_discrepancy_flag: boolean
   fingerprint: string
   created_at: string
@@ -62,6 +63,7 @@ export interface VerifiedIncomeRecord {
   source_file: string
   source_year_label: number
   record_year: number
+  record_month?: number | null
   year_discrepancy_flag: boolean
   fingerprint: string
   created_at: string
@@ -72,6 +74,7 @@ export function normalizeExpenseCategory(cat: string): string {
   const c = cat.trim().toUpperCase()
   if (c === 'MASINA' || c === 'MAȘINĂ') return 'MASINA'
   if (c === 'TRANSPORT') return 'TRANSPORT'
+  if (c.includes('ACCESORI')) return 'IT / ACCESORII'
   if (c.includes('IT') || c.includes('ECHIPAMENT')) return 'IT / ECHIPAMENTE'
   return c
 }
@@ -175,33 +178,33 @@ const RAW_EXPENSES: Array<{
   { row: 43, raw_date: '27/09/2026', doc: null, desc: 'motorina', cat: 'masina', supplier: 'omv', net: 160.05, vat: null, total: 160.05, obs: '50%' },
   { row: 44, raw_date: '29/09/2026', doc: null, desc: 'motorina', cat: 'masina', supplier: 'omv', net: 90.01, vat: null, total: 90.01, obs: '50%' },
   { row: 45, raw_date: '02/10/2026', doc: null, desc: 'motorina', cat: 'masina', supplier: 'omv', net: 200.20, vat: null, total: 200.20, obs: '50%' },
-  // Row 46: MacBook M5 (Asset with 3 years amortization, 33% annual rate)
+  // Row 46: MacBook (Asset with 3 years amortization, 33% annual rate, June 2026)
   {
     row: 46,
-    raw_date: 'NECOMPLETATĂ',
+    raw_date: '06/2026',
     doc: null,
-    desc: 'LAPTOP MACBOOK M5',
-    cat: 'IT / ECHIPAMENTE',
+    desc: 'MacBook',
+    cat: 'IT / Echipamente',
     supplier: 'ALTEX',
     net: 5498.99,
     vat: null,
     total: 5498.99,
     obs: null,
     is_asset: true,
-    asset_name: 'LAPTOP MACBOOK M5',
+    asset_name: 'MacBook',
     depreciation_years: 3,
     annual_depreciation_rate: 33,
     annual_depreciation: 1814.67,
     monthly_depreciation: 151.22,
     depreciation_method: 'STRAIGHT_LINE',
   },
-  // Row 47: Cooler Laptop (IT Accessory)
+  // Row 47: Cooler laptop (IT Accessory, direct expense, June 2026)
   {
     row: 47,
-    raw_date: 'NECOMPLETATĂ',
+    raw_date: '06/2026',
     doc: null,
-    desc: 'COOLER LAPTOP',
-    cat: 'IT / ECHIPAMENTE',
+    desc: 'Cooler laptop',
+    cat: 'IT / Accesorii',
     supplier: 'ALTEX',
     net: 109.90,
     vat: null,
@@ -242,12 +245,18 @@ function parseRoDateToISO(roDate: string): string {
     const year = parts[2]
     return `${year}-${month}-${day}`
   }
+  if (parts.length === 2) {
+    const month = parts[0].padStart(2, '0')
+    const year = parts[1]
+    return `${year}-${month}`
+  }
   return roDate
 }
 
 export const VERIFIED_FINANCIAL_EXPENSES: VerifiedExpenseRecord[] = RAW_EXPENSES.map((item) => {
   const isoDate = parseRoDateToISO(item.raw_date)
   const recYear = isoDate ? parseInt(isoDate.slice(0, 4), 10) || 2026 : 2026
+  const recMonth = isoDate && isoDate.length >= 7 ? parseInt(isoDate.slice(5, 7), 10) || null : null
   const canonCat = normalizeExpenseCategory(item.cat)
   const canonSup = normalizeExpenseSupplier(item.supplier)
   const expenseType = inferExpenseType(item.desc, canonCat)
@@ -284,6 +293,7 @@ export const VERIFIED_FINANCIAL_EXPENSES: VerifiedExpenseRecord[] = RAW_EXPENSES
     source_file: item.is_asset !== undefined ? 'ACHIZIȚII ACTIVE – CIF ASIGURĂRI 2026' : 'EVIDENȚĂ CHELTUIELI – CIF ASIGURĂRI 2026',
     source_year_label: 2026,
     record_year: recYear,
+    record_month: recMonth,
     year_discrepancy_flag: false,
     fingerprint,
     created_at: '2026-10-03T12:00:00.000Z',
@@ -294,6 +304,7 @@ export const VERIFIED_FINANCIAL_EXPENSES: VerifiedExpenseRecord[] = RAW_EXPENSES
 export const VERIFIED_FINANCIAL_INCOMES: VerifiedIncomeRecord[] = RAW_INCOMES.map((item) => {
   const isoDate = parseRoDateToISO(item.raw_date)
   const recYear = parseInt(isoDate.slice(0, 4), 10) || 2026
+  const recMonth = isoDate && isoDate.length >= 7 ? parseInt(isoDate.slice(5, 7), 10) || null : null
   const fingerprint = generateIncomeFingerprint(item.row, isoDate, item.desc, item.received, item.tax)
   // Deterministic UUID based on fingerprint
   const idHash = crypto.createHash('md5').update(`inc-${fingerprint}`).digest('hex')
@@ -317,6 +328,7 @@ export const VERIFIED_FINANCIAL_INCOMES: VerifiedIncomeRecord[] = RAW_INCOMES.ma
     source_file: 'EVIDENȚĂ ÎNCASĂRI (COMISIOANE) – CIF ASIGURĂRI 2026',
     source_year_label: 2026,
     record_year: recYear,
+    record_month: recMonth,
     year_discrepancy_flag: false,
     fingerprint,
     created_at: '2026-10-03T12:00:00.000Z',
@@ -373,8 +385,8 @@ export function computeFinancialOverview(
 ): FinancialOverviewSummary {
   const totalExpensesCents = expenses.reduce((acc, curr) => acc + Math.round((Number(curr.total_amount) || 0) * 100), 0)
   
-  const operationalExpenses = expenses.filter((e) => !e.is_asset && e.category !== 'IT / ECHIPAMENTE')
-  const assetExpenses = expenses.filter((e) => e.is_asset || e.category === 'IT / ECHIPAMENTE')
+  const operationalExpenses = expenses.filter((e) => !e.is_asset && e.category !== 'IT / ECHIPAMENTE' && e.category !== 'IT / ACCESORII')
+  const assetExpenses = expenses.filter((e) => e.is_asset || e.category === 'IT / ECHIPAMENTE' || e.category === 'IT / ACCESORII')
   
   const totalOperationalCents = operationalExpenses.reduce((acc, curr) => acc + Math.round((Number(curr.total_amount) || 0) * 100), 0)
   const totalAssetPurchasesCents = assetExpenses.reduce((acc, curr) => acc + Math.round((Number(curr.total_amount) || 0) * 100), 0)
