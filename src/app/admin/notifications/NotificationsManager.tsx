@@ -5,7 +5,7 @@ import { useRouter } from 'next/navigation'
 import { Button } from '@/components/ui/Button'
 import { Badge } from '@/components/ui/Badge'
 import { Card } from '@/components/ui/Card'
-import { Bell, CheckCheck, Check, Clock, User, Building2, Shield, CreditCard, Mail } from 'lucide-react'
+import { Bell, CheckCheck, Check, Clock, User, Building2, Shield, CreditCard, Mail, Cake, Phone } from 'lucide-react'
 import Link from 'next/link'
 import type { NotificationRow } from '@/lib/db/notifications'
 
@@ -60,12 +60,20 @@ export function NotificationsManager({ initialNotifications }: NotificationsMana
   })
 
   const getNotificationIcon = (type: string) => {
-    switch (type.toLowerCase()) {
+    const t = (type || '').toLowerCase()
+    if (t.startsWith('birthday')) {
+      return <Cake className="w-4 h-4 text-pink-600" />
+    }
+    if (t.startsWith('followup') || t.startsWith('follow_up')) {
+      return <Phone className="w-4 h-4 text-amber-600" />
+    }
+    switch (t) {
       case 'lead':
         return <Mail className="w-4 h-4 text-blue-600" />
       case 'property':
         return <Building2 className="w-4 h-4 text-emerald-600" />
       case 'insurance':
+      case 'policy':
         return <Shield className="w-4 h-4 text-purple-600" />
       case 'credit':
         return <CreditCard className="w-4 h-4 text-amber-600" />
@@ -74,6 +82,22 @@ export function NotificationsManager({ initialNotifications }: NotificationsMana
       default:
         return <Bell className="w-4 h-4 text-slate-600" />
     }
+  }
+
+  const getEntityHref = (notification: NotificationRow) => {
+    const type = (notification.related_entity_type || '').toLowerCase()
+    const nType = (notification.type || '').toLowerCase()
+
+    if (nType.startsWith('birthday') || type === 'client') {
+      return `/admin/clients/${notification.related_entity_id}`
+    }
+    if (nType.startsWith('followup') || type === 'follow_up' || type === 'follow_ups') {
+      return '/admin/calendar'
+    }
+    if (type === 'lead') return '/admin/leads'
+    if (type === 'property') return `/admin/properties/${notification.related_entity_id}`
+    if (type === 'policy') return `/admin/insurance/${notification.related_entity_id}`
+    return '#'
   }
 
   return (
@@ -91,7 +115,7 @@ export function NotificationsManager({ initialNotifications }: NotificationsMana
             )}
           </h1>
           <p className="text-sm text-slate-500 mt-1">
-            System alerts, lead arrivals, policy renewal warnings, and real-time operational notifications
+            System alerts, lead arrivals, birthdays, follow-ups, and real-time operational notifications
           </p>
         </div>
 
@@ -183,7 +207,7 @@ export function NotificationsManager({ initialNotifications }: NotificationsMana
                     <div className="flex items-center gap-3 mt-2 text-[11px] text-slate-400 font-mono">
                       <span className="flex items-center gap-1">
                         <Clock className="w-3 h-3" />
-                        {new Date(notification.created_at).toLocaleString()}
+                        {new Date(notification.created_at).toLocaleString('ro-RO')}
                       </span>
                       <span className="uppercase tracking-wider font-semibold">
                         Type: {notification.type}
@@ -193,20 +217,8 @@ export function NotificationsManager({ initialNotifications }: NotificationsMana
                 </div>
 
                 <div className="flex items-center gap-2 shrink-0">
-                  {notification.related_entity_type && notification.related_entity_id && (
-                    <Link
-                      href={
-                        notification.related_entity_type === 'lead'
-                          ? '/admin/leads'
-                          : notification.related_entity_type === 'property'
-                          ? `/admin/properties/${notification.related_entity_id}`
-                          : notification.related_entity_type === 'policy'
-                          ? `/admin/insurance/${notification.related_entity_id}`
-                          : notification.related_entity_type === 'client'
-                          ? `/admin/clients/${notification.related_entity_id}`
-                          : '#'
-                      }
-                    >
+                  {notification.related_entity_id && (
+                    <Link href={getEntityHref(notification)}>
                       <Button size="sm" variant="outline" className="text-xs py-1 px-2.5 h-8">
                         View
                       </Button>

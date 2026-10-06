@@ -227,3 +227,180 @@ export async function notifyNewLeadTelegram(
     }
   }
 }
+
+export interface BirthdayTelegramPayload {
+  fullName: string
+  dateOfBirth: string // YYYY-MM-DD
+  categoryLabel: string
+  stage: '0d' | '2d' | '7d'
+  age?: number | null
+  clientId: string
+  appBaseUrl?: string
+}
+
+/**
+ * Formats a clean HTML Telegram alert for upcoming or day-of birthdays.
+ * STRICT: Never exposes CNP or personal technical secrets.
+ */
+export function formatBirthdayTelegramMessage(data: BirthdayTelegramPayload): string {
+  const safeName = escapeTelegramHtml(data.fullName.trim())
+  const categoryStr = escapeTelegramHtml(data.categoryLabel.trim() || 'CONTACT')
+  const baseUrl = data.appBaseUrl || process.env.NEXT_PUBLIC_SITE_URL || 'https://sales.cristianvaduva.com'
+  const clientUrl = `${baseUrl.replace(/\/$/, '')}/admin/clients/${data.clientId}`
+
+  // Format date display (e.g. 08 AUGUST)
+  let dateDisplay = data.dateOfBirth
+  try {
+    const [, mm, dd] = data.dateOfBirth.split('-')
+    const monthsRo = [
+      'IANUARIE', 'FEBRUARIE', 'MARTIE', 'APRILIE', 'MAI', 'IUNIE',
+      'IULIE', 'AUGUST', 'SEPTEMBRIE', 'OCTOMBRIE', 'NOIEMBRIE', 'DECEMBRIE',
+    ]
+    const mIdx = Number(mm) - 1
+    if (mIdx >= 0 && mIdx < 12) {
+      dateDisplay = `${dd} ${monthsRo[mIdx]}`
+    }
+  } catch {
+    // fallback
+  }
+
+  const lines: string[] = []
+
+  if (data.stage === '7d') {
+    lines.push('🎂 <b>BIRTHDAY IN 7 DAYS</b>')
+    lines.push('')
+    lines.push(`👤 <b>${safeName}</b>`)
+    lines.push(`📅 <b>Data:</b> ${dateDisplay}`)
+    lines.push(`🏷 <b>Categorii:</b> ${categoryStr}`)
+    lines.push('')
+    lines.push(`🔗 <a href="${clientUrl}">Deschide Client 360</a>`)
+  } else if (data.stage === '2d') {
+    lines.push('🎂 <b>BIRTHDAY IN 2 DAYS</b>')
+    lines.push('')
+    lines.push(`👤 <b>${safeName}</b>`)
+    lines.push(`📅 <b>Data:</b> ${dateDisplay}`)
+    lines.push(`🏷 <b>Categorii:</b> ${categoryStr}`)
+    lines.push('')
+    lines.push('💬 <i>Pregătește urările: La mulți ani 🎊</i>')
+    lines.push('')
+    lines.push(`🔗 <a href="${clientUrl}">Deschide Client 360</a>`)
+  } else {
+    // 0d - Day of
+    lines.push('🎂🎊 <b>BIRTHDAY TODAY</b>')
+    lines.push('')
+    lines.push(`👤 <b>${safeName}</b>`)
+    lines.push(`📅 <b>Data:</b> ${dateDisplay}`)
+    lines.push(`🏷 <b>Categorii:</b> ${categoryStr}`)
+    if (data.age) {
+      lines.push(`🎉 <b>Vârstă:</b> ${data.age} ani`)
+    }
+    lines.push('')
+    lines.push('👉 <b>La mulți ani 🎊</b>')
+    lines.push('')
+    lines.push(`🔗 <a href="${clientUrl}">Deschide Client 360</a>`)
+  }
+
+  return lines.join('\n')
+}
+
+/**
+ * Dispatches a birthday Telegram reminder. Fails non-blockingly without throwing.
+ */
+export async function notifyBirthdayTelegram(
+  data: BirthdayTelegramPayload
+): Promise<TelegramSendResult> {
+  try {
+    const text = formatBirthdayTelegramMessage(data)
+    return await sendTelegramMessage(text, {
+      parseMode: 'HTML',
+      disableWebPagePreview: true,
+      timeoutMs: 5000,
+    })
+  } catch (err: unknown) {
+    const msg = err instanceof Error ? err.message : 'Unknown Telegram error'
+    console.warn(`[Telegram Notification] Failed to send birthday notification: ${msg}`)
+    return {
+      success: false,
+      error: msg,
+    }
+  }
+}
+
+export interface FollowUpTelegramPayload {
+  clientName: string
+  reason: string
+  notes?: string | null
+  dueDateStr: string
+  timeStr: string
+  priority: string
+  stage: '0d' | '2d' | '7d'
+  clientId?: string | null
+  appBaseUrl?: string
+}
+
+/**
+ * Formats a clean HTML Telegram alert for active follow-ups.
+ */
+export function formatFollowUpTelegramMessage(data: FollowUpTelegramPayload): string {
+  const safeName = escapeTelegramHtml(data.clientName.trim())
+  const safeReason = escapeTelegramHtml(data.reason.trim())
+  const safeNotes = data.notes ? sanitizeUserText(data.notes, 300) : null
+  const baseUrl = data.appBaseUrl || process.env.NEXT_PUBLIC_SITE_URL || 'https://sales.cristianvaduva.com'
+  const clientUrl = data.clientId
+    ? `${baseUrl.replace(/\/$/, '')}/admin/clients/${data.clientId}`
+    : `${baseUrl.replace(/\/$/, '')}/admin/calendar`
+
+  const lines: string[] = []
+
+  if (data.stage === '7d') {
+    lines.push('📞 <b>FOLLOW-UP IN 7 DAYS</b>')
+  } else if (data.stage === '2d') {
+    lines.push('📞 <b>FOLLOW-UP IN 2 DAYS</b>')
+  } else {
+    lines.push('📞 <b>FOLLOW-UP TODAY</b>')
+  }
+
+  lines.push('')
+  lines.push(`👤 <b>Client:</b> ${safeName}`)
+  lines.push(`📋 <b>Motiv:</b> ${safeReason}`)
+
+  if (safeNotes) {
+    lines.push(`📝 <b>Notă:</b> ${safeNotes}`)
+  }
+
+  if (data.stage === '0d') {
+    lines.push(`⏰ <b>Ora:</b> ${escapeTelegramHtml(data.timeStr)}`)
+  } else {
+    lines.push(`⏰ <b>Data & Ora:</b> ${escapeTelegramHtml(data.dueDateStr)} ${escapeTelegramHtml(data.timeStr)}`)
+  }
+
+  lines.push(`⚡ <b>Prioritate:</b> ${escapeTelegramHtml(data.priority)}`)
+  lines.push('')
+  lines.push(`🔗 <a href="${clientUrl}">Deschide în CRM</a>`)
+
+  return lines.join('\n')
+}
+
+/**
+ * Dispatches a follow-up Telegram reminder. Fails non-blockingly without throwing.
+ */
+export async function notifyFollowUpTelegram(
+  data: FollowUpTelegramPayload
+): Promise<TelegramSendResult> {
+  try {
+    const text = formatFollowUpTelegramMessage(data)
+    return await sendTelegramMessage(text, {
+      parseMode: 'HTML',
+      disableWebPagePreview: true,
+      timeoutMs: 5000,
+    })
+  } catch (err: unknown) {
+    const msg = err instanceof Error ? err.message : 'Unknown Telegram error'
+    console.warn(`[Telegram Notification] Failed to send follow-up notification: ${msg}`)
+    return {
+      success: false,
+      error: msg,
+    }
+  }
+}
+

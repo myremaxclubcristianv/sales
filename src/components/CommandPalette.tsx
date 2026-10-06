@@ -10,6 +10,7 @@ interface CommandPaletteProps {
 
 const navigationItems = [
   { title: 'Dashboard & Command Center', category: 'Navigation', href: '/admin/dashboard' },
+  { title: 'Master Calendar (Birthdays & Follow-ups)', category: 'Navigation', href: '/admin/calendar' },
   { title: 'Clients Directory (360°)', category: 'Navigation', href: '/admin/clients' },
   { title: 'Add New Client Record', category: 'Action', href: '/admin/clients/new' },
   { title: 'Properties & Listings Portfolio', category: 'Navigation', href: '/admin/properties' },
