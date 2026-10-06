@@ -255,6 +255,8 @@ export interface Database {
           country: string | null
           notes: string | null
           raw_data: Record<string, unknown> | null
+          date_of_birth: string | null
+          cnp: string | null
           created_at: string
           updated_at: string
         }
@@ -277,6 +279,8 @@ export interface Database {
           country?: string | null
           notes?: string | null
           raw_data?: Record<string, unknown> | null
+          date_of_birth?: string | null
+          cnp?: string | null
           created_at?: string
           updated_at?: string
         }
@@ -299,6 +303,8 @@ export interface Database {
           country?: string | null
           notes?: string | null
           raw_data?: Record<string, unknown> | null
+          date_of_birth?: string | null
+          cnp?: string | null
           created_at?: string
           updated_at?: string
         }

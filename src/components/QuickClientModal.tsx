@@ -4,7 +4,7 @@ import React, { useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { CLIENT_CATEGORIES, CLIENT_SOURCES, CLIENT_STATUSES, type ClientCategory } from '@/lib/types/crm'
 import { formatPhoneDisplay } from '@/lib/utils/phone'
-import { validateCnp } from '@/lib/utils/cnp'
+import { validateCnp, parseAndValidateCnp } from '@/lib/utils/cnp'
 import type { Database } from '@/types'
 import {
   User,
@@ -20,6 +20,7 @@ import {
   Building2,
   Shield,
   CreditCard,
+  Cake,
 } from 'lucide-react'
 
 type ClientRow = Database['public']['Tables']['clients']['Row']
@@ -54,7 +55,9 @@ function QuickClientModalDialog({
   const [phone, setPhone] = useState(clientToEdit?.phone || '')
   const [email, setEmail] = useState(clientToEdit?.email || '')
   const [cnp, setCnp] = useState(clientToEdit?.cnp || '')
+  const [dateOfBirth, setDateOfBirth] = useState(clientToEdit?.date_of_birth || '')
   const [cnpError, setCnpError] = useState<string | null>(null)
+  const [cnpWarning, setCnpWarning] = useState<string | null>(null)
   const [interestSummary, setInterestSummary] = useState(clientToEdit?.interest_summary || '')
   const [category, setCategory] = useState<ClientCategory>(
     (clientToEdit?.category as ClientCategory) || initialCategory
@@ -71,13 +74,29 @@ function QuickClientModalDialog({
   const handleCnpBlur = () => {
     if (!cnp || !cnp.trim()) {
       setCnpError(null)
+      setCnpWarning(null)
       return
     }
-    const validation = validateCnp(cnp, true)
+    const validation = parseAndValidateCnp(cnp)
     if (!validation.isValid) {
       setCnpError(validation.error || 'CNP-ul trebuie să conțină exact 13 cifre.')
-    } else {
-      setCnpError(null)
+      setCnpWarning(null)
+      return
+    }
+    setCnpError(null)
+
+    const derivedDob = validation.dateOfBirth
+    if (derivedDob) {
+      if (!dateOfBirth) {
+        setDateOfBirth(derivedDob)
+        setCnpWarning(null)
+      } else if (dateOfBirth !== derivedDob) {
+        setCnpWarning(
+          `Atenție: Data din CNP (${derivedDob}) diferă de data selectată (${dateOfBirth}). Se va păstra data selectată manual.`
+        )
+      } else {
+        setCnpWarning(null)
+      }
     }
   }
 
@@ -142,6 +161,7 @@ function QuickClientModalDialog({
           phone: phone.trim(),
           email: email.trim() || undefined,
           cnp: cleanCnp,
+          date_of_birth: dateOfBirth || undefined,
           interest_summary: interestSummary.trim() || undefined,
           category,
           source,
@@ -424,6 +444,7 @@ function QuickClientModalDialog({
                         onChange={(e) => {
                           setCnp(e.target.value)
                           if (cnpError) setCnpError(null)
+                          if (cnpWarning) setCnpWarning(null)
                         }}
                         onBlur={handleCnpBlur}
                         placeholder="13 cifre (ex: 1234567890123)"
@@ -441,7 +462,36 @@ function QuickClientModalDialog({
                       </p>
                     )}
                   </div>
+
+                  {/* Data Nașterii */}
+                  <div>
+                    <label className="block text-[11px] font-bold uppercase tracking-wider text-slate-700 mb-1">
+                      Data Nașterii (Opțional)
+                    </label>
+                    <div className="relative">
+                      <Cake className="w-4 h-4 text-slate-400 absolute left-3 top-2.5" />
+                      <input
+                        type="date"
+                        value={dateOfBirth}
+                        onChange={(e) => {
+                          setDateOfBirth(e.target.value)
+                          if (cnpWarning) setCnpWarning(null)
+                        }}
+                        className="w-full pl-9 pr-3 py-2 text-sm bg-white border border-slate-300 rounded-xl focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 outline-hidden font-medium text-slate-900 placeholder:text-slate-400"
+                      />
+                    </div>
+                    <p className="text-[10px] text-slate-500 mt-1">
+                      Folosită pentru calendarul aniversărilor și notificări.
+                    </p>
+                  </div>
                 </div>
+
+                {cnpWarning && (
+                  <div className="p-3 bg-amber-50 border border-amber-200 rounded-xl flex items-start gap-2 text-xs text-amber-800">
+                    <AlertTriangle className="w-4 h-4 text-amber-600 shrink-0 mt-0.5" />
+                    <span>{cnpWarning}</span>
+                  </div>
+                )}
 
                 {/* 3. Interest Summary / Ce dorește */}
                 <div>

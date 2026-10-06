@@ -12,9 +12,9 @@ import {
   type ClientCategory,
   type ClientStatus,
 } from '@/lib/types/crm'
-import { validateCnp } from '@/lib/utils/cnp'
+import { validateCnp, parseAndValidateCnp } from '@/lib/utils/cnp'
 import type { Database } from '@/types'
-import { Building2, Shield, CreditCard } from 'lucide-react'
+import { Building2, Shield, CreditCard, Cake, AlertCircle } from 'lucide-react'
 
 type DuplicateClient = Database['public']['Tables']['clients']['Row']
 
@@ -23,12 +23,14 @@ export default function NewClientPage() {
   const [loading, setLoading] = useState(false)
   const [duplicateCheck, setDuplicateCheck] = useState<DuplicateClient[]>([])
   const [cnpError, setCnpError] = useState<string | null>(null)
+  const [cnpWarning, setCnpWarning] = useState<string | null>(null)
   const [formData, setFormData] = useState({
     first_name: '',
     last_name: '',
     phone: '',
     email: '',
     cnp: '',
+    date_of_birth: '',
     category: 'REAL_ESTATE' as ClientCategory,
     status: 'NOT_CONTACTED' as ClientStatus,
     interest_summary: '',
@@ -39,6 +41,39 @@ export default function NewClientPage() {
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>) => {
     const { name, value } = e.target
     setFormData((prev) => ({ ...prev, [name]: value }))
+  }
+
+  const handleCnpBlur = () => {
+    if (!formData.cnp || !formData.cnp.trim()) {
+      setCnpError(null)
+      setCnpWarning(null)
+      return
+    }
+
+    const validation = parseAndValidateCnp(formData.cnp)
+    if (!validation.isValid) {
+      setCnpError(validation.error || 'CNP-ul trebuie să conțină exact 13 cifre.')
+      setCnpWarning(null)
+      return
+    }
+
+    setCnpError(null)
+    const derivedDob = validation.dateOfBirth
+
+    if (derivedDob) {
+      if (!formData.date_of_birth) {
+        // Auto-fill DOB from CNP
+        setFormData((prev) => ({ ...prev, date_of_birth: derivedDob }))
+        setCnpWarning(null)
+      } else if (formData.date_of_birth !== derivedDob) {
+        // Show conflict warning without overwriting
+        setCnpWarning(
+          `Atenție: Data din CNP (${derivedDob}) diferă de data selectată manual (${formData.date_of_birth}). Se va păstra data selectată manual.`
+        )
+      } else {
+        setCnpWarning(null)
+      }
+    }
   }
 
   const checkDuplicates = async () => {
@@ -83,6 +118,7 @@ export default function NewClientPage() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           ...formData,
+          date_of_birth: formData.date_of_birth || null,
           cnp: normalizedCnp,
         }),
       })
@@ -190,8 +226,8 @@ export default function NewClientPage() {
             />
           </div>
 
-          {/* Telefon, Email & CNP */}
-          <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+          {/* Telefon, Email, CNP & Data Nașterii */}
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
             <Input
               label="Telefon *"
               name="phone"
@@ -221,19 +257,9 @@ export default function NewClientPage() {
                 onChange={(e) => {
                   handleInputChange(e)
                   if (cnpError) setCnpError(null)
+                  if (cnpWarning) setCnpWarning(null)
                 }}
-                onBlur={() => {
-                  if (formData.cnp && formData.cnp.trim()) {
-                    const validation = validateCnp(formData.cnp, true)
-                    if (!validation.isValid) {
-                      setCnpError(validation.error || 'CNP-ul trebuie să conțină exact 13 cifre.')
-                    } else {
-                      setCnpError(null)
-                    }
-                  } else {
-                    setCnpError(null)
-                  }
-                }}
+                onBlur={handleCnpBlur}
                 placeholder="13 cifre"
                 maxLength={18}
               />
@@ -243,7 +269,32 @@ export default function NewClientPage() {
                 </p>
               )}
             </div>
+
+            <div>
+              <Input
+                label="Data Nașterii (Opțional)"
+                name="date_of_birth"
+                type="date"
+                value={formData.date_of_birth}
+                onChange={(e) => {
+                  handleInputChange(e)
+                  if (cnpWarning) setCnpWarning(null)
+                }}
+                placeholder="YYYY-MM-DD"
+              />
+              <p className="text-[11px] text-slate-500 mt-1 flex items-center gap-1">
+                <Cake className="w-3 h-3 text-pink-500 shrink-0" />
+                <span>Pentru calendarul aniversărilor și notificări</span>
+              </p>
+            </div>
           </div>
+
+          {cnpWarning && (
+            <div className="bg-amber-50 border border-amber-200 rounded-xl p-3 flex items-start gap-2 text-xs text-amber-800">
+              <AlertCircle className="w-4 h-4 text-amber-600 shrink-0 mt-0.5" />
+              <span>{cnpWarning}</span>
+            </div>
+          )}
 
           {/* Status Operațional & Sursă Lead */}
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">

@@ -3,7 +3,8 @@
 import React, { useState } from 'react'
 import { CLIENT_CATEGORIES, CLIENT_SOURCES } from '@/lib/types/crm'
 import type { ContactRow } from '@/lib/db/contacts'
-import { User, Phone, Mail, Building2, Briefcase, X, Sparkles } from 'lucide-react'
+import { parseAndValidateCnp } from '@/lib/utils/cnp'
+import { User, Phone, Mail, Building2, Briefcase, X, Sparkles, Cake, Fingerprint } from 'lucide-react'
 
 interface ContactModalProps {
   isOpen: boolean
@@ -23,6 +24,9 @@ function ContactModalDialog({ contact, onClose, onSuccess }: ContactModalProps) 
   const [phone, setPhone] = useState(contact?.phone || '')
   const [whatsapp, setWhatsapp] = useState(contact?.whatsapp || '')
   const [email, setEmail] = useState(contact?.email || '')
+  const [cnp, setCnp] = useState(contact?.cnp || '')
+  const [dateOfBirth, setDateOfBirth] = useState(contact?.date_of_birth || '')
+  const [cnpError, setCnpError] = useState<string | null>(null)
   const [companyName, setCompanyName] = useState(contact?.company_name || '')
   const [role, setRole] = useState(contact?.role || '')
   const [category, setCategory] = useState<string>(contact?.category || '')
@@ -34,6 +38,22 @@ function ContactModalDialog({ contact, onClose, onSuccess }: ContactModalProps) 
 
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
+
+  const handleCnpBlur = () => {
+    if (!cnp || !cnp.trim()) {
+      setCnpError(null)
+      return
+    }
+    const val = parseAndValidateCnp(cnp)
+    if (!val.isValid) {
+      setCnpError(val.error || 'CNP invalid.')
+    } else {
+      setCnpError(null)
+      if (val.dateOfBirth && !dateOfBirth) {
+        setDateOfBirth(val.dateOfBirth)
+      }
+    }
+  }
 
   const handleSave = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -52,6 +72,8 @@ function ContactModalDialog({ contact, onClose, onSuccess }: ContactModalProps) 
         phone: phone.trim() || undefined,
         whatsapp: whatsapp.trim() || phone.trim() || undefined,
         email: email.trim() || undefined,
+        cnp: cnp.trim() || undefined,
+        date_of_birth: dateOfBirth || undefined,
         company_name: companyName.trim() || undefined,
         role: role.trim() || undefined,
         category: category || undefined,
@@ -192,6 +214,50 @@ function ContactModalDialog({ contact, onClose, onSuccess }: ContactModalProps) 
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
                   placeholder="email@exemplu.ro"
+                  className="w-full pl-9 pr-3 py-2 text-sm bg-white border border-slate-300 rounded-xl focus:ring-2 focus:ring-blue-500 outline-hidden font-medium text-slate-900"
+                />
+              </div>
+            </div>
+          </div>
+
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+            <div>
+              <label className="block text-[11px] font-bold uppercase tracking-wider text-slate-700 mb-1">
+                CNP (Opțional)
+              </label>
+              <div className="relative">
+                <Fingerprint className="w-4 h-4 text-slate-400 absolute left-3 top-2.5" />
+                <input
+                  type="text"
+                  inputMode="numeric"
+                  value={cnp}
+                  onChange={(e) => {
+                    setCnp(e.target.value)
+                    if (cnpError) setCnpError(null)
+                  }}
+                  onBlur={handleCnpBlur}
+                  placeholder="13 cifre"
+                  maxLength={18}
+                  className="w-full pl-9 pr-3 py-2 text-sm bg-white border border-slate-300 rounded-xl focus:ring-2 focus:ring-blue-500 outline-hidden font-mono font-medium text-slate-900"
+                />
+              </div>
+              {cnpError && (
+                <p className="text-[11px] text-rose-600 font-medium mt-1">
+                  {cnpError}
+                </p>
+              )}
+            </div>
+
+            <div>
+              <label className="block text-[11px] font-bold uppercase tracking-wider text-slate-700 mb-1">
+                Data Nașterii (Opțional)
+              </label>
+              <div className="relative">
+                <Cake className="w-4 h-4 text-slate-400 absolute left-3 top-2.5" />
+                <input
+                  type="date"
+                  value={dateOfBirth}
+                  onChange={(e) => setDateOfBirth(e.target.value)}
                   className="w-full pl-9 pr-3 py-2 text-sm bg-white border border-slate-300 rounded-xl focus:ring-2 focus:ring-blue-500 outline-hidden font-medium text-slate-900"
                 />
               </div>

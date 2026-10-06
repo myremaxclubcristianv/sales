@@ -1,5 +1,6 @@
 import { createClient as createServerClient } from '@/lib/supabase/server'
 import { getPhoneVariants, normalizeEmail, normalizePhone } from '@/lib/utils/phone'
+import { parseAndValidateCnp } from '@/lib/utils/cnp'
 import type { Database } from '@/types'
 
 export type ContactRow = Database['public']['Tables']['contacts']['Row'] & {
@@ -94,9 +95,21 @@ export async function getContactById(id: string) {
 
 export async function createContact(contact: ContactInsert) {
   const supabase = await createServerClient()
+  
+  let effectiveDob = contact.date_of_birth || null
+  if (!effectiveDob && contact.cnp) {
+    const cnpRes = parseAndValidateCnp(contact.cnp)
+    if (cnpRes.isValid && cnpRes.dateOfBirth) {
+      effectiveDob = cnpRes.dateOfBirth
+    }
+  }
+
   const { data, error } = await supabase
     .from('contacts')
-    .insert(contact)
+    .insert({
+      ...contact,
+      date_of_birth: effectiveDob,
+    })
     .select()
     .single()
 
@@ -106,9 +119,22 @@ export async function createContact(contact: ContactInsert) {
 
 export async function updateContact(id: string, contact: ContactUpdate) {
   const supabase = await createServerClient()
+
+  let effectiveDob = contact.date_of_birth
+  if (effectiveDob === undefined && contact.cnp) {
+    const cnpRes = parseAndValidateCnp(contact.cnp)
+    if (cnpRes.isValid && cnpRes.dateOfBirth) {
+      effectiveDob = cnpRes.dateOfBirth
+    }
+  }
+
   const { data, error } = await supabase
     .from('contacts')
-    .update({ ...contact, updated_at: new Date().toISOString() })
+    .update({
+      ...contact,
+      ...(effectiveDob !== undefined ? { date_of_birth: effectiveDob } : {}),
+      updated_at: new Date().toISOString(),
+    })
     .eq('id', id)
     .select()
     .single()

@@ -1,5 +1,6 @@
 import { createClient as createServerClient } from '@/lib/supabase/server'
 import { getPhoneVariants, normalizeEmail, normalizePhone } from '@/lib/utils/phone'
+import { parseAndValidateCnp } from '@/lib/utils/cnp'
 import type { Database } from '@/types'
 
 export type ClientInsert = Database['public']['Tables']['clients']['Insert']
@@ -137,15 +138,27 @@ export async function getClientById(id: string) {
   return data
 }
 
-export async function createClientRecord(client: ClientInsert) {
-  const supabase = await createServerClient()
+import type { SupabaseClient } from '@supabase/supabase-js'
+
+export async function createClientRecord(client: ClientInsert, customSupabase?: SupabaseClient) {
+  const supabase = customSupabase || (await createServerClient())
   
   // Clean payload
   const normPhone = client.phone ? normalizePhone(client.phone) : client.phone
   const normWhatsapp = client.whatsapp ? normalizePhone(client.whatsapp) : (client.phone ? normalizePhone(client.phone) : client.whatsapp)
 
+  // Auto-derive DOB from CNP if DOB not provided
+  let effectiveDob = client.date_of_birth || null
+  if (!effectiveDob && client.cnp) {
+    const cnpRes = parseAndValidateCnp(client.cnp)
+    if (cnpRes.isValid && cnpRes.dateOfBirth) {
+      effectiveDob = cnpRes.dateOfBirth
+    }
+  }
+
   const payload: ClientInsert = {
     ...client,
+    date_of_birth: effectiveDob,
     phone: normPhone,
     whatsapp: normWhatsapp,
     country: client.country || 'Romania',
@@ -162,13 +175,59 @@ export async function createClientRecord(client: ClientInsert) {
     .single()
 
   if (error) throw error
-  return data as ClientRow
+  const savedClient = data as ClientRow
+
+  // Sync personal_events birthday event if DOB exists
+  if (savedClient.date_of_birth) {
+    try {
+      const clientName = `${savedClient.first_name} ${savedClient.last_name}`.trim()
+      const { data: existingEv } = await supabase
+        .from('personal_events')
+        .select('id')
+        .eq('client_id', savedClient.id)
+        .eq('event_type', 'birthday')
+        .maybeSingle()
+
+      if (!existingEv) {
+        await supabase.from('personal_events').insert({
+          client_id: savedClient.id,
+          event_type: 'birthday',
+          event_date: savedClient.date_of_birth,
+          title: `Zi de naștere: ${clientName || 'Client'}`,
+          reminder_days: 7,
+        })
+      } else {
+        await supabase
+          .from('personal_events')
+          .update({
+            event_date: savedClient.date_of_birth,
+            title: `Zi de naștere: ${clientName || 'Client'}`,
+          })
+          .eq('id', existingEv.id)
+      }
+    } catch (evErr) {
+      console.error('Error syncing birthday event on client creation:', evErr)
+    }
+  }
+
+  return savedClient
 }
 
-export async function updateClient(id: string, client: ClientUpdate) {
-  const supabase = await createServerClient()
+export async function updateClient(id: string, client: ClientUpdate, customSupabase?: SupabaseClient) {
+  const supabase = customSupabase || (await createServerClient())
+
+  // Handle DOB derivation if CNP supplied without DOB
+  let effectiveDob = client.date_of_birth
+  if (effectiveDob === undefined && client.cnp) {
+    const cnpRes = parseAndValidateCnp(client.cnp)
+    if (cnpRes.isValid && cnpRes.dateOfBirth) {
+      effectiveDob = cnpRes.dateOfBirth
+    }
+  }
+
   const payload: ClientUpdate = {
     ...client,
+    ...(effectiveDob !== undefined ? { date_of_birth: effectiveDob } : {}),
     updated_at: new Date().toISOString()
   }
 
@@ -187,7 +246,51 @@ export async function updateClient(id: string, client: ClientUpdate) {
     .single()
 
   if (error) throw error
-  return data as ClientRow
+  const updatedClient = data as ClientRow
+
+  // Sync personal_events
+  if (payload.date_of_birth !== undefined) {
+    try {
+      if (updatedClient.date_of_birth) {
+        const clientName = `${updatedClient.first_name} ${updatedClient.last_name}`.trim()
+        const { data: existingEv } = await supabase
+          .from('personal_events')
+          .select('id')
+          .eq('client_id', id)
+          .eq('event_type', 'birthday')
+          .maybeSingle()
+
+        if (existingEv) {
+          await supabase
+            .from('personal_events')
+            .update({
+              event_date: updatedClient.date_of_birth,
+              title: `Zi de naștere: ${clientName || 'Client'}`,
+            })
+            .eq('id', existingEv.id)
+        } else {
+          await supabase.from('personal_events').insert({
+            client_id: id,
+            event_type: 'birthday',
+            event_date: updatedClient.date_of_birth,
+            title: `Zi de naștere: ${clientName || 'Client'}`,
+            reminder_days: 7,
+          })
+        }
+      } else {
+        // Date of birth cleared -> delete birthday event
+        await supabase
+          .from('personal_events')
+          .delete()
+          .eq('client_id', id)
+          .eq('event_type', 'birthday')
+      }
+    } catch (evErr) {
+      console.error('Error syncing birthday event on client update:', evErr)
+    }
+  }
+
+  return updatedClient
 }
 
 export async function updateClientStatus(id: string, status: string) {

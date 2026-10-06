@@ -15,7 +15,7 @@ export async function POST(request: Request) {
     }
 
     const body = await request.json()
-    const { id, name, phone, email, cnp, interest_summary, category, source, status, forceCreate } = body
+    const { id, name, phone, email, cnp, date_of_birth, interest_summary, category, source, status, forceCreate } = body
 
     if (!name || !name.trim()) {
       return NextResponse.json({ error: 'Numele clientului este obligatoriu' }, { status: 400 })
@@ -64,6 +64,7 @@ export async function POST(request: Request) {
         phone: normPhone,
         whatsapp: normPhone,
         email: email ? email.trim() : null,
+        date_of_birth: date_of_birth !== undefined ? (date_of_birth ? date_of_birth.trim() : null) : existingClient.date_of_birth,
         category: category || existingClient.category || 'REAL_ESTATE',
         lead_source: source || existingClient.lead_source || 'DIRECT_CONTACT',
         interest_summary: interest_summary !== undefined ? (interest_summary ? interest_summary.trim() : null) : existingClient.interest_summary,
@@ -101,6 +102,7 @@ export async function POST(request: Request) {
       phone: normPhone,
       whatsapp: normPhone,
       email: email ? email.trim() : null,
+      date_of_birth: date_of_birth ? date_of_birth.trim() : null,
       category: category || 'REAL_ESTATE',
       lead_source: source || 'DIRECT_CONTACT',
       interest_summary: interest_summary ? interest_summary.trim() : null,

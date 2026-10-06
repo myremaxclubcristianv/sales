@@ -7,6 +7,7 @@ import { Input } from '@/components/ui/Input'
 import { Select } from '@/components/ui/Select'
 import { Card } from '@/components/ui/Card'
 import { Badge } from '@/components/ui/Badge'
+import { parseAndValidateCnp } from '@/lib/utils/cnp'
 import {
   User,
   Shield,
@@ -488,6 +489,17 @@ export function NewInsuranceClientForm() {
                 className="w-full px-3 py-2 bg-neutral-50 dark:bg-neutral-800/50 border border-neutral-200 dark:border-neutral-700 rounded-xl text-xs focus:outline-none focus:ring-2 focus:ring-neutral-900 dark:focus:ring-neutral-100"
                 value={formData.client.cnp}
                 onChange={(e) => setFormData({ ...formData, client: { ...formData.client, cnp: e.target.value } })}
+                onBlur={() => {
+                  if (formData.client.cnp && !formData.client.date_of_birth) {
+                    const val = parseAndValidateCnp(formData.client.cnp)
+                    if (val.isValid && val.dateOfBirth) {
+                      setFormData((prev) => ({
+                        ...prev,
+                        client: { ...prev.client, date_of_birth: val.dateOfBirth || '' },
+                      }))
+                    }
+                  }
+                }}
               />
             </div>
           </div>

@@ -1,6 +1,6 @@
 'use client'
 
-import React, { useState, useEffect, useRef, useCallback } from 'react'
+import React, { useState, useEffect, useRef } from 'react'
 import Link from 'next/link'
 import { Bell, Check, CheckCheck, Clock, Shield, Building2, User, Phone, Cake, ExternalLink } from 'lucide-react'
 import type { NotificationRow } from '@/lib/db/notifications'

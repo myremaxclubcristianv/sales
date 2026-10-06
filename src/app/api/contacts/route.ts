@@ -60,6 +60,8 @@ export async function POST(request: Request) {
       address,
       city,
       notes,
+      date_of_birth,
+      cnp,
     } = body
 
     if (!first_name && !last_name && !phone && !email) {
@@ -83,6 +85,8 @@ export async function POST(request: Request) {
       city: city?.trim() || null,
       country: 'Romania',
       notes: notes?.trim() || null,
+      date_of_birth: date_of_birth ? date_of_birth.trim() : null,
+      cnp: cnp ? cnp.trim() : null,
     })
 
     return NextResponse.json({ contact }, { status: 201 })
