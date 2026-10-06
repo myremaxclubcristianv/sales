@@ -86,14 +86,14 @@ export async function checkAndGenerateReminders(
       let message = ''
 
       if (reminderStage === '0d') {
-        title = `🎊 Today is ${fullName}'s birthday`
-        message = `Aniversare astăzi: ${fullName} [${label}]. Nu uita să trimiți urările!`
+        title = `🎂🎊 Sună clientul: LA MULȚI ANI! — ${fullName}`
+        message = `Aniversare astăzi: ${fullName} [${label}]. Sună clientul la 10:00 și transmite-i La mulți ani 🎊`
       } else if (reminderStage === '2d') {
-        title = `Birthday in 2 days — ${fullName}`
-        message = `Aniversare în 2 zile (${client.date_of_birth.slice(5)}): ${fullName} [${label}].`
+        title = `🎂 Zi de naștere în 2 zile — ${fullName}`
+        message = `Pregătește urările: ${fullName} [${label}] pe ${client.date_of_birth.slice(5)}.`
       } else if (reminderStage === '7d') {
-        title = `Birthday in 7 days — ${fullName}`
-        message = `Aniversare în 7 zile (${client.date_of_birth.slice(5)}): ${fullName} [${label}].`
+        title = `🎂 Zi de naștere în 7 zile — ${fullName}`
+        message = `Pregătește-te să îl/o suni: ${fullName} [${label}] pe ${client.date_of_birth.slice(5)}.`
       }
 
       // Check for duplicate notification created in this calendar cycle for this client and stage

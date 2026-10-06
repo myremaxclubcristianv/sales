@@ -217,16 +217,19 @@ export async function getFollowUpsByView(
         // Calculate current year occurrence
         const thisYearOccurrence = `${currentYear}-${String(bMonth).padStart(2, '0')}-${String(bDay).padStart(2, '0')}`
         const nextYearOccurrence = `${currentYear + 1}-${String(bMonth).padStart(2, '0')}-${String(bDay).padStart(2, '0')}`
-
         const isPassedThisYear = thisYearOccurrence < todayStr
-        const targetOccurrence = isPassedThisYear ? nextYearOccurrence : thisYearOccurrence
-        const targetYear = isPassedThisYear ? currentYear + 1 : currentYear
 
-        const isToday = thisYearOccurrence === todayStr
-        const isTomorrow = thisYearOccurrence === tomorrowStr
-        const isThisWeek = thisYearOccurrence >= todayStr && thisYearOccurrence <= weekEndStr
-        const isUpcoming = targetOccurrence >= todayStr && targetOccurrence <= upcomingLimitStr
+        // Determine if acknowledged for current year
         const isAcknowledged = acknowledgedClientIds.has(client.id)
+
+        // If acknowledged for this year, next active occurrence is next year
+        const activeOccurrence = (isPassedThisYear || isAcknowledged) ? nextYearOccurrence : thisYearOccurrence
+        const activeTargetYear = (isPassedThisYear || isAcknowledged) ? currentYear + 1 : currentYear
+
+        const isToday = thisYearOccurrence === todayStr && !isAcknowledged
+        const isTomorrow = thisYearOccurrence === tomorrowStr && !isAcknowledged
+        const isThisWeek = thisYearOccurrence >= todayStr && thisYearOccurrence <= weekEndStr && !isAcknowledged
+        const isUpcoming = activeOccurrence >= todayStr && activeOccurrence <= upcomingLimitStr
 
         let includeBirthday = false
 
@@ -256,26 +259,29 @@ export async function getFollowUpsByView(
 
         if (includeBirthday) {
           const { categories, label } = deriveClientCategories(client)
-          const age = calculateAge(client.date_of_birth, new Date(targetYear, bMonth - 1, bDay))
+          const targetYr = view === 'completed' ? currentYear : activeTargetYear
+          const targetOcc = view === 'completed' ? thisYearOccurrence : activeOccurrence
+          const age = calculateAge(client.date_of_birth, new Date(targetYr, bMonth - 1, bDay))
           const company = unwrap(client.companies)
+          const fullName = `${client.first_name || ''} ${client.last_name || ''}`.trim() || 'Client'
 
           let status = 'UPCOMING'
-          if (isAcknowledged) {
+          if (view === 'completed' || isAcknowledged) {
             status = 'COMPLETED'
           } else if (isToday) {
             status = 'PENDING'
           }
 
           results.push({
-            id: `birthday-${client.id}-${targetYear}`,
+            id: `birthday-${client.id}-${targetYr}`,
             client_id: client.id,
             type: 'birthday',
-            reason: `🎂 Zi de naștere — ${client.first_name} ${client.last_name}`,
-            due_date: `${targetOccurrence}T09:00:00`,
-            due_date_formatted: formatRomanianDate(targetOccurrence),
+            reason: `Zi de naștere`,
+            due_date: `${targetOcc}T10:00:00`,
+            due_date_formatted: formatRomanianDate(targetOcc),
             priority: isToday ? 'HIGH' : 'NORMAL',
             status,
-            notes: `Aniversare (${client.date_of_birth.slice(5)}) · Vârstă: ${age || ''} ani · Categorii: ${label}`,
+            notes: `Sună clientul și transmite-i La mulți ani 🎊 · Vârstă: ${age ? `${age} ani` : ''} · [${label}]`,
             completed_at: isAcknowledged ? new Date().toISOString() : null,
             created_at: new Date().toISOString(),
             updated_at: new Date().toISOString(),

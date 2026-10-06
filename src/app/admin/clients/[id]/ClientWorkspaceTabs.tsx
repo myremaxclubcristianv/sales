@@ -302,6 +302,35 @@ export function ClientWorkspaceTabs({
   const clientAge = calculateAge(client.date_of_birth)
   const birthdayInfo = getBirthdayCountdownInfo(client.date_of_birth)
 
+  const [birthdayFelicitat, setBirthdayFelicitat] = useState(false)
+  const [birthdayAckLoading, setBirthdayAckLoading] = useState(false)
+
+  const handleAcknowledgeBirthdayInWorkspace = async () => {
+    setBirthdayAckLoading(true)
+    try {
+      const year = new Date().getFullYear()
+      const res = await fetch('/api/follow-ups/acknowledge-birthday', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          clientId: client.id,
+          year,
+          notes: `Urări de La Mulți Ani transmise cu succes către ${client.first_name}.`,
+        }),
+      })
+      if (res.ok) {
+        setBirthdayFelicitat(true)
+        alert(`Aniversarea pentru anul ${year} a fost marcată ca felicitată!`)
+      } else {
+        alert('Nu s-a putut înregistra felicitarea.')
+      }
+    } catch {
+      alert('Eroare la înregistrarea felicitării.')
+    } finally {
+      setBirthdayAckLoading(false)
+    }
+  }
+
   const handleCopyBirthdayGreeting = async () => {
     const wish = getRomanianBirthdayWish(client.first_name)
     try {
@@ -1295,38 +1324,42 @@ export function ClientWorkspaceTabs({
 
             {/* Recurring Birthday Follow-up Card */}
             {birthdayInfo.hasDob && (
-              <div className="p-4 rounded-2xl border border-pink-200/80 bg-gradient-to-r from-pink-50/50 via-white to-amber-50/40 shadow-xs flex flex-col sm:flex-row sm:items-center justify-between gap-3">
-                <div className="space-y-1">
+              <div className="p-4 rounded-2xl border border-pink-200/80 bg-gradient-to-r from-pink-50/50 via-white to-amber-50/40 shadow-xs flex flex-col md:flex-row md:items-center justify-between gap-4">
+                <div className="space-y-1.5">
                   <div className="flex items-center gap-2">
                     <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[11px] font-bold bg-pink-100 text-pink-700">
                       <Cake className="w-3 h-3 text-pink-600" />
                       <span>🎂 ZI DE NAȘTERE</span>
                     </span>
-                    <Badge variant={birthdayInfo.isToday ? 'danger' : birthdayInfo.isUpcoming ? 'warning' : 'info'} size="sm">
-                      {birthdayInfo.isToday ? 'AZI' : birthdayInfo.isUpcoming ? 'UPCOMING' : 'ANUAL'}
+                    <Badge variant={birthdayFelicitat ? 'success' : birthdayInfo.isToday ? 'danger' : birthdayInfo.isUpcoming ? 'warning' : 'info'} size="sm">
+                      {birthdayFelicitat ? 'FELICITAT' : birthdayInfo.isToday ? 'AZI' : birthdayInfo.isUpcoming ? 'UPCOMING' : 'ANUAL'}
                     </Badge>
                   </div>
-                  <p className="text-sm font-bold text-slate-900">
-                    📅 {birthdayInfo.formattedDayMonth}
+                  <h4 className="text-sm font-bold text-slate-900">
+                    🎂 Zi de naștere — Sună {client.first_name} {client.last_name}
+                  </h4>
+                  <p className="text-xs font-semibold text-slate-700">
+                    📅 {birthdayInfo.formattedDayMonth} · 🕒 10:00 (Europe/Bucharest)
                     {birthdayInfo.currentAge !== null && (
-                      <span className="text-pink-700 font-semibold text-xs ml-2">
+                      <span className="text-pink-700 font-bold ml-2">
                         ({birthdayInfo.isToday ? birthdayInfo.currentAge : birthdayInfo.turningAge} ani)
                       </span>
                     )}
                   </p>
                   <p className="text-xs text-slate-500">
-                    Următoarea aniversare · {birthdayInfo.statusTextRo}
+                    Sună clientul pentru a-i transmite La mulți ani 🎊 · {birthdayInfo.statusTextRo}
                   </p>
                 </div>
-                <div className="flex items-center gap-2">
-                  <Button
-                    size="sm"
-                    variant="outline"
-                    onClick={handleCopyBirthdayGreeting}
-                    className="text-xs h-8 border-pink-200 text-pink-700 hover:bg-pink-50"
-                  >
-                    <span>📋 Copiază Urări</span>
-                  </Button>
+                <div className="flex flex-wrap items-center gap-2 shrink-0">
+                  {client.phone && (
+                    <a
+                      href={getTelUrl(client.phone)}
+                      className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-bold bg-white text-slate-800 border border-slate-200 hover:bg-slate-50 shadow-xs transition-all"
+                    >
+                      <Phone className="w-3.5 h-3.5 text-slate-600" />
+                      <span>Sună</span>
+                    </a>
+                  )}
                   {client.phone && (
                     <a
                       href={getWhatsAppBirthdayLink()}
@@ -1335,8 +1368,19 @@ export function ClientWorkspaceTabs({
                       className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-bold bg-emerald-600 hover:bg-emerald-700 text-white transition-all shadow-xs"
                     >
                       <MessageSquare className="w-3.5 h-3.5" />
-                      <span>WhatsApp Urări</span>
+                      <span>WhatsApp</span>
                     </a>
+                  )}
+                  {!birthdayFelicitat && (
+                    <Button
+                      size="sm"
+                      disabled={birthdayAckLoading}
+                      onClick={handleAcknowledgeBirthdayInWorkspace}
+                      className="text-xs h-8 px-3 bg-pink-600 hover:bg-pink-700 text-white font-bold gap-1 shadow-xs"
+                    >
+                      <CheckCircle2 className="w-3.5 h-3.5" />
+                      <span>{birthdayAckLoading ? 'Se marchează...' : 'Marchează Felicitat'}</span>
+                    </Button>
                   )}
                 </div>
               </div>

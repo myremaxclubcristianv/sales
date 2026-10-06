@@ -273,7 +273,7 @@ export function formatBirthdayTelegramMessage(data: BirthdayTelegramPayload): st
     lines.push(`📅 <b>Data:</b> ${dateDisplay}`)
     lines.push(`🏷 <b>Categorii:</b> ${categoryStr}`)
     lines.push('')
-    lines.push('💬 <i>Prepare to say: La mulți ani 🎊</i>')
+    lines.push('💬 <i>Pregătește-te să îl/o suni: La mulți ani 🎊</i>')
     lines.push('')
     lines.push(`🔗 <a href="${clientUrl}">Deschide Client 360</a>`)
   } else if (data.stage === '2d') {
@@ -297,7 +297,7 @@ export function formatBirthdayTelegramMessage(data: BirthdayTelegramPayload): st
       lines.push(`🎉 <b>Vârstă:</b> ${data.age} ani`)
     }
     lines.push('')
-    lines.push('👉 <b>LA MULȚI ANI! 🎊</b>')
+    lines.push('👉 <b>Sună clientul: LA MULȚI ANI! 🎊</b>')
     lines.push('')
     lines.push(`🔗 <a href="${clientUrl}">Deschide Client 360</a>`)
   }

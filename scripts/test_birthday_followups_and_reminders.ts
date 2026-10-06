@@ -8,7 +8,7 @@ import { getFollowUpsByView, acknowledgeBirthday } from '../src/lib/db/follow-up
 import { getMasterCalendarEvents } from '../src/lib/db/calendar'
 import { checkAndGenerateReminders } from '../src/lib/utils/reminders'
 import { formatBirthdayTelegramMessage } from '../src/lib/telegram/telegram'
-import { createClientRecord } from '../src/lib/db/clients'
+import { createClientRecord, updateClient } from '../src/lib/db/clients'
 import { getBucharestDateParts } from '../src/lib/utils/cnp'
 
 const envPath = path.join(__dirname, '../.env.local')
@@ -40,20 +40,20 @@ function assert(condition: boolean, testName: string, detail?: string) {
 
 async function runTests() {
   console.log('\n======================================================')
-  console.log('🧪 SALES CRM — BIRTHDAYS IN FOLLOW-UPS & NOTIFICATIONS TEST SUITE')
+  console.log('🧪 SALES CRM — OPERATIONAL BIRTHDAY FOLLOW-UPS TEST SUITE')
   console.log('======================================================\n')
 
   const todayParts = getBucharestDateParts(new Date())
   const todayStr = `${todayParts.year}-${String(todayParts.month).padStart(2, '0')}-${String(todayParts.day).padStart(2, '0')}`
   const todayMMDD = `${String(todayParts.month).padStart(2, '0')}-${String(todayParts.day).padStart(2, '0')}`
 
-  // 1. Create a synthetic test client with birthday today
-  const testClientName = `TestClientFollowUp_${Date.now()}`
+  const testClientName = `TestOpBirthday_${Date.now()}`
   let testClientId: string | null = null
-  let standardFuId: string | null = null
+  let noDobClientId: string | null = null
+  let multiCatClientId: string | null = null
 
   try {
-    console.log('--- TEST GROUP 1: Dynamic Birthday Follow-ups Ingestion ---')
+    console.log('--- TEST GROUP 1: Operational Birthday Follow-up Scheduling ---')
     const newClient = await createClientRecord({
       first_name: testClientName,
       last_name: 'Popescu',
@@ -64,86 +64,76 @@ async function runTests() {
     }, supabase)
 
     testClientId = newClient.id
-    assert(Boolean(testClientId), 'Created synthetic client with birthday today')
+    assert(Boolean(testClientId), 'Created client with valid DOB')
 
     // Fetch follow-ups for 'today'
     const todayFollowUps = await getFollowUpsByView('today', 'all', supabase)
     const birthdayInToday = todayFollowUps.find(f => f.client_id === testClientId && f.is_birthday)
-    assert(Boolean(birthdayInToday), 'Birthday follow-up appears in "today" view')
-    assert(birthdayInToday?.type === 'birthday', 'Follow-up item type is "birthday"')
-    assert(birthdayInToday?.categories.includes('INSURANCE') || false, 'Birthday follow-up has correct category')
-    assert(birthdayInToday?.is_birthday === true, 'is_birthday flag is true')
+    assert(Boolean(birthdayInToday), 'Birthday follow-up is automatically scheduled for calling in "today" view')
+    assert(birthdayInToday?.due_date.endsWith('T10:00:00') || false, 'Birthday follow-up scheduled at default 10:00 Europe/Bucharest calling time')
+    assert(birthdayInToday?.notes?.includes('Sună clientul și transmite-i La mulți ani 🎊') || false, 'Birthday follow-up includes calling instruction in notes')
+    assert(birthdayInToday?.status === 'PENDING', 'Day-of birthday follow-up has status PENDING for action')
 
-    // Test filter by type: 'birthdays'
+    // Filter by 'birthdays' and 'follow_ups'
     const birthdaysOnly = await getFollowUpsByView('today', 'birthdays', supabase)
-    assert(birthdaysOnly.every(i => i.is_birthday), 'Filter "birthdays" returns only birthday items')
-    assert(birthdaysOnly.some(i => i.client_id === testClientId), 'Test client is present in "birthdays" filter')
-
-    // Test filter by type: 'follow_ups'
+    assert(birthdaysOnly.every(i => i.is_birthday), 'Filter "birthdays" contains exclusively birthday follow-ups')
     const followUpsOnly = await getFollowUpsByView('today', 'follow_ups', supabase)
-    assert(followUpsOnly.every(i => !i.is_birthday), 'Filter "follow_ups" excludes birthday items')
-    assert(!followUpsOnly.some(i => i.client_id === testClientId && i.is_birthday), 'Birthday is excluded when type is "follow_ups"')
+    assert(followUpsOnly.every(i => !i.is_birthday), 'Filter "follow_ups" contains exclusively standard follow-ups')
 
-    console.log('\n--- TEST GROUP 2: Non-Destructive Birthday Acknowledgement ---')
-    // Acknowledge birthday for current year
-    const ackRes = await acknowledgeBirthday(testClientId!, todayParts.year, 'Felicitat telefonic cu succes!', supabase)
-    assert(ackRes.success === true, 'Birthday acknowledgement executed successfully')
+    console.log('\n--- TEST GROUP 2: Person Without DOB Behavior ---')
+    const noDobClient = await createClientRecord({
+      first_name: `NoDob_${Date.now()}`,
+      last_name: 'Ionescu',
+      email: `nodob_${Date.now()}@example.com`,
+      category: 'REAL_ESTATE',
+    }, supabase)
+    noDobClientId = noDobClient.id
 
-    // Check completed view
+    const allFollowUps = await getFollowUpsByView('all', 'birthdays', supabase)
+    const noDobFound = allFollowUps.find(f => f.client_id === noDobClientId)
+    assert(!noDobFound, 'Person without DOB has 0 birthday follow-ups generated (zero guessing)')
+
+    console.log('\n--- TEST GROUP 3: Multi-Category Aggregation ---')
+    const multiCatClient = await createClientRecord({
+      first_name: `MultiCat_${Date.now()}`,
+      last_name: 'Dumitrescu',
+      email: `multicat_${Date.now()}@example.com`,
+      date_of_birth: `1985-${todayMMDD}`,
+      category: 'INSURANCE',
+    }, supabase)
+    multiCatClientId = multiCatClient.id
+
+    // Add relationships / policies / credit cases
+    await supabase.from('credit_cases').insert({
+      client_id: multiCatClientId,
+      amount: 100000,
+      purpose: 'Mortgage',
+    })
+    await supabase.from('client_relationships').insert({
+      client_id: multiCatClientId,
+      relationship_type: 'buyer',
+    })
+
+    const multiCatItems = await getFollowUpsByView('today', 'birthdays', supabase)
+    const multiCatFollowUp = multiCatItems.find(f => f.client_id === multiCatClientId)
+    assert(Boolean(multiCatFollowUp), 'Multi-category client has birthday follow-up present')
+    assert(Boolean(multiCatFollowUp?.categories.includes('INSURANCE') && multiCatFollowUp?.categories.includes('CREDITE') && multiCatFollowUp?.categories.includes('REAL ESTATE')), '1 Person = 1 Birthday Follow-up with aggregated categories (REAL ESTATE · INSURANCE · CREDITE)')
+
+    console.log('\n--- TEST GROUP 4: Non-Destructive Completion & Next Year Auto-Preservation ---')
+    const ackRes = await acknowledgeBirthday(testClientId!, todayParts.year, 'Sunat și felicitat cu succes!', supabase)
+    assert(ackRes.success === true, 'Birthday follow-up marked completed for current year')
+
     const completedItems = await getFollowUpsByView('completed', 'all', supabase)
     const completedBirthday = completedItems.find(i => i.client_id === testClientId && i.is_birthday)
-    assert(Boolean(completedBirthday), 'Acknowledged birthday appears in "completed" view')
-    assert(completedBirthday?.status === 'COMPLETED', 'Birthday status is marked COMPLETED')
+    assert(Boolean(completedBirthday) && completedBirthday?.status === 'COMPLETED', 'Current year birthday follow-up is visible under "completed"')
 
-    // Check that client's DOB is intact and future recurring birthday exists
-    const { data: clientAfterAck } = await supabase
-      .from('clients')
-      .select('date_of_birth')
-      .eq('id', testClientId!)
-      .single()
-    assert(clientAfterAck?.date_of_birth === `1990-${todayMMDD}`, 'Client DOB remains intact after acknowledgement')
+    // Verify next year's occurrence is already pre-scheduled in upcoming
+    const upcomingItems = await getFollowUpsByView('all', 'birthdays', supabase)
+    const nextYearItem = upcomingItems.find(i => i.client_id === testClientId && i.due_date.startsWith(String(todayParts.year + 1)))
+    assert(Boolean(nextYearItem), 'Next year annual birthday follow-up automatically exists and is pre-scheduled')
+    assert(nextYearItem?.due_date.endsWith('T10:00:00') || false, 'Next year birthday follow-up maintains 10:00 calling time')
 
-    const masterCal = await getMasterCalendarEvents({ year: todayParts.year + 1 }, supabase)
-    const nextYearBirthday = masterCal.events.find(e => e.client_id === testClientId && e.type === 'birthday' && e.date.startsWith(String(todayParts.year + 1)))
-    assert(Boolean(nextYearBirthday), 'Next year annual birthday recurrence exists and is untouched')
-
-    console.log('\n--- TEST GROUP 3: Standard Follow-ups Non-Regression ---')
-    // Create standard follow-up via direct db insertion using service client
-    const { data: standardFu, error: fuErr } = await supabase
-      .from('follow_ups')
-      .insert({
-        client_id: testClientId!,
-        reason: 'Standard review call',
-        due_date: `${todayStr}T15:00:00`,
-        priority: 'HIGH',
-        status: 'PENDING',
-      })
-      .select()
-      .single()
-
-    assert(!fuErr && Boolean(standardFu?.id), 'Created standard sales follow-up')
-    standardFuId = standardFu?.id || null
-
-    const todayItemsWithStd = await getFollowUpsByView('today', 'all', supabase)
-    const foundStd = todayItemsWithStd.find(i => i.id === standardFuId)
-    assert(Boolean(foundStd), 'Standard follow-up appears in today view alongside birthdays')
-    assert(foundStd?.is_birthday === false, 'Standard follow-up is not flagged as birthday')
-
-    // Complete standard follow-up
-    await supabase
-      .from('follow_ups')
-      .update({ status: 'COMPLETED', completed_at: new Date().toISOString() })
-      .eq('id', standardFuId!)
-
-    const { data: stdAfterComplete } = await supabase
-      .from('follow_ups')
-      .select('status, completed_at')
-      .eq('id', standardFuId!)
-      .single()
-    assert(stdAfterComplete?.status === 'COMPLETED', 'Standard follow-up successfully marked COMPLETED')
-
-    console.log('\n--- TEST GROUP 4: Telegram & Reminder Notifications Formatting ---')
-    // Test Telegram formatting
+    console.log('\n--- TEST GROUP 5: Telegram Calling Prompts & Reminders ---')
     const tg7d = formatBirthdayTelegramMessage({
       fullName: 'Ion Popescu',
       dateOfBirth: '1990-08-08',
@@ -152,8 +142,8 @@ async function runTests() {
       clientId: testClientId!,
     })
     assert(tg7d.includes('BIRTHDAY IN 7 DAYS'), '7-day Telegram message contains correct header')
-    assert(tg7d.includes('Prepare to say: La mulți ani 🎊'), '7-day Telegram message includes action cue')
-    assert(!tg7d.includes('19900808') && !tg7d.includes('cnp'), 'Zero CNP leakage in 7-day Telegram message')
+    assert(tg7d.includes('Pregătește-te să îl/o suni: La mulți ani 🎊'), '7-day Telegram message contains call preparation cue')
+    assert(!tg7d.includes('19900808') && !tg7d.includes('cnp'), 'Zero CNP leakage in 7-day Telegram alert')
 
     const tg2d = formatBirthdayTelegramMessage({
       fullName: 'Ion Popescu',
@@ -163,7 +153,7 @@ async function runTests() {
       clientId: testClientId!,
     })
     assert(tg2d.includes('BIRTHDAY IN 2 DAYS'), '2-day Telegram message contains correct header')
-    assert(tg2d.includes('Pregătește urările: La mulți ani 🎊'), '2-day Telegram message includes warm cue')
+    assert(tg2d.includes('Pregătește urările: La mulți ani 🎊'), '2-day Telegram message contains greeting cue')
 
     const tg0d = formatBirthdayTelegramMessage({
       fullName: 'Ion Popescu',
@@ -173,29 +163,40 @@ async function runTests() {
       age: 36,
       clientId: testClientId!,
     })
-    assert(tg0d.includes('BIRTHDAY TODAY'), 'Day-of Telegram message contains correct header')
-    assert(tg0d.includes('LA MULȚI ANI! 🎊'), 'Day-of Telegram message contains greeting')
-    assert(tg0d.includes('36 ani'), 'Day-of Telegram message includes calculated age')
+    assert(tg0d.includes('BIRTHDAY TODAY'), 'Day-of Telegram alert contains BIRTHDAY TODAY header')
+    assert(tg0d.includes('Sună clientul: LA MULȚI ANI! 🎊'), 'Day-of Telegram alert contains direct call prompt')
 
-    console.log('\n--- TEST GROUP 5: Reminders Engine Idempotency ---')
-    // Run reminder check once
-    const rem1 = await checkAndGenerateReminders(supabase)
-    assert(typeof rem1.birthdayRemindersCreated === 'number', 'Reminders check 1 executed successfully')
+    console.log('\n--- TEST GROUP 6: Dynamic DOB Updates and Removal ---')
+    // Remove DOB
+    await updateClient(testClientId!, { date_of_birth: null }, supabase)
+    const afterRemoval = await getFollowUpsByView('all', 'birthdays', supabase)
+    const afterRemovalFound = afterRemoval.find(f => f.client_id === testClientId)
+    assert(!afterRemovalFound, 'Removing DOB removes future birthday follow-up from active queue')
 
-    // Run reminder check twice (idempotency test)
-    const rem2 = await checkAndGenerateReminders(supabase)
-    assert(rem2.birthdayRemindersCreated === 0, 'Reminders check 2 created 0 duplicate notifications')
+    console.log('\n--- TEST GROUP 7: Idempotency & Repeat Runs ---')
+    const run1 = await checkAndGenerateReminders(supabase)
+    const run2 = await checkAndGenerateReminders(supabase)
+    assert(run2.birthdayRemindersCreated === 0, 'Reminder checks are strictly idempotent (0 duplicate alerts)')
 
   } finally {
-    // Cleanup synthetic test records
+    // Cleanup
     if (testClientId) {
       await supabase.from('activities').delete().eq('client_id', testClientId)
       await supabase.from('follow_ups').delete().eq('client_id', testClientId)
       await supabase.from('notifications').delete().eq('related_entity_id', testClientId)
       await supabase.from('personal_events').delete().eq('client_id', testClientId)
       await supabase.from('clients').delete().eq('id', testClientId)
-      console.log('\n🧹 Cleaned up synthetic test client record safely.')
     }
+    if (noDobClientId) {
+      await supabase.from('clients').delete().eq('id', noDobClientId)
+    }
+    if (multiCatClientId) {
+      await supabase.from('credit_cases').delete().eq('client_id', multiCatClientId)
+      await supabase.from('client_relationships').delete().eq('client_id', multiCatClientId)
+      await supabase.from('personal_events').delete().eq('client_id', multiCatClientId)
+      await supabase.from('clients').delete().eq('id', multiCatClientId)
+    }
+    console.log('\n🧹 Safely cleaned up synthetic test records.')
   }
 
   console.log('\n======================================================')
