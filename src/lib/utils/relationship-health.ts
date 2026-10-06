@@ -1,8 +1,5 @@
 import { getClientActivities } from '@/lib/db/activities'
 import { getFollowUpsByView } from '@/lib/db/follow-ups'
-import type { Database } from '@/types'
-
-type FollowUpRow = Database['public']['Tables']['follow_ups']['Row']
 
 export type RelationshipHealth = 'ACTIVE' | 'NEEDS_ATTENTION' | 'AT_RISK'
 
@@ -19,7 +16,7 @@ export async function calculateRelationshipHealth(clientId: string): Promise<Rel
       getFollowUpsByView('overdue'),
     ])
 
-    const clientOverdueFollowUps = (overdueFollowUps as FollowUpRow[]).filter((f) => f.client_id === clientId)
+    const clientOverdueFollowUps = overdueFollowUps.filter((f) => f.client_id === clientId)
     
     if (clientOverdueFollowUps.length > 0) {
       return {

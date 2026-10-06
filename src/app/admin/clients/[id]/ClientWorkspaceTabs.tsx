@@ -31,6 +31,7 @@ import {
   XCircle,
   Edit3,
   Sparkles,
+  Cake,
 } from 'lucide-react'
 import { getCategoryLabel, getSourceLabel } from '@/lib/types/crm'
 import { formatPhoneDisplay, getTelUrl, getWhatsAppUrl } from '@/lib/utils/phone'
@@ -1291,6 +1292,55 @@ export function ClientWorkspaceTabs({
               <span className="w-2 h-2 rounded-full bg-amber-500"></span>
               <span>Next Follow-up Programat</span>
             </h4>
+
+            {/* Recurring Birthday Follow-up Card */}
+            {birthdayInfo.hasDob && (
+              <div className="p-4 rounded-2xl border border-pink-200/80 bg-gradient-to-r from-pink-50/50 via-white to-amber-50/40 shadow-xs flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                <div className="space-y-1">
+                  <div className="flex items-center gap-2">
+                    <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[11px] font-bold bg-pink-100 text-pink-700">
+                      <Cake className="w-3 h-3 text-pink-600" />
+                      <span>🎂 ZI DE NAȘTERE</span>
+                    </span>
+                    <Badge variant={birthdayInfo.isToday ? 'danger' : birthdayInfo.isUpcoming ? 'warning' : 'info'} size="sm">
+                      {birthdayInfo.isToday ? 'AZI' : birthdayInfo.isUpcoming ? 'UPCOMING' : 'ANUAL'}
+                    </Badge>
+                  </div>
+                  <p className="text-sm font-bold text-slate-900">
+                    📅 {birthdayInfo.formattedDayMonth}
+                    {birthdayInfo.currentAge !== null && (
+                      <span className="text-pink-700 font-semibold text-xs ml-2">
+                        ({birthdayInfo.isToday ? birthdayInfo.currentAge : birthdayInfo.turningAge} ani)
+                      </span>
+                    )}
+                  </p>
+                  <p className="text-xs text-slate-500">
+                    Următoarea aniversare · {birthdayInfo.statusTextRo}
+                  </p>
+                </div>
+                <div className="flex items-center gap-2">
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    onClick={handleCopyBirthdayGreeting}
+                    className="text-xs h-8 border-pink-200 text-pink-700 hover:bg-pink-50"
+                  >
+                    <span>📋 Copiază Urări</span>
+                  </Button>
+                  {client.phone && (
+                    <a
+                      href={getWhatsAppBirthdayLink()}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-bold bg-emerald-600 hover:bg-emerald-700 text-white transition-all shadow-xs"
+                    >
+                      <MessageSquare className="w-3.5 h-3.5" />
+                      <span>WhatsApp Urări</span>
+                    </a>
+                  )}
+                </div>
+              </div>
+            )}
 
             {pendingFollowUps.length === 0 ? (
               <div className="bg-white rounded-2xl border border-dashed border-slate-200 p-8 text-center space-y-2">
