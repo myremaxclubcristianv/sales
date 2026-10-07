@@ -35,6 +35,7 @@ import {
   type ChestertonsActivityType,
 } from '@/lib/types/chestertons-workflow'
 import { ChestertonsStatusSelect } from '@/components/ChestertonsStatusSelect'
+import { CopyButton } from '@/components/CopyButton'
 
 interface ChestertonsRequestDetailViewProps {
   request: ChestertonsRequest
@@ -232,6 +233,7 @@ export function ChestertonsRequestDetailView({ request }: ChestertonsRequestDeta
               <span className="font-mono font-bold text-blue-600 dark:text-blue-400 text-sm">
                 ID: {request.import_source_id}
               </span>
+              <CopyButton textToCopy={request.import_source_id} ariaLabel="Copiere ID" />
               {request.id_intern && (
                 <span className="font-mono text-slate-400">
                   • Id Intern: {request.id_intern}
@@ -243,6 +245,7 @@ export function ChestertonsRequestDetailView({ request }: ChestertonsRequestDeta
             <h1 className="text-2xl sm:text-3xl font-bold text-slate-900 dark:text-white flex items-center gap-3">
               <User className="w-7 h-7 text-blue-600 flex-shrink-0" />
               <span>{request.cumparator}</span>
+              <CopyButton textToCopy={request.cumparator} ariaLabel="Copiere nume" />
             </h1>
 
             <div className="flex flex-wrap items-center gap-2.5 pt-1">

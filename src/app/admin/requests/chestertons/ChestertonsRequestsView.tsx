@@ -25,6 +25,8 @@ import {
   type ChestertonsCrmStatus,
 } from '@/lib/types/chestertons-workflow'
 import { ChestertonsStatusSelect } from '@/components/ChestertonsStatusSelect'
+import { ChestertonsQuickNotePopover } from '@/components/ChestertonsQuickNotePopover'
+import { CopyButton } from '@/components/CopyButton'
 
 interface ChestertonsRequestsViewProps {
   initialRequests: ChestertonsRequest[]
@@ -80,6 +82,16 @@ export function ChestertonsRequestsView({
       prev.map((r) =>
         r.import_source_id === requestId
           ? { ...r, crm_status: newStatus }
+          : r
+      )
+    )
+  }
+
+  const handleQuickNoteSaved = (requestId: string, noteText: string) => {
+    setRequestsList((prev) =>
+      prev.map((r) =>
+        r.import_source_id === requestId
+          ? { ...r, crm_notes: noteText }
           : r
       )
     )
@@ -561,12 +573,13 @@ export function ChestertonsRequestsView({
                 <tr className="bg-slate-50/75 dark:bg-slate-800/60 border-b border-slate-200 dark:border-slate-800 text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider">
                   <th className="py-3.5 px-4">ID / Ref</th>
                   <th className="py-3.5 px-4">Cumpărător</th>
-                  <th className="py-3.5 px-4">CRM Status (Editabil)</th>
+                  <th className="py-3.5 px-4">CRM Status</th>
+                  <th className="py-3.5 px-4">Notiță rapidă</th>
                   <th className="py-3.5 px-4">Tip / Cerere</th>
                   <th className="py-3.5 px-4">Buget</th>
                   <th className="py-3.5 px-4">Ultimul Contact</th>
-                  <th className="py-3.5 px-4">Sursa</th>
-                  <th className="py-3.5 px-4 text-right">Acțiuni Rapide</th>
+                  <th className="py-3.5 px-4">Sursă</th>
+                  <th className="py-3.5 px-4 text-right">Acțiuni</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-slate-100 dark:divide-slate-800 text-slate-700 dark:text-slate-300">
@@ -584,15 +597,21 @@ export function ChestertonsRequestsView({
                       key={req.import_source_id}
                       className="hover:bg-slate-50/80 dark:hover:bg-slate-800/40 transition group"
                     >
-                      {/* Col 1: ID / Ref */}
+                      {/* Col 1: ID / Ref with Copy Button */}
                       <td className="py-3.5 px-4 align-top whitespace-nowrap">
-                        <Link
-                          href={`/admin/requests/chestertons/${req.import_source_id}`}
-                          className="font-mono font-bold text-blue-600 dark:text-blue-400 hover:underline inline-flex items-center gap-1"
-                        >
-                          {req.import_source_id}
-                          <ChevronRight className="w-3.5 h-3.5 opacity-0 group-hover:opacity-100 transition" />
-                        </Link>
+                        <div className="inline-flex items-center gap-1.5">
+                          <Link
+                            href={`/admin/requests/chestertons/${req.import_source_id}`}
+                            className="font-mono font-bold text-blue-600 dark:text-blue-400 hover:underline inline-flex items-center gap-1"
+                          >
+                            {req.import_source_id}
+                            <ChevronRight className="w-3.5 h-3.5 opacity-0 group-hover:opacity-100 transition" />
+                          </Link>
+                          <CopyButton
+                            textToCopy={req.import_source_id}
+                            ariaLabel="Copiere ID"
+                          />
+                        </div>
                         {req.id_intern && (
                           <div className="text-[11px] font-mono text-slate-400 mt-0.5">
                             {req.id_intern}
@@ -603,15 +622,21 @@ export function ChestertonsRequestsView({
                         </div>
                       </td>
 
-                      {/* Col 2: Buyer */}
+                      {/* Col 2: Buyer with Copy Button */}
                       <td className="py-3.5 px-4 align-top">
-                        <Link
-                          href={`/admin/requests/chestertons/${req.import_source_id}`}
-                          className="font-semibold text-slate-900 dark:text-white hover:text-blue-600 dark:hover:text-blue-400 flex items-center gap-1.5 transition"
-                        >
-                          <User className="w-3.5 h-3.5 text-slate-400 flex-shrink-0" />
-                          <span>{req.cumparator}</span>
-                        </Link>
+                        <div className="inline-flex items-center gap-1.5 max-w-full">
+                          <Link
+                            href={`/admin/requests/chestertons/${req.import_source_id}`}
+                            className="font-semibold text-slate-900 dark:text-white hover:text-blue-600 dark:hover:text-blue-400 flex items-center gap-1.5 transition truncate"
+                          >
+                            <User className="w-3.5 h-3.5 text-slate-400 flex-shrink-0" />
+                            <span className="truncate">{req.cumparator}</span>
+                          </Link>
+                          <CopyButton
+                            textToCopy={req.cumparator}
+                            ariaLabel="Copiere nume"
+                          />
+                        </div>
                         <div className="mt-1 space-y-0.5 text-xs">
                           {req.telefon && (
                             <a
@@ -648,7 +673,17 @@ export function ChestertonsRequestsView({
                         />
                       </td>
 
-                      {/* Col 4: Lead Type & Criteria */}
+                      {/* Col 4: Inline Quick Note */}
+                      <td className="py-3.5 px-4 align-top whitespace-nowrap">
+                        <ChestertonsQuickNotePopover
+                          requestId={req.import_source_id}
+                          onNoteSaved={(noteText) =>
+                            handleQuickNoteSaved(req.import_source_id, noteText)
+                          }
+                        />
+                      </td>
+
+                      {/* Col 5: Lead Type & Criteria */}
                       <td className="py-3.5 px-4 align-top">
                         <div className="flex items-center gap-1.5">
                           <span
@@ -676,7 +711,7 @@ export function ChestertonsRequestsView({
                         </div>
                       </td>
 
-                      {/* Col 5: Budget */}
+                      {/* Col 6: Budget */}
                       <td className="py-3.5 px-4 align-top whitespace-nowrap">
                         <div className="font-semibold text-slate-900 dark:text-white">
                           {req.buget2 ? (
@@ -689,7 +724,7 @@ export function ChestertonsRequestsView({
                         </div>
                       </td>
 
-                      {/* Col 6: Last Contact & Follow-up */}
+                      {/* Col 7: Last Contact & Follow-up */}
                       <td className="py-3.5 px-4 align-top text-xs whitespace-nowrap">
                         {req.last_contact_at ? (
                           <div className="text-slate-700 dark:text-slate-300 font-medium flex items-center gap-1">
@@ -711,7 +746,7 @@ export function ChestertonsRequestsView({
                         )}
                       </td>
 
-                      {/* Col 7: Original Source */}
+                      {/* Col 8: Original Source */}
                       <td className="py-3.5 px-4 align-top whitespace-nowrap">
                         <div className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-xs font-medium bg-slate-100 text-slate-700 dark:bg-slate-800 dark:text-slate-300 border border-slate-200 dark:border-slate-700">
                           <Tag className="w-3 h-3 text-slate-400" />
@@ -719,7 +754,7 @@ export function ChestertonsRequestsView({
                         </div>
                       </td>
 
-                      {/* Col 8: Quick Actions */}
+                      {/* Col 9: Quick Actions */}
                       <td className="py-3.5 px-4 align-top text-right whitespace-nowrap">
                         <div className="flex items-center justify-end gap-1.5">
                           {req.telefon && (
