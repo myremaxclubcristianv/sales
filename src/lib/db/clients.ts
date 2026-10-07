@@ -24,6 +24,37 @@ export type ClientWithRelations = ClientRow & {
   activities?: { id: string; date: string; type: string; title: string }[] | null
 }
 
+export function unpackClientContacts<T extends { phone?: string | null; email?: string | null; secondary_contact?: unknown }>(client: T): T & {
+  phone_1: string | null
+  phone_2: string | null
+  phone_3: string | null
+  email_1: string | null
+  email_2: string | null
+} {
+  let sc: Record<string, string | null> = {}
+  if (client.secondary_contact) {
+    if (typeof client.secondary_contact === 'string') {
+      try {
+        sc = JSON.parse(client.secondary_contact)
+      } catch {
+        // ignore malformed JSON
+      }
+    } else if (typeof client.secondary_contact === 'object') {
+      sc = client.secondary_contact as Record<string, string | null>
+    }
+  }
+
+  const clientRec = client as Record<string, unknown>
+  return {
+    ...client,
+    phone_1: (clientRec.phone_1 as string | null) || sc.phone_1 || client.phone || null,
+    phone_2: (clientRec.phone_2 as string | null) || sc.phone_2 || null,
+    phone_3: (clientRec.phone_3 as string | null) || sc.phone_3 || null,
+    email_1: (clientRec.email_1 as string | null) || sc.email_1 || client.email || null,
+    email_2: (clientRec.email_2 as string | null) || sc.email_2 || null,
+  }
+}
+
 export async function getClients(options: GetClientsOptions = {}) {
   const supabase = await createServerClient()
   const { search, category, status, source, quickFilter } = options
@@ -78,6 +109,7 @@ export async function getClients(options: GetClientsOptions = {}) {
   if (error) throw error
 
   let results = (data as unknown as ClientWithRelations[]) || []
+  results = results.map(unpackClientContacts)
 
   // Apply quick filters if requested
   if (quickFilter) {
@@ -135,7 +167,7 @@ export async function getClientById(id: string) {
     .single()
 
   if (error) throw error
-  return data
+  return data ? unpackClientContacts(data) : data
 }
 
 import type { SupabaseClient } from '@supabase/supabase-js'
@@ -213,8 +245,22 @@ export async function createClientRecord(client: ClientInsert, customSupabase?: 
   return savedClient
 }
 
-export async function updateClient(id: string, client: ClientUpdate, customSupabase?: SupabaseClient) {
+export async function updateClient(
+  id: string,
+  client: ClientUpdate,
+  customSupabase?: SupabaseClient,
+  changedBy?: string | null
+) {
   const supabase = customSupabase || (await createServerClient())
+
+  // Fetch previous state for audit trail
+  let previousClient: ClientRow | null = null
+  try {
+    const { data: prev } = await supabase.from('clients').select('*').eq('id', id).maybeSingle()
+    if (prev) previousClient = prev as ClientRow
+  } catch {
+    // Ignore fetch error
+  }
 
   // Handle DOB derivation if CNP supplied without DOB
   let effectiveDob = client.date_of_birth
@@ -225,28 +271,128 @@ export async function updateClient(id: string, client: ClientUpdate, customSupab
     }
   }
 
+  // Synchronize primary phone and email if phone_1/email_1 are supplied
+  const effectivePhone = client.phone_1 !== undefined ? client.phone_1 : client.phone
+  const effectiveEmail = client.email_1 !== undefined ? client.email_1 : client.email
+
   const payload: ClientUpdate = {
     ...client,
     ...(effectiveDob !== undefined ? { date_of_birth: effectiveDob } : {}),
-    updated_at: new Date().toISOString()
+    ...(effectivePhone !== undefined ? { phone: effectivePhone ? normalizePhone(effectivePhone) : null } : {}),
+    ...(effectiveEmail !== undefined ? { email: effectiveEmail ? normalizeEmail(effectiveEmail) : null } : {}),
+    updated_at: new Date().toISOString(),
   }
 
-  if (payload.phone !== undefined) {
-    payload.phone = payload.phone ? normalizePhone(payload.phone) : payload.phone
+  if (payload.phone_1 !== undefined) {
+    payload.phone_1 = payload.phone_1 ? payload.phone_1.trim() : null
+  }
+  if (payload.phone_2 !== undefined) {
+    payload.phone_2 = payload.phone_2 ? payload.phone_2.trim() : null
+  }
+  if (payload.phone_3 !== undefined) {
+    payload.phone_3 = payload.phone_3 ? payload.phone_3.trim() : null
+  }
+  if (payload.email_1 !== undefined) {
+    payload.email_1 = payload.email_1 ? payload.email_1.trim().toLowerCase() : null
+  }
+  if (payload.email_2 !== undefined) {
+    payload.email_2 = payload.email_2 ? payload.email_2.trim().toLowerCase() : null
   }
   if (payload.whatsapp !== undefined) {
-    payload.whatsapp = payload.whatsapp ? normalizePhone(payload.whatsapp) : payload.whatsapp
+    payload.whatsapp = payload.whatsapp ? normalizePhone(payload.whatsapp) : null
   }
 
-  const { data, error } = await supabase
-    .from('clients')
-    .update(payload)
-    .eq('id', id)
-    .select()
-    .single()
+    // Unpack previous contact coordinates
+    let prevSc: Record<string, string | null> = {}
+    if (previousClient?.secondary_contact) {
+      if (typeof previousClient.secondary_contact === 'string') {
+        try {
+          prevSc = JSON.parse(previousClient.secondary_contact)
+        } catch {}
+      } else if (typeof previousClient.secondary_contact === 'object') {
+        prevSc = previousClient.secondary_contact as Record<string, string | null>
+      }
+    }
 
-  if (error) throw error
-  const updatedClient = data as ClientRow
+    const prevRec = (previousClient || {}) as Record<string, unknown>
+    const contactObj = {
+      phone_1: payload.phone_1 !== undefined ? payload.phone_1 : ((prevRec.phone_1 as string | null) || prevSc.phone_1 || previousClient?.phone || null),
+      phone_2: payload.phone_2 !== undefined ? payload.phone_2 : ((prevRec.phone_2 as string | null) || prevSc.phone_2 || null),
+      phone_3: payload.phone_3 !== undefined ? payload.phone_3 : ((prevRec.phone_3 as string | null) || prevSc.phone_3 || null),
+      email_1: payload.email_1 !== undefined ? payload.email_1 : ((prevRec.email_1 as string | null) || prevSc.email_1 || previousClient?.email || null),
+      email_2: payload.email_2 !== undefined ? payload.email_2 : ((prevRec.email_2 as string | null) || prevSc.email_2 || null),
+    }
+
+    payload.secondary_contact = JSON.stringify(contactObj)
+
+    // Try update with phone_1/email_1; if columns don't exist in Supabase yet, fallback safely to standard columns
+    let updatedClient: ClientRow
+    try {
+      const { data, error } = await supabase
+        .from('clients')
+        .update(payload)
+        .eq('id', id)
+        .select()
+        .single()
+
+      if (error) throw error
+      updatedClient = unpackClientContacts(data as ClientRow)
+    } catch {
+      // Fallback without phone_1/email_1 specific columns if schema cache hasn't reloaded
+      const safePayload = { ...payload }
+      delete safePayload.phone_1
+      delete safePayload.phone_2
+      delete safePayload.phone_3
+      delete safePayload.email_1
+      delete safePayload.email_2
+
+      const { data, error } = await supabase
+        .from('clients')
+        .update(safePayload)
+        .eq('id', id)
+        .select()
+        .single()
+
+      if (error) throw error
+      updatedClient = unpackClientContacts(data as ClientRow)
+    }
+
+  // Audit trail diff logging
+  if (previousClient) {
+    const diffs: string[] = []
+    if (payload.first_name && payload.first_name !== previousClient.first_name) {
+      diffs.push(`Prenume: "${previousClient.first_name}" → "${payload.first_name}"`)
+    }
+    if (payload.last_name && payload.last_name !== previousClient.last_name) {
+      diffs.push(`Nume: "${previousClient.last_name}" → "${payload.last_name}"`)
+    }
+    if (payload.phone !== undefined && payload.phone !== previousClient.phone) {
+      diffs.push(`Telefon: "${previousClient.phone || '—'}" → "${payload.phone || '—'}"`)
+    }
+    if (payload.email !== undefined && payload.email !== previousClient.email) {
+      diffs.push(`Email: "${previousClient.email || '—'}" → "${payload.email || '—'}"`)
+    }
+    if (payload.status !== undefined && payload.status !== previousClient.status) {
+      diffs.push(`Status: "${previousClient.status}" → "${payload.status}"`)
+    }
+    if (payload.city !== undefined && payload.city !== previousClient.city) {
+      diffs.push(`Oraș: "${previousClient.city || '—'}" → "${payload.city || '—'}"`)
+    }
+
+    if (diffs.length > 0) {
+      try {
+        await supabase.from('activities').insert({
+          client_id: id,
+          type: 'NOTE',
+          title: `Client actualizat (${changedBy || 'Agent CRM'})`,
+          notes: diffs.join(' · '),
+          date: new Date().toISOString(),
+        })
+      } catch {
+        // Ignore activity insertion error
+      }
+    }
+  }
 
   // Sync personal_events
   if (payload.date_of_birth !== undefined) {

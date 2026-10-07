@@ -8,7 +8,8 @@ import { Badge } from '@/components/ui/Badge'
 import { Card } from '@/components/ui/Card'
 import { ActivityTimeline } from '@/components/ActivityTimeline'
 import { ActivityForm } from '@/components/ActivityForm'
-import { DocumentVault } from '@/components/DocumentVault'
+import { SecureClientDocumentVault } from '@/components/SecureClientDocumentVault'
+import { EditClientModal } from '@/components/EditClientModal'
 import { ClientStatusSelect } from '@/components/ClientStatusSelect'
 import {
   Shield,
@@ -32,6 +33,7 @@ import {
   Edit3,
   Sparkles,
   Cake,
+  Lock,
 } from 'lucide-react'
 import { getCategoryLabel, getSourceLabel } from '@/lib/types/crm'
 import { formatPhoneDisplay, getTelUrl, getWhatsAppUrl } from '@/lib/utils/phone'
@@ -85,6 +87,7 @@ export function ClientWorkspaceTabs({
   const initialTab = searchParams.get('tab') || (searchParams.get('from') === 'insurance' ? 'policies' : defaultTab)
   const [activeTab, setActiveTab] = useState<string>(initialTab)
   const [showCnp, setShowCnp] = useState(false)
+  const [editModalOpen, setEditModalOpen] = useState(false)
 
   // Follow-up modal & actions state
   const [followUpModalOpen, setFollowUpModalOpen] = useState(false)
@@ -166,7 +169,7 @@ export function ClientWorkspaceTabs({
     { id: 'policies', label: 'Policies', icon: Shield, count: policies.length },
     { id: 'opportunities', label: 'Opportunities', icon: Briefcase, count: insuranceOpportunities.length + opportunities.length },
     { id: 'claims', label: 'Claims', icon: AlertTriangle, count: 0 },
-    { id: 'documents', label: 'Documents', icon: FileText, count: documents.length },
+    { id: 'documents', label: '🔐 Documente client', icon: Lock, count: null },
     { id: 'activities', label: 'Activities', icon: MessageSquare, count: activities.length },
     { id: 'follow-ups', label: 'Follow-ups', icon: Clock, count: pendingFollowUps.length, alert: overdueFollowUps.length > 0 },
     { id: 'history', label: 'History', icon: History, count: null },
@@ -452,6 +455,14 @@ export function ClientWorkspaceTabs({
 
           {/* Quick Action Buttons */}
           <div className="flex flex-wrap items-center gap-2 pt-2 lg:pt-0 border-t lg:border-t-0 border-neutral-100 shrink-0">
+            <Button
+              size="sm"
+              onClick={() => setEditModalOpen(true)}
+              className="gap-1.5 text-xs h-9 bg-blue-600 hover:bg-blue-700 text-white font-bold shadow-xs"
+            >
+              <Edit3 className="w-3.5 h-3.5" />
+              <span>MODIFICĂ CLIENT</span>
+            </Button>
             {client.phone && (
               <a href={getTelUrl(client.phone)}>
                 <Button size="sm" variant="outline" className="gap-1.5 text-xs h-9">
@@ -956,9 +967,20 @@ export function ClientWorkspaceTabs({
       {activeTab === 'contact' && (
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
           <Card className="p-6 bg-white space-y-4">
-            <h3 className="text-sm font-bold text-neutral-900 uppercase tracking-wider pb-3 border-b border-neutral-100">
-              Identity &amp; Contact Coordinates
-            </h3>
+            <div className="flex items-center justify-between pb-3 border-b border-neutral-100">
+              <h3 className="text-sm font-bold text-neutral-900 uppercase tracking-wider">
+                Identity &amp; Contact Coordinates
+              </h3>
+              <Button
+                size="sm"
+                variant="outline"
+                onClick={() => setEditModalOpen(true)}
+                className="h-8 text-xs font-bold gap-1 text-blue-600 border-blue-200 hover:bg-blue-50"
+              >
+                <Edit3 className="w-3 h-3" />
+                <span>Modifică</span>
+              </Button>
+            </div>
             <dl className="space-y-3 text-xs">
               <div className="flex justify-between py-1.5 border-b border-neutral-100">
                 <dt className="text-neutral-400">Full Name</dt>
@@ -975,17 +997,64 @@ export function ClientWorkspaceTabs({
                   )}
                 </dd>
               </div>
-              <div className="flex justify-between py-1.5 border-b border-neutral-100">
-                <dt className="text-neutral-400">Primary Phone</dt>
-                <dd className="font-mono font-semibold text-neutral-900">{client.phone || '—'}</dd>
+
+              {/* Multi-phone numbers */}
+              <div className="flex justify-between items-center py-1.5 border-b border-neutral-100">
+                <dt className="text-neutral-400">Telefon 1 (Principal)</dt>
+                <dd className="font-mono font-bold text-neutral-900">
+                  {client.phone_1 || client.phone ? (
+                    <a href={getTelUrl((client.phone_1 || client.phone)!)} className="text-blue-600 hover:underline">
+                      {client.phone_1 || client.phone}
+                    </a>
+                  ) : '—'}
+                </dd>
               </div>
+              {client.phone_2 && (
+                <div className="flex justify-between items-center py-1.5 border-b border-neutral-100">
+                  <dt className="text-neutral-400">Telefon 2</dt>
+                  <dd className="font-mono font-bold text-neutral-900">
+                    <a href={getTelUrl(client.phone_2)} className="text-blue-600 hover:underline">
+                      {client.phone_2}
+                    </a>
+                  </dd>
+                </div>
+              )}
+              {client.phone_3 && (
+                <div className="flex justify-between items-center py-1.5 border-b border-neutral-100">
+                  <dt className="text-neutral-400">Telefon 3</dt>
+                  <dd className="font-mono font-bold text-neutral-900">
+                    <a href={getTelUrl(client.phone_3)} className="text-blue-600 hover:underline">
+                      {client.phone_3}
+                    </a>
+                  </dd>
+                </div>
+              )}
+
+              {/* Multi-email addresses */}
+              <div className="flex justify-between items-center py-1.5 border-b border-neutral-100">
+                <dt className="text-neutral-400">Email 1 (Principal)</dt>
+                <dd className="font-medium text-neutral-900">
+                  {client.email_1 || client.email ? (
+                    <a href={`mailto:${client.email_1 || client.email}`} className="text-blue-600 hover:underline">
+                      {client.email_1 || client.email}
+                    </a>
+                  ) : '—'}
+                </dd>
+              </div>
+              {client.email_2 && (
+                <div className="flex justify-between items-center py-1.5 border-b border-neutral-100">
+                  <dt className="text-neutral-400">Email 2</dt>
+                  <dd className="font-medium text-neutral-900">
+                    <a href={`mailto:${client.email_2}`} className="text-blue-600 hover:underline">
+                      {client.email_2}
+                    </a>
+                  </dd>
+                </div>
+              )}
+
               <div className="flex justify-between py-1.5 border-b border-neutral-100">
                 <dt className="text-neutral-400">WhatsApp</dt>
                 <dd className="font-mono font-semibold text-emerald-600">{client.whatsapp || '—'}</dd>
-              </div>
-              <div className="flex justify-between py-1.5 border-b border-neutral-100">
-                <dt className="text-neutral-400">Primary Email</dt>
-                <dd className="font-medium text-neutral-900">{client.email || '—'}</dd>
               </div>
               <div className="flex justify-between items-center py-1.5 border-b border-neutral-100">
                 <dt className="text-neutral-400">CNP (Securizat)</dt>
@@ -1016,9 +1085,19 @@ export function ClientWorkspaceTabs({
 
           <Card className="p-6 bg-white space-y-4">
             <h3 className="text-sm font-bold text-neutral-900 uppercase tracking-wider pb-3 border-b border-neutral-100">
-              Company &amp; Location Data
+              Location &amp; Corporate Data
             </h3>
             <dl className="space-y-3 text-xs">
+              <div className="flex justify-between py-1.5 border-b border-neutral-100">
+                <dt className="text-neutral-400">Adresă</dt>
+                <dd className="font-semibold text-neutral-900 text-right">{client.address || '—'}</dd>
+              </div>
+              <div className="flex justify-between py-1.5 border-b border-neutral-100">
+                <dt className="text-neutral-400">Oraș / Județ</dt>
+                <dd className="font-semibold text-neutral-900 text-right">
+                  {client.city || client.county ? `${client.city || ''}${client.city && client.county ? ', ' : ''}${client.county || ''}` : '—'}
+                </dd>
+              </div>
               <div className="flex justify-between py-1.5 border-b border-neutral-100">
                 <dt className="text-neutral-400">Company / Employer</dt>
                 <dd className="font-bold text-neutral-900">{client.companies?.name || 'Individual / Private'}</dd>
@@ -1259,13 +1338,12 @@ export function ClientWorkspaceTabs({
         </div>
       )}
 
-      {/* TAB 6: DOCUMENTS */}
+      {/* TAB 6: 🔐 DOCUMENTE CLIENT (SECURE PRIVATE VAULT) */}
       {activeTab === 'documents' && (
         <div className="space-y-4">
-          <DocumentVault
+          <SecureClientDocumentVault
             clientId={client.id}
-            documents={documents}
-            folders={folders}
+            clientName={`${client.first_name} ${client.last_name}`}
           />
         </div>
       )}
@@ -1697,6 +1775,14 @@ export function ClientWorkspaceTabs({
           </div>
         </div>
       )}
+
+      {/* MODAL MODIFICĂ CLIENT */}
+      <EditClientModal
+        isOpen={editModalOpen}
+        onClose={() => setEditModalOpen(false)}
+        client={client}
+        onClientUpdated={() => router.refresh()}
+      />
     </div>
   )
 }

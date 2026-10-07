@@ -97,8 +97,13 @@ export interface Database {
           company_id: string | null
           role: string | null
           phone: string | null
+          phone_1?: string | null
+          phone_2?: string | null
+          phone_3?: string | null
           whatsapp: string | null
           email: string | null
+          email_1?: string | null
+          email_2?: string | null
           secondary_contact: string | null
           address: string | null
           city: string | null
@@ -145,8 +150,13 @@ export interface Database {
           company_id?: string | null
           role?: string | null
           phone?: string | null
+          phone_1?: string | null
+          phone_2?: string | null
+          phone_3?: string | null
           whatsapp?: string | null
           email?: string | null
+          email_1?: string | null
+          email_2?: string | null
           secondary_contact?: string | null
           address?: string | null
           city?: string | null
@@ -193,8 +203,13 @@ export interface Database {
           company_id?: string | null
           role?: string | null
           phone?: string | null
+          phone_1?: string | null
+          phone_2?: string | null
+          phone_3?: string | null
           whatsapp?: string | null
           email?: string | null
+          email_1?: string | null
+          email_2?: string | null
           secondary_contact?: string | null
           address?: string | null
           city?: string | null
