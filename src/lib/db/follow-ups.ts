@@ -263,7 +263,6 @@ export async function getFollowUpsByView(
           const targetOcc = view === 'completed' ? thisYearOccurrence : activeOccurrence
           const age = calculateAge(client.date_of_birth, new Date(targetYr, bMonth - 1, bDay))
           const company = unwrap(client.companies)
-          const fullName = `${client.first_name || ''} ${client.last_name || ''}`.trim() || 'Client'
 
           let status = 'UPCOMING'
           if (view === 'completed' || isAcknowledged) {

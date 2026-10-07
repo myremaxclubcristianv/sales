@@ -61,6 +61,13 @@ export interface ChestertonsRequest {
   parsed_nr_camere: number | null
   parsed_status: 'Activa' | 'Retrasa' | 'Blank'
 
+  // CRM Workflow Fields (Separated from immutable source data)
+  crm_status?: string
+  last_contact_at?: string | null
+  next_follow_up_at?: string | null
+  crm_notes?: string | null
+  activities?: import('../types/chestertons-workflow').ChestertonsActivityItem[]
+
   // Full raw dictionary of all 38 original columns
   source_data: Record<string, string>
 }

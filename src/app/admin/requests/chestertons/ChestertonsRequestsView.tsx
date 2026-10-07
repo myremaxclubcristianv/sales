@@ -6,8 +6,6 @@ import {
   Search,
   Building2,
   Home,
-  CheckCircle2,
-  XCircle,
   ExternalLink,
   ChevronRight,
   Phone,
@@ -17,8 +15,16 @@ import {
   FileSpreadsheet,
   Tag,
   ShieldCheck,
+  CalendarClock,
+  Clock,
+  MessageCircle,
 } from 'lucide-react'
 import type { ChestertonsRequest, ChestertonsMetrics } from '@/lib/db/chestertons-requests'
+import {
+  CHESTERTONS_CRM_STATUSES,
+  type ChestertonsCrmStatus,
+} from '@/lib/types/chestertons-workflow'
+import { ChestertonsStatusSelect } from '@/components/ChestertonsStatusSelect'
 
 interface ChestertonsRequestsViewProps {
   initialRequests: ChestertonsRequest[]
@@ -27,14 +33,16 @@ interface ChestertonsRequestsViewProps {
 
 export function ChestertonsRequestsView({
   initialRequests,
-  metrics,
+  metrics: initialMetrics,
 }: ChestertonsRequestsViewProps) {
+  const [requestsList, setRequestsList] = useState<ChestertonsRequest[]>(initialRequests)
   const [search, setSearch] = useState('')
-  const [selectedStatusTab, setSelectedStatusTab] = useState<'ALL' | 'Activa' | 'Retrasa'>('ALL')
+  const [selectedCrmStatus, setSelectedCrmStatus] = useState<string>('ALL')
+  const [selectedSourceStatusTab, setSelectedSourceStatusTab] = useState<'ALL' | 'Activa' | 'Retrasa'>('ALL')
   const [selectedTypeTab, setSelectedTypeTab] = useState<'ALL' | 'Apartament' | 'Casa'>('ALL')
   const [selectedSursa, setSelectedSursa] = useState<string>('ALL')
   const [selectedAgent, setSelectedAgent] = useState<string>('ALL')
-  const [sortBy, setSortBy] = useState<'id' | 'buget' | 'date'>('id')
+  const [sortBy, setSortBy] = useState<'id' | 'buget' | 'date' | 'status'>('id')
   const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('asc')
   const [page, setPage] = useState(1)
   const pageSize = 25
@@ -42,28 +50,54 @@ export function ChestertonsRequestsView({
   // List of all unique sources for dropdown
   const uniqueSources = useMemo(() => {
     const set = new Set<string>()
-    initialRequests.forEach((r) => {
+    requestsList.forEach((r) => {
       if (r.sursa && r.sursa.trim()) set.add(r.sursa.trim())
     })
     return Array.from(set).sort()
-  }, [initialRequests])
+  }, [requestsList])
 
   // List of all unique agents
   const uniqueAgents = useMemo(() => {
     const set = new Set<string>()
-    initialRequests.forEach((r) => {
+    requestsList.forEach((r) => {
       if (r.agent && r.agent.trim()) set.add(r.agent.trim())
     })
     return Array.from(set).sort()
-  }, [initialRequests])
+  }, [requestsList])
+
+  // Dynamic CRM Status counts
+  const crmStatusCounts = useMemo(() => {
+    const counts: Record<string, number> = {}
+    requestsList.forEach((r) => {
+      const st = r.crm_status || 'NESUNAT'
+      counts[st] = (counts[st] || 0) + 1
+    })
+    return counts
+  }, [requestsList])
+
+  const handleRowStatusChange = (requestId: string, newStatus: ChestertonsCrmStatus) => {
+    setRequestsList((prev) =>
+      prev.map((r) =>
+        r.import_source_id === requestId
+          ? { ...r, crm_status: newStatus }
+          : r
+      )
+    )
+  }
 
   // Filter & Sort Logic
   const filteredRequests = useMemo(() => {
-    return initialRequests
+    return requestsList
       .filter((r) => {
-        // Status tab filter
-        if (selectedStatusTab !== 'ALL') {
-          if (r.parsed_status !== selectedStatusTab) return false
+        // CRM Status filter
+        if (selectedCrmStatus !== 'ALL') {
+          const rStatus = r.crm_status || 'NESUNAT'
+          if (rStatus !== selectedCrmStatus) return false
+        }
+
+        // Source Status tab filter (Activa / Retrasa)
+        if (selectedSourceStatusTab !== 'ALL') {
+          if (r.parsed_status !== selectedSourceStatusTab) return false
         }
 
         // Lead type filter
@@ -98,7 +132,8 @@ export function ChestertonsRequestsView({
             (r.oras && r.oras.toLowerCase().includes(q)) ||
             (r.sursa && r.sursa.toLowerCase().includes(q)) ||
             (r.titlu && r.titlu.toLowerCase().includes(q)) ||
-            (r.observatii && r.observatii.toLowerCase().includes(q))
+            (r.observatii && r.observatii.toLowerCase().includes(q)) ||
+            (r.crm_status && r.crm_status.toLowerCase().includes(q))
           if (!matches) return false
         }
 
@@ -116,12 +151,17 @@ export function ChestertonsRequestsView({
           const dA = a.data_adaugare ? new Date(a.data_adaugare).getTime() : 0
           const dB = b.data_adaugare ? new Date(b.data_adaugare).getTime() : 0
           return sortOrder === 'asc' ? dA - dB : dB - dA
+        } else if (sortBy === 'status') {
+          const sA = a.crm_status || 'NESUNAT'
+          const sB = b.crm_status || 'NESUNAT'
+          return sortOrder === 'asc' ? sA.localeCompare(sB) : sB.localeCompare(sA)
         }
         return 0
       })
   }, [
-    initialRequests,
-    selectedStatusTab,
+    requestsList,
+    selectedCrmStatus,
+    selectedSourceStatusTab,
     selectedTypeTab,
     selectedSursa,
     selectedAgent,
@@ -159,15 +199,15 @@ export function ChestertonsRequestsView({
               Cereri Chestertons
             </span>
             <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-medium bg-emerald-100 text-emerald-800 dark:bg-emerald-950/80 dark:text-emerald-300 border border-emerald-200 dark:border-emerald-800">
-              Zero Data Loss (229/229)
+              CRM Workflow Activ
             </span>
-            <span className="text-xs text-slate-400">38 coloane</span>
+            <span className="text-xs text-slate-400">229 cereri</span>
           </div>
           <h1 className="text-2xl font-bold tracking-tight text-slate-900 dark:text-white">
-            Cereri Chestertons — Real Estate
+            Cereri Chestertons — Workflow & Management Vânzări
           </h1>
           <p className="text-sm text-slate-500 dark:text-slate-400 max-w-3xl">
-            Bază de date dedicată cererilor imobiliare preluate din importul Chestertons (2 fișiere CSV). Păstrează sursa originală (Storia, Imobiliare.ro, etc.), agentul, observațiile complete și toți cei 38 de parametri.
+            Gestionează statusul de contact (Nesunat, Am vorbit, Follow-up, Interesat, Vizionare, etc.), notițele și jurnalul de apeluri direct pe cererile preluate din importul Chestertons.
           </p>
         </div>
 
@@ -178,122 +218,164 @@ export function ChestertonsRequestsView({
         </div>
       </div>
 
-      {/* Metric Cards */}
-      <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3">
-        <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl p-4 shadow-sm">
-          <div className="text-xs font-medium text-slate-500 dark:text-slate-400 flex items-center justify-between">
-            <span>Total Cereri</span>
+      {/* Dynamic CRM Status Counters Bar */}
+      <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-3">
+        <button
+          type="button"
+          onClick={() => {
+            setSelectedCrmStatus('ALL')
+            setPage(1)
+          }}
+          className={`p-3 rounded-xl border text-left transition cursor-pointer ${
+            selectedCrmStatus === 'ALL'
+              ? 'bg-blue-50/80 dark:bg-blue-950/40 border-blue-300 dark:border-blue-800 shadow-xs'
+              : 'bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-800 hover:bg-slate-50'
+          }`}
+        >
+          <div className="text-xs font-medium text-slate-500 flex items-center justify-between">
+            <span>Toate Cererile</span>
             <FileSpreadsheet className="w-4 h-4 text-blue-500" />
           </div>
-          <div className="mt-2 text-2xl font-bold text-slate-900 dark:text-white">
-            {metrics.totalRequests}
+          <div className="mt-1.5 text-2xl font-bold text-slate-900 dark:text-white">
+            {requestsList.length}
           </div>
-          <div className="text-xs text-slate-500 mt-0.5">100% Importat</div>
-        </div>
+          <div className="text-[10px] text-slate-400 mt-0.5">Total Înregistrări</div>
+        </button>
 
-        <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl p-4 shadow-sm">
-          <div className="text-xs font-medium text-emerald-600 dark:text-emerald-400 flex items-center justify-between">
-            <span>Active</span>
-            <CheckCircle2 className="w-4 h-4 text-emerald-500" />
+        <button
+          type="button"
+          onClick={() => {
+            setSelectedCrmStatus('NESUNAT')
+            setPage(1)
+          }}
+          className={`p-3 rounded-xl border text-left transition cursor-pointer ${
+            selectedCrmStatus === 'NESUNAT'
+              ? 'bg-slate-200 dark:bg-slate-800 border-slate-400 dark:border-slate-600 shadow-xs'
+              : 'bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-800 hover:bg-slate-50'
+          }`}
+        >
+          <div className="text-xs font-medium text-slate-500 flex items-center justify-between">
+            <span>Nesunat</span>
+            <span className="w-2.5 h-2.5 rounded-full bg-slate-400" />
           </div>
-          <div className="mt-2 text-2xl font-bold text-emerald-600 dark:text-emerald-400">
-            {metrics.activeRequests}
+          <div className="mt-1.5 text-2xl font-bold text-slate-800 dark:text-slate-200">
+            {crmStatusCounts['NESUNAT'] || 0}
           </div>
-          <div className="text-xs text-slate-500 mt-0.5">77.3% din total</div>
-        </div>
+          <div className="text-[10px] text-slate-400 mt-0.5">Necontactat</div>
+        </button>
 
-        <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl p-4 shadow-sm">
-          <div className="text-xs font-medium text-slate-500 dark:text-slate-400 flex items-center justify-between">
-            <span>Retrase</span>
-            <XCircle className="w-4 h-4 text-slate-400" />
+        <button
+          type="button"
+          onClick={() => {
+            setSelectedCrmStatus('AM_VORBIT')
+            setPage(1)
+          }}
+          className={`p-3 rounded-xl border text-left transition cursor-pointer ${
+            selectedCrmStatus === 'AM_VORBIT'
+              ? 'bg-blue-100 dark:bg-blue-950/60 border-blue-400 dark:border-blue-800 shadow-xs'
+              : 'bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-800 hover:bg-slate-50'
+          }`}
+        >
+          <div className="text-xs font-medium text-blue-600 dark:text-blue-400 flex items-center justify-between">
+            <span>Am vorbit</span>
+            <span className="w-2.5 h-2.5 rounded-full bg-blue-500" />
           </div>
-          <div className="mt-2 text-2xl font-bold text-slate-700 dark:text-slate-300">
-            {metrics.retractedRequests}
+          <div className="mt-1.5 text-2xl font-bold text-blue-600 dark:text-blue-400">
+            {crmStatusCounts['AM_VORBIT'] || 0}
           </div>
-          <div className="text-xs text-slate-500 mt-0.5">22.3% din total</div>
-        </div>
+          <div className="text-[10px] text-slate-400 mt-0.5">Conversație efectuată</div>
+        </button>
 
-        <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl p-4 shadow-sm">
-          <div className="text-xs font-medium text-indigo-600 dark:text-indigo-400 flex items-center justify-between">
-            <span>Apartamente</span>
-            <Building2 className="w-4 h-4 text-indigo-500" />
-          </div>
-          <div className="mt-2 text-2xl font-bold text-slate-900 dark:text-white">
-            {metrics.apartments}
-          </div>
-          <div className="text-xs text-slate-500 mt-0.5">File 1 (120)</div>
-        </div>
-
-        <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl p-4 shadow-sm">
+        <button
+          type="button"
+          onClick={() => {
+            setSelectedCrmStatus('FOLLOW_UP')
+            setPage(1)
+          }}
+          className={`p-3 rounded-xl border text-left transition cursor-pointer ${
+            selectedCrmStatus === 'FOLLOW_UP'
+              ? 'bg-amber-100 dark:bg-amber-950/60 border-amber-400 dark:border-amber-800 shadow-xs'
+              : 'bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-800 hover:bg-slate-50'
+          }`}
+        >
           <div className="text-xs font-medium text-amber-600 dark:text-amber-400 flex items-center justify-between">
-            <span>Case / Vile</span>
-            <Home className="w-4 h-4 text-amber-500" />
+            <span>Follow-up</span>
+            <span className="w-2.5 h-2.5 rounded-full bg-amber-500" />
           </div>
-          <div className="mt-2 text-2xl font-bold text-slate-900 dark:text-white">
-            {metrics.houses}
+          <div className="mt-1.5 text-2xl font-bold text-amber-600 dark:text-amber-400">
+            {crmStatusCounts['FOLLOW_UP'] || 0}
           </div>
-          <div className="text-xs text-slate-500 mt-0.5">File 2 (109)</div>
-        </div>
+          <div className="text-[10px] text-slate-400 mt-0.5">Revenire programată</div>
+        </button>
 
-        <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl p-4 shadow-sm">
-          <div className="text-xs font-medium text-slate-500 dark:text-slate-400 flex items-center justify-between">
-            <span>Surse Originale</span>
-            <Tag className="w-4 h-4 text-violet-500" />
+        <button
+          type="button"
+          onClick={() => {
+            setSelectedCrmStatus('INTERESAT')
+            setPage(1)
+          }}
+          className={`p-3 rounded-xl border text-left transition cursor-pointer ${
+            selectedCrmStatus === 'INTERESAT'
+              ? 'bg-emerald-100 dark:bg-emerald-950/60 border-emerald-400 dark:border-emerald-800 shadow-xs'
+              : 'bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-800 hover:bg-slate-50'
+          }`}
+        >
+          <div className="text-xs font-medium text-emerald-600 dark:text-emerald-400 flex items-center justify-between">
+            <span>Interesat</span>
+            <span className="w-2.5 h-2.5 rounded-full bg-emerald-500" />
           </div>
-          <div className="mt-2 text-2xl font-bold text-slate-900 dark:text-white">
-            {metrics.totalSources}
+          <div className="mt-1.5 text-2xl font-bold text-emerald-600 dark:text-emerald-400">
+            {crmStatusCounts['INTERESAT'] || 0}
           </div>
-          <div className="text-xs text-slate-500 mt-0.5">Sursa CSV intactă</div>
-        </div>
+          <div className="text-[10px] text-slate-400 mt-0.5">Calificat pozitiv</div>
+        </button>
+
+        <button
+          type="button"
+          onClick={() => {
+            setSelectedCrmStatus('VIZIONARE')
+            setPage(1)
+          }}
+          className={`p-3 rounded-xl border text-left transition cursor-pointer ${
+            selectedCrmStatus === 'VIZIONARE'
+              ? 'bg-purple-100 dark:bg-purple-950/60 border-purple-400 dark:border-purple-800 shadow-xs'
+              : 'bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-800 hover:bg-slate-50'
+          }`}
+        >
+          <div className="text-xs font-medium text-purple-600 dark:text-purple-400 flex items-center justify-between">
+            <span>Vizionare / Deal</span>
+            <span className="w-2.5 h-2.5 rounded-full bg-purple-500" />
+          </div>
+          <div className="mt-1.5 text-2xl font-bold text-purple-600 dark:text-purple-400">
+            {(crmStatusCounts['VIZIONARE'] || 0) + (crmStatusCounts['PROGRAMARE'] || 0) + (crmStatusCounts['OFERTA'] || 0)}
+          </div>
+          <div className="text-[10px] text-slate-400 mt-0.5">În desfășurare</div>
+        </button>
       </div>
 
-      {/* Control Bar: Tabs, Search, Filters */}
+      {/* Control Bar: Filters & Search */}
       <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl p-4 shadow-sm space-y-4">
-        {/* Row 1: Status & Type Tabs */}
+        {/* Row 1: CRM Status Select & Source Status Tabs */}
         <div className="flex flex-wrap items-center justify-between gap-3 border-b border-slate-100 dark:border-slate-800 pb-3">
           <div className="flex flex-wrap items-center gap-2">
-            <span className="text-xs font-semibold text-slate-500 uppercase tracking-wider mr-1">
-              Status:
+            <span className="text-xs font-bold text-slate-700 dark:text-slate-300 uppercase tracking-wider mr-1">
+              Filtru CRM Status:
             </span>
-            <button
-              onClick={() => {
-                setSelectedStatusTab('ALL')
+            <select
+              value={selectedCrmStatus}
+              onChange={(e) => {
+                setSelectedCrmStatus(e.target.value)
                 setPage(1)
               }}
-              className={`px-3 py-1.5 rounded-lg text-xs font-medium transition ${
-                selectedStatusTab === 'ALL'
-                  ? 'bg-slate-900 text-white dark:bg-white dark:text-slate-900 shadow-sm'
-                  : 'bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400 hover:bg-slate-200'
-              }`}
+              className="py-1.5 px-3 text-xs font-semibold bg-slate-100 dark:bg-slate-800 border border-slate-300 dark:border-slate-700 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 text-slate-900 dark:text-white cursor-pointer"
             >
-              Toate ({metrics.totalRequests})
-            </button>
-            <button
-              onClick={() => {
-                setSelectedStatusTab('Activa')
-                setPage(1)
-              }}
-              className={`px-3 py-1.5 rounded-lg text-xs font-medium transition ${
-                selectedStatusTab === 'Activa'
-                  ? 'bg-emerald-600 text-white shadow-sm'
-                  : 'bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400 hover:bg-slate-200'
-              }`}
-            >
-              Active ({metrics.activeRequests})
-            </button>
-            <button
-              onClick={() => {
-                setSelectedStatusTab('Retrasa')
-                setPage(1)
-              }}
-              className={`px-3 py-1.5 rounded-lg text-xs font-medium transition ${
-                selectedStatusTab === 'Retrasa'
-                  ? 'bg-slate-700 text-white shadow-sm'
-                  : 'bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400 hover:bg-slate-200'
-              }`}
-            >
-              Retrase ({metrics.retractedRequests})
-            </button>
+              <option value="ALL">Toate Statusurile CRM ({requestsList.length})</option>
+              {CHESTERTONS_CRM_STATUSES.map((st) => (
+                <option key={st.value} value={st.value}>
+                  {st.label} ({crmStatusCounts[st.value] || 0})
+                </option>
+              ))}
+            </select>
           </div>
 
           <div className="flex flex-wrap items-center gap-2">
@@ -301,24 +383,26 @@ export function ChestertonsRequestsView({
               Tip Lead:
             </span>
             <button
+              type="button"
               onClick={() => {
                 setSelectedTypeTab('ALL')
                 setPage(1)
               }}
-              className={`px-3 py-1.5 rounded-lg text-xs font-medium transition ${
+              className={`px-3 py-1.5 rounded-lg text-xs font-medium transition cursor-pointer ${
                 selectedTypeTab === 'ALL'
                   ? 'bg-indigo-600 text-white shadow-sm'
                   : 'bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400 hover:bg-slate-200'
               }`}
             >
-              Toate Tipuri
+              Toate
             </button>
             <button
+              type="button"
               onClick={() => {
                 setSelectedTypeTab('Apartament')
                 setPage(1)
               }}
-              className={`px-3 py-1.5 rounded-lg text-xs font-medium transition ${
+              className={`px-3 py-1.5 rounded-lg text-xs font-medium transition cursor-pointer ${
                 selectedTypeTab === 'Apartament'
                   ? 'bg-indigo-600 text-white shadow-sm'
                   : 'bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400 hover:bg-slate-200'
@@ -327,11 +411,12 @@ export function ChestertonsRequestsView({
               Apartamente (120)
             </button>
             <button
+              type="button"
               onClick={() => {
                 setSelectedTypeTab('Casa')
                 setPage(1)
               }}
-              className={`px-3 py-1.5 rounded-lg text-xs font-medium transition ${
+              className={`px-3 py-1.5 rounded-lg text-xs font-medium transition cursor-pointer ${
                 selectedTypeTab === 'Casa'
                   ? 'bg-amber-600 text-white shadow-sm'
                   : 'bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400 hover:bg-slate-200'
@@ -342,7 +427,7 @@ export function ChestertonsRequestsView({
           </div>
         </div>
 
-        {/* Row 2: Search input + Select filters */}
+        {/* Row 2: Search input + Sursa + Agent + Sort */}
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
           {/* Search box */}
           <div className="relative">
@@ -359,6 +444,7 @@ export function ChestertonsRequestsView({
             />
             {search && (
               <button
+                type="button"
                 onClick={() => setSearch('')}
                 className="absolute right-3 top-1/2 -translate-y-1/2 text-xs text-slate-400 hover:text-slate-600"
               >
@@ -380,10 +466,10 @@ export function ChestertonsRequestsView({
               <option value="ALL">Toate Sursele Originale ({uniqueSources.length})</option>
               {uniqueSources.map((s) => (
                 <option key={s} value={s}>
-                  {s} ({metrics.sourceBreakdown[s] || 0})
+                  {s} ({initialMetrics.sourceBreakdown[s] || 0})
                 </option>
               ))}
-              <option value="BLANK">Fără sursă specificată ({metrics.sourceBreakdown['Nespecificat'] || 0})</option>
+              <option value="BLANK">Fără sursă specificată ({initialMetrics.sourceBreakdown['Nespecificat'] || 0})</option>
             </select>
           </div>
 
@@ -400,7 +486,7 @@ export function ChestertonsRequestsView({
               <option value="ALL">Toți Agenții ({uniqueAgents.length})</option>
               {uniqueAgents.map((ag) => (
                 <option key={ag} value={ag}>
-                  {ag} ({metrics.agentBreakdown[ag] || 0})
+                  {ag} ({initialMetrics.agentBreakdown[ag] || 0})
                 </option>
               ))}
             </select>
@@ -410,16 +496,18 @@ export function ChestertonsRequestsView({
           <div className="flex items-center gap-2">
             <select
               value={sortBy}
-              onChange={(e) => setSortBy(e.target.value as 'id' | 'buget' | 'date')}
+              onChange={(e) => setSortBy(e.target.value as 'id' | 'buget' | 'date' | 'status')}
               className="flex-1 py-2 px-3 text-sm bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 text-slate-900 dark:text-white"
             >
               <option value="id">Sortare după ID Sursă</option>
+              <option value="status">Sortare după CRM Status</option>
               <option value="buget">Sortare după Buget Max</option>
               <option value="date">Sortare după Data Adăugare</option>
             </select>
             <button
+              type="button"
               onClick={() => setSortOrder(sortOrder === 'asc' ? 'desc' : 'asc')}
-              className="p-2 bg-slate-100 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl text-slate-600 dark:text-slate-300 hover:bg-slate-200 transition"
+              className="p-2 bg-slate-100 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl text-slate-600 dark:text-slate-300 hover:bg-slate-200 transition cursor-pointer"
               title={`Directie sortare: ${sortOrder.toUpperCase()}`}
             >
               <ArrowUpDown className="w-4 h-4" />
@@ -430,19 +518,21 @@ export function ChestertonsRequestsView({
         {/* Results summary counter */}
         <div className="flex items-center justify-between text-xs text-slate-500 dark:text-slate-400 pt-1">
           <div>
-            Afișare <strong>{paginatedRequests.length}</strong> din <strong>{filteredRequests.length}</strong> cereri filtrate (Total: {metrics.totalRequests})
+            Afișare <strong>{paginatedRequests.length}</strong> din <strong>{filteredRequests.length}</strong> cereri filtrate (Total: {requestsList.length})
           </div>
-          {(selectedStatusTab !== 'ALL' || selectedTypeTab !== 'ALL' || selectedSursa !== 'ALL' || selectedAgent !== 'ALL' || search) && (
+          {(selectedCrmStatus !== 'ALL' || selectedSourceStatusTab !== 'ALL' || selectedTypeTab !== 'ALL' || selectedSursa !== 'ALL' || selectedAgent !== 'ALL' || search) && (
             <button
+              type="button"
               onClick={() => {
-                setSelectedStatusTab('ALL')
+                setSelectedCrmStatus('ALL')
+                setSelectedSourceStatusTab('ALL')
                 setSelectedTypeTab('ALL')
                 setSelectedSursa('ALL')
                 setSelectedAgent('ALL')
                 setSearch('')
                 setPage(1)
               }}
-              className="text-blue-600 dark:text-blue-400 hover:underline font-medium"
+              className="text-blue-600 dark:text-blue-400 hover:underline font-medium cursor-pointer"
             >
               Resetează toate filtrele
             </button>
@@ -450,7 +540,7 @@ export function ChestertonsRequestsView({
         </div>
       </div>
 
-      {/* Requests Table / List */}
+      {/* Requests Table */}
       <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl shadow-sm overflow-hidden">
         {paginatedRequests.length === 0 ? (
           <div className="p-12 text-center space-y-3">
@@ -470,20 +560,24 @@ export function ChestertonsRequestsView({
               <thead>
                 <tr className="bg-slate-50/75 dark:bg-slate-800/60 border-b border-slate-200 dark:border-slate-800 text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider">
                   <th className="py-3.5 px-4">ID / Ref</th>
-                  <th className="py-3.5 px-4">Cumpărător & Contact</th>
+                  <th className="py-3.5 px-4">Cumpărător</th>
+                  <th className="py-3.5 px-4">CRM Status (Editabil)</th>
                   <th className="py-3.5 px-4">Tip / Cerere</th>
                   <th className="py-3.5 px-4">Buget</th>
-                  <th className="py-3.5 px-4">Sursa Originală</th>
-                  <th className="py-3.5 px-4">Agent</th>
-                  <th className="py-3.5 px-4">Status</th>
-                  <th className="py-3.5 px-4 text-right">Acțiuni</th>
+                  <th className="py-3.5 px-4">Ultimul Contact</th>
+                  <th className="py-3.5 px-4">Sursa</th>
+                  <th className="py-3.5 px-4 text-right">Acțiuni Rapide</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-slate-100 dark:divide-slate-800 text-slate-700 dark:text-slate-300">
                 {paginatedRequests.map((req) => {
                   const isApartment = req.tip_lead === 'Apartament'
-                  const isActive = req.parsed_status === 'Activa'
-                  const isRetracted = req.parsed_status === 'Retrasa'
+                  const cleanPhone = req.telefon?.replace(/\D/g, '') || ''
+                  const waPhone = cleanPhone.startsWith('0')
+                    ? '4' + cleanPhone
+                    : cleanPhone.startsWith('7')
+                    ? '40' + cleanPhone
+                    : cleanPhone
 
                   return (
                     <tr
@@ -509,16 +603,19 @@ export function ChestertonsRequestsView({
                         </div>
                       </td>
 
-                      {/* Col 2: Buyer & Contact */}
+                      {/* Col 2: Buyer */}
                       <td className="py-3.5 px-4 align-top">
-                        <div className="font-semibold text-slate-900 dark:text-white flex items-center gap-1.5">
+                        <Link
+                          href={`/admin/requests/chestertons/${req.import_source_id}`}
+                          className="font-semibold text-slate-900 dark:text-white hover:text-blue-600 dark:hover:text-blue-400 flex items-center gap-1.5 transition"
+                        >
                           <User className="w-3.5 h-3.5 text-slate-400 flex-shrink-0" />
                           <span>{req.cumparator}</span>
-                        </div>
+                        </Link>
                         <div className="mt-1 space-y-0.5 text-xs">
                           {req.telefon && (
                             <a
-                              href={`tel:${req.telefon}`}
+                              href={`tel:${cleanPhone}`}
                               className="inline-flex items-center gap-1 text-slate-500 hover:text-blue-600 dark:hover:text-blue-400 font-mono text-[11px]"
                             >
                               <Phone className="w-3 h-3 text-slate-400" />
@@ -526,7 +623,7 @@ export function ChestertonsRequestsView({
                             </a>
                           )}
                           {req.email && (
-                            <div className="truncate max-w-[200px]">
+                            <div className="truncate max-w-[180px]">
                               <a
                                 href={`mailto:${req.email}`}
                                 className="inline-flex items-center gap-1 text-slate-500 hover:text-blue-600 dark:hover:text-blue-400 text-[11px]"
@@ -539,7 +636,19 @@ export function ChestertonsRequestsView({
                         </div>
                       </td>
 
-                      {/* Col 3: Lead Type & Criteria */}
+                      {/* Col 3: Interactive CRM Status Select */}
+                      <td className="py-3.5 px-4 align-top whitespace-nowrap">
+                        <ChestertonsStatusSelect
+                          requestId={req.import_source_id}
+                          currentStatus={req.crm_status || 'NESUNAT'}
+                          size="sm"
+                          onStatusChange={(newStatus) =>
+                            handleRowStatusChange(req.import_source_id, newStatus)
+                          }
+                        />
+                      </td>
+
+                      {/* Col 4: Lead Type & Criteria */}
                       <td className="py-3.5 px-4 align-top">
                         <div className="flex items-center gap-1.5">
                           <span
@@ -565,14 +674,9 @@ export function ChestertonsRequestsView({
                         <div className="text-xs text-slate-500 dark:text-slate-400 mt-1 line-clamp-1">
                           {req.titlu || `${req.oras || 'Bucuresti'}`}
                         </div>
-                        {req.observatii && (
-                          <div className="text-[11px] text-slate-400 mt-1 line-clamp-1 italic max-w-xs">
-                            💬 {req.observatii}
-                          </div>
-                        )}
                       </td>
 
-                      {/* Col 4: Budget */}
+                      {/* Col 5: Budget */}
                       <td className="py-3.5 px-4 align-top whitespace-nowrap">
                         <div className="font-semibold text-slate-900 dark:text-white">
                           {req.buget2 ? (
@@ -583,65 +687,69 @@ export function ChestertonsRequestsView({
                             <span className="text-slate-400 font-normal">Nespecificat</span>
                           )}
                         </div>
-                        {req.buget1 && req.buget2 && (
-                          <div className="text-[11px] text-slate-400">
-                            Min: {formatCurrency(req.buget1)}
+                      </td>
+
+                      {/* Col 6: Last Contact & Follow-up */}
+                      <td className="py-3.5 px-4 align-top text-xs whitespace-nowrap">
+                        {req.last_contact_at ? (
+                          <div className="text-slate-700 dark:text-slate-300 font-medium flex items-center gap-1">
+                            <Clock className="w-3 h-3 text-blue-500" />
+                            <span>
+                              {new Date(req.last_contact_at).toLocaleDateString('ro-RO')}
+                            </span>
                           </div>
+                        ) : (
+                          <span className="text-slate-400 italic">—</span>
                         )}
-                        {req.buget_credit && req.buget_credit !== '0' && (
-                          <div className="text-[10px] text-emerald-600 font-medium">
-                            Credit: {req.buget_credit}
+                        {req.next_follow_up_at && (
+                          <div className="text-[11px] text-amber-600 font-semibold flex items-center gap-1 mt-0.5">
+                            <CalendarClock className="w-3 h-3" />
+                            <span>
+                              {new Date(req.next_follow_up_at).toLocaleDateString('ro-RO')}
+                            </span>
                           </div>
                         )}
                       </td>
 
-                      {/* Col 5: Original Source */}
-                      <td className="py-3.5 px-4 align-top">
+                      {/* Col 7: Original Source */}
+                      <td className="py-3.5 px-4 align-top whitespace-nowrap">
                         <div className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-xs font-medium bg-slate-100 text-slate-700 dark:bg-slate-800 dark:text-slate-300 border border-slate-200 dark:border-slate-700">
                           <Tag className="w-3 h-3 text-slate-400" />
                           <span>{req.sursa || 'Nespecificat'}</span>
                         </div>
-                        <div className="text-[10px] text-slate-400 mt-1">
-                          {req.source_file.includes('1138618') ? 'File 1 (Apt)' : 'File 2 (Case)'}
-                        </div>
                       </td>
 
-                      {/* Col 6: Agent */}
-                      <td className="py-3.5 px-4 align-top whitespace-nowrap">
-                        <div className="text-xs font-medium text-slate-900 dark:text-white">
-                          {req.agent || '—'}
-                        </div>
-                      </td>
-
-                      {/* Col 7: Status */}
-                      <td className="py-3.5 px-4 align-top whitespace-nowrap">
-                        <span
-                          className={`inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-semibold ${
-                            isActive
-                              ? 'bg-emerald-100 text-emerald-800 dark:bg-emerald-950 dark:text-emerald-300 border border-emerald-200 dark:border-emerald-800'
-                              : isRetracted
-                              ? 'bg-slate-100 text-slate-700 dark:bg-slate-800 dark:text-slate-300 border border-slate-300 dark:border-slate-700'
-                              : 'bg-amber-100 text-amber-800 dark:bg-amber-950 dark:text-amber-300 border border-amber-200 dark:border-amber-800'
-                          }`}
-                        >
-                          {isActive ? (
-                            <CheckCircle2 className="w-3 h-3" />
-                          ) : (
-                            <XCircle className="w-3 h-3" />
-                          )}
-                          {req.status_cerere || 'Blank'}
-                        </span>
-                      </td>
-
-                      {/* Col 8: Actions */}
+                      {/* Col 8: Quick Actions */}
                       <td className="py-3.5 px-4 align-top text-right whitespace-nowrap">
-                        <Link
-                          href={`/admin/requests/chestertons/${req.import_source_id}`}
-                          className="inline-flex items-center gap-1 px-3 py-1 bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-800 dark:text-slate-200 rounded-lg text-xs font-medium transition"
-                        >
-                          <span>Detalii</span>
-                          <ExternalLink className="w-3 h-3" />
-                        </Link>
+                        <div className="flex items-center justify-end gap-1.5">
+                          {req.telefon && (
+                            <>
+                              <a
+                                href={`tel:${cleanPhone}`}
+                                title={`Apelează ${req.telefon}`}
+                                className="p-1.5 bg-slate-100 hover:bg-blue-50 text-slate-600 hover:text-blue-600 dark:bg-slate-800 dark:hover:bg-slate-700 rounded-lg transition"
+                              >
+                                <Phone className="w-3.5 h-3.5" />
+                              </a>
+                              <a
+                                href={`https://wa.me/${waPhone}`}
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                title="Trimite WhatsApp"
+                                className="p-1.5 bg-slate-100 hover:bg-emerald-50 text-slate-600 hover:text-emerald-600 dark:bg-slate-800 dark:hover:bg-slate-700 rounded-lg transition"
+                              >
+                                <MessageCircle className="w-3.5 h-3.5" />
+                              </a>
+                            </>
+                          )}
+                          <Link
+                            href={`/admin/requests/chestertons/${req.import_source_id}`}
+                            className="inline-flex items-center gap-1 px-2.5 py-1 bg-blue-50 hover:bg-blue-100 text-blue-700 dark:bg-blue-950/60 dark:hover:bg-blue-900/60 dark:text-blue-300 rounded-lg text-xs font-bold transition"
+                          >
+                            <span>Workflow</span>
+                            <ExternalLink className="w-3 h-3" />
+                          </Link>
+                        </div>
                       </td>
                     </tr>
                   )
@@ -659,9 +767,10 @@ export function ChestertonsRequestsView({
             </div>
             <div className="flex items-center gap-2">
               <button
+                type="button"
                 onClick={() => setPage((p) => Math.max(1, p - 1))}
                 disabled={page === 1}
-                className="px-3 py-1.5 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-lg text-xs font-medium text-slate-700 dark:text-slate-300 disabled:opacity-40 disabled:cursor-not-allowed hover:bg-slate-50"
+                className="px-3 py-1.5 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-lg text-xs font-medium text-slate-700 dark:text-slate-300 disabled:opacity-40 disabled:cursor-not-allowed hover:bg-slate-50 cursor-pointer"
               >
                 Anterior
               </button>
@@ -675,8 +784,9 @@ export function ChestertonsRequestsView({
                   return (
                     <button
                       key={pageNum}
+                      type="button"
                       onClick={() => setPage(pageNum)}
-                      className={`w-7 h-7 rounded-lg text-xs font-medium transition ${
+                      className={`w-7 h-7 rounded-lg text-xs font-medium transition cursor-pointer ${
                         page === pageNum
                           ? 'bg-blue-600 text-white font-bold'
                           : 'bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-300 hover:bg-slate-100'
@@ -688,9 +798,10 @@ export function ChestertonsRequestsView({
                 })}
               </div>
               <button
+                type="button"
                 onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
                 disabled={page === totalPages}
-                className="px-3 py-1.5 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-lg text-xs font-medium text-slate-700 dark:text-slate-300 disabled:opacity-40 disabled:cursor-not-allowed hover:bg-slate-50"
+                className="px-3 py-1.5 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-lg text-xs font-medium text-slate-700 dark:text-slate-300 disabled:opacity-40 disabled:cursor-not-allowed hover:bg-slate-50 cursor-pointer"
               >
                 Următor
               </button>
