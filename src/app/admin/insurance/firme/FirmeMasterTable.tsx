@@ -20,10 +20,62 @@ import {
   PROSPECT_STATUSES,
 } from '@/lib/data/verified-insurance-companies-dataset'
 import type { InsuranceCompaniesMetrics } from '@/lib/db/insurance-companies'
+import { InsuranceCompanyQuickNotePopover } from '@/components/InsuranceCompanyQuickNotePopover'
 
 interface FirmeMasterTableProps {
   initialCompanies: InsuranceCompany[]
   initialMetrics: InsuranceCompaniesMetrics
+}
+
+/**
+ * Parses raw phone string into structured clickable call targets and formatted labels.
+ * Splits multiple numbers (separated by ';' or '/') while preserving the original string,
+ * and ignores descriptive text like "Vezi site / apel".
+ */
+function parsePhoneNumbers(phoneStr: string | null | undefined): {
+  isClickable: boolean
+  originalText: string
+  numbers: { raw: string; telHref: string }[]
+} {
+  if (!phoneStr || !phoneStr.trim()) {
+    return { isClickable: false, originalText: '—', numbers: [] }
+  }
+
+  const rawTrimmed = phoneStr.trim()
+  const digitMatches = rawTrimmed.match(/\d/g)
+  // If fewer than 5 digits total in string, it's descriptive text (e.g., "Vezi site / apel")
+  if (!digitMatches || digitMatches.length < 5) {
+    return { isClickable: false, originalText: rawTrimmed, numbers: [] }
+  }
+
+  // Split by ';' or '\n' or ','
+  const topTokens = rawTrimmed.split(/[;\n,]/).map((t) => t.trim()).filter(Boolean)
+  const numbers: { raw: string; telHref: string }[] = []
+
+  for (const token of topTokens) {
+    // If token contains '/' and both sides have at least 4 digits, split into individual numbers
+    const slashParts = token.split('/').map((s) => s.trim()).filter(Boolean)
+    const canSplitSlash = slashParts.length > 1 && slashParts.every((sp) => (sp.match(/\d/g) || []).length >= 4)
+    const partsToProcess = canSplitSlash ? slashParts : [token]
+
+    for (const part of partsToProcess) {
+      const partDigits = part.match(/\d/g)
+      if (partDigits && partDigits.length >= 5) {
+        const hasPlus = part.trim().startsWith('+')
+        const cleanDigits = part.replace(/[^\d]/g, '')
+        const telHref = hasPlus ? `tel:+${cleanDigits}` : `tel:${cleanDigits}`
+        numbers.push({ raw: part, telHref })
+      } else {
+        numbers.push({ raw: part, telHref: '' })
+      }
+    }
+  }
+
+  return {
+    isClickable: numbers.some((n) => Boolean(n.telHref)),
+    originalText: rawTrimmed,
+    numbers,
+  }
 }
 
 export function FirmeMasterTable({ initialCompanies, initialMetrics }: FirmeMasterTableProps) {
@@ -119,6 +171,13 @@ export function FirmeMasterTable({ initialCompanies, initialMetrics }: FirmeMast
     }
   }
 
+  // Quick note saved callback
+  const handleNoteSaved = (companyId: string, newNote: string) => {
+    setCompanies((prev) =>
+      prev.map((c) => (c.id === companyId ? { ...c, crm_notes: newNote } : c))
+    )
+  }
+
   // Status badge styling helper
   const getStatusBadgeClass = (status: ProspectStatus) => {
     switch (status) {
@@ -161,8 +220,6 @@ export function FirmeMasterTable({ initialCompanies, initialMetrics }: FirmeMast
     }
   }
 
-  // Format phone for tel: link (only if contains actual digits)
-  const isActualPhone = (p: string) => /\d{5,}/.test(p)
   const isActualEmail = (e: string) => /@.+\./.test(e)
   const isActualUrl = (u: string) => u.startsWith('http') || u.includes('.ro') || u.includes('.com')
 
@@ -229,8 +286,8 @@ export function FirmeMasterTable({ initialCompanies, initialMetrics }: FirmeMast
               type="text"
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
-              placeholder="Caută după denumire, telefon, email, oraș, activitate sau CUI..."
-              className="w-full pl-10 pr-4 py-2.5 bg-neutral-50 dark:bg-neutral-800/60 border border-neutral-200 dark:border-neutral-700 rounded-xl text-xs text-neutral-900 dark:text-neutral-100 placeholder-neutral-400 focus:outline-hidden focus:ring-2 focus:ring-blue-500"
+              placeholder="Caută după denumire, telefon, email, notiță, oraș sau CUI..."
+              className="w-full pl-10 pr-4 py-2.5 bg-neutral-50 dark:bg-neutral-800/60 border border-neutral-200 dark:border-neutral-700 rounded-xl text-xs text-neutral-900 dark:text-neutral-100 placeholder-neutral-400 focus:outline-hidden focus:ring-2 focus:ring-indigo-500"
             />
             {searchTerm && (
               <button
@@ -248,7 +305,7 @@ export function FirmeMasterTable({ initialCompanies, initialMetrics }: FirmeMast
             <select
               value={selectedTable}
               onChange={(e) => setSelectedTable(e.target.value)}
-              className="px-3 py-2.5 bg-neutral-50 dark:bg-neutral-800/60 border border-neutral-200 dark:border-neutral-700 rounded-xl text-xs text-neutral-800 dark:text-neutral-200 focus:outline-hidden focus:ring-2 focus:ring-blue-500"
+              className="px-3 py-2.5 bg-neutral-50 dark:bg-neutral-800/60 border border-neutral-200 dark:border-neutral-700 rounded-xl text-xs text-neutral-800 dark:text-neutral-200 focus:outline-hidden focus:ring-2 focus:ring-indigo-500"
             >
               <option value="ALL">Toate Tabelele (1-4)</option>
               <option value="1">Tabelul 1 (30 firme)</option>
@@ -264,7 +321,7 @@ export function FirmeMasterTable({ initialCompanies, initialMetrics }: FirmeMast
             <select
               value={selectedStatus}
               onChange={(e) => setSelectedStatus(e.target.value)}
-              className="px-3 py-2.5 bg-neutral-50 dark:bg-neutral-800/60 border border-neutral-200 dark:border-neutral-700 rounded-xl text-xs text-neutral-800 dark:text-neutral-200 focus:outline-hidden focus:ring-2 focus:ring-blue-500"
+              className="px-3 py-2.5 bg-neutral-50 dark:bg-neutral-800/60 border border-neutral-200 dark:border-neutral-700 rounded-xl text-xs text-neutral-800 dark:text-neutral-200 focus:outline-hidden focus:ring-2 focus:ring-indigo-500"
             >
               <option value="ALL">Toate Statusurile</option>
               {PROSPECT_STATUSES.map((st) => (
@@ -281,7 +338,7 @@ export function FirmeMasterTable({ initialCompanies, initialMetrics }: FirmeMast
             <select
               value={selectedCity}
               onChange={(e) => setSelectedCity(e.target.value)}
-              className="px-3 py-2.5 bg-neutral-50 dark:bg-neutral-800/60 border border-neutral-200 dark:border-neutral-700 rounded-xl text-xs text-neutral-800 dark:text-neutral-200 focus:outline-hidden focus:ring-2 focus:ring-blue-500"
+              className="px-3 py-2.5 bg-neutral-50 dark:bg-neutral-800/60 border border-neutral-200 dark:border-neutral-700 rounded-xl text-xs text-neutral-800 dark:text-neutral-200 focus:outline-hidden focus:ring-2 focus:ring-indigo-500"
             >
               <option value="ALL">Toate Orașele</option>
               {distinctCities.map((city) => (
@@ -307,7 +364,7 @@ export function FirmeMasterTable({ initialCompanies, initialMetrics }: FirmeMast
                 setSelectedTable('ALL')
                 setSelectedCity('ALL')
               }}
-              className="text-blue-600 hover:underline font-medium"
+              className="text-indigo-600 dark:text-indigo-400 hover:underline font-medium cursor-pointer"
             >
               Resetează filtrele
             </button>
@@ -321,20 +378,22 @@ export function FirmeMasterTable({ initialCompanies, initialMetrics }: FirmeMast
           <table className="w-full text-left border-collapse">
             <thead>
               <tr className="border-b border-neutral-200 dark:border-neutral-800 bg-neutral-50/80 dark:bg-neutral-800/40 text-[11px] font-bold text-neutral-500 uppercase tracking-wider">
-                <th className="py-3.5 px-4 w-14">Nr.</th>
-                <th className="py-3.5 px-4 min-w-[200px]">Denumire Firmă</th>
-                <th className="py-3.5 px-4 min-w-[150px]">Tip Activitate</th>
-                <th className="py-3.5 px-4 min-w-[170px]">Telefon</th>
-                <th className="py-3.5 px-4 min-w-[180px]">Email</th>
-                <th className="py-3.5 px-4 min-w-[120px]">Oraș / Județ</th>
-                <th className="py-3.5 px-4 min-w-[160px]">Status Prospect</th>
-                <th className="py-3.5 px-4 text-right min-w-[110px]">Acțiuni</th>
+                <th className="py-3.5 px-4 min-w-[220px]">1. Denumire Firmă</th>
+                <th className="py-3.5 px-4 min-w-[170px]">2. Telefon</th>
+                <th className="py-3.5 px-4 min-w-[220px]">3. Notiță Rapidă</th>
+                <th className="py-3.5 px-4 min-w-[180px]">4. Email</th>
+                <th className="py-3.5 px-4 min-w-[170px]">5. Activitate / Status</th>
+                <th className="py-3.5 px-4 min-w-[130px]">6. Oraș / Județ</th>
+                <th className="py-3.5 px-4 min-w-[150px]">7. Tip Activitate</th>
+                <th className="py-3.5 px-4 min-w-[130px]">8. Website</th>
+                <th className="py-3.5 px-4 min-w-[200px]">9. Observații / Sursă</th>
+                <th className="py-3.5 px-4 text-right min-w-[90px]">Acțiuni</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-neutral-100 dark:divide-neutral-800/60 text-xs">
               {filteredCompanies.length === 0 ? (
                 <tr>
-                  <td colSpan={8} className="py-12 text-center text-neutral-400">
+                  <td colSpan={10} className="py-12 text-center text-neutral-400">
                     Nicio firmă nu corespunde criteriilor de căutare selectate.
                   </td>
                 </tr>
@@ -344,10 +403,10 @@ export function FirmeMasterTable({ initialCompanies, initialMetrics }: FirmeMast
                     key={c.id}
                     className="hover:bg-neutral-50/60 dark:hover:bg-neutral-800/30 transition-colors group"
                   >
-                    {/* Nr and Table Badge */}
+                    {/* 1. Denumire Firmă */}
                     <td className="py-3.5 px-4 align-top">
-                      <div className="flex flex-col items-start gap-1">
-                        <span className="font-mono font-bold text-neutral-700 dark:text-neutral-300">
+                      <div className="flex items-center gap-1.5 mb-1">
+                        <span className="font-mono text-[10px] font-bold text-neutral-500 dark:text-neutral-400">
                           #{c.nr}
                         </span>
                         <span
@@ -358,72 +417,65 @@ export function FirmeMasterTable({ initialCompanies, initialMetrics }: FirmeMast
                           T{c.table_number}
                         </span>
                       </div>
-                    </td>
-
-                    {/* Company Name */}
-                    <td className="py-3.5 px-4 align-top">
                       <Link
                         href={`/admin/insurance/firme/${c.id}`}
-                        className="font-bold text-neutral-900 dark:text-neutral-100 hover:text-blue-600 dark:hover:text-blue-400 flex items-center gap-1.5 group-hover:underline"
+                        className="font-bold text-neutral-900 dark:text-neutral-100 hover:text-indigo-600 dark:hover:text-indigo-400 flex items-center gap-1.5 group-hover:underline"
                       >
                         <span>{c.name}</span>
-                        <ExternalLink className="w-3 h-3 opacity-0 group-hover:opacity-100 transition-opacity" />
+                        <ExternalLink className="w-3 h-3 opacity-0 group-hover:opacity-100 transition-opacity text-neutral-400" />
                       </Link>
-                      {c.website && (
-                        <div className="mt-0.5">
-                          {isActualUrl(c.website) ? (
-                            <a
-                              href={c.website.startsWith('http') ? c.website : `https://${c.website}`}
-                              target="_blank"
-                              rel="noopener noreferrer"
-                              className="text-[11px] text-blue-500 hover:underline flex items-center gap-1 inline-flex"
-                            >
-                              <Globe className="w-2.5 h-2.5" />
-                              <span className="truncate max-w-[180px]">{c.website.replace(/^https?:\/\//, '')}</span>
-                            </a>
-                          ) : (
-                            <span className="text-[10px] text-neutral-400 italic">{c.website}</span>
-                          )}
-                        </div>
-                      )}
                     </td>
 
-                    {/* Activity Type */}
-                    <td className="py-3.5 px-4 align-top text-neutral-600 dark:text-neutral-400">
-                      <span className="inline-block bg-neutral-100 dark:bg-neutral-800 px-2 py-0.5 rounded text-[11px]">
-                        {c.activity_type || '—'}
-                      </span>
-                    </td>
-
-                    {/* Phone */}
-                    <td className="py-3.5 px-4 align-top">
-                      {c.phone ? (
-                        isActualPhone(c.phone) ? (
-                          <div className="flex flex-col gap-1">
-                            {c.phone.split(/;|\//).map((ph, idx) => {
-                              const clean = ph.trim()
-                              if (!clean) return null
+                    {/* 2. Telefon (Click-to-Call) */}
+                    <td className="py-3.5 px-4 align-top whitespace-nowrap">
+                      {(() => {
+                        const parsed = parsePhoneNumbers(c.phone)
+                        if (!parsed.isClickable) {
+                          return (
+                            <span className="text-[11px] text-neutral-500 italic">
+                              {parsed.originalText || '—'}
+                            </span>
+                          )
+                        }
+                        return (
+                          <div className="flex flex-col gap-1.5 items-start">
+                            {parsed.numbers.map((num, idx) => {
+                              if (!num.telHref) {
+                                return (
+                                  <span key={idx} className="text-[11px] text-neutral-400 italic">
+                                    {num.raw}
+                                  </span>
+                                )
+                              }
                               return (
                                 <a
                                   key={idx}
-                                  href={`tel:${clean.replace(/\s+/g, '')}`}
-                                  className="text-neutral-800 dark:text-neutral-200 hover:text-blue-600 flex items-center gap-1 font-mono text-[11px]"
+                                  href={num.telHref}
+                                  onClick={(e) => e.stopPropagation()}
+                                  className="inline-flex items-center gap-1.5 px-2 py-1 rounded-lg text-[11px] font-mono font-semibold bg-neutral-100/90 hover:bg-emerald-50 hover:text-emerald-700 hover:border-emerald-300 dark:bg-neutral-800 dark:hover:bg-emerald-950/40 dark:hover:text-emerald-300 border border-neutral-200/60 dark:border-neutral-700/80 text-neutral-800 dark:text-neutral-200 transition group/call active:scale-98 shadow-2xs"
+                                  title={`Apelează ${num.raw}`}
                                 >
-                                  <Phone className="w-2.5 h-2.5 text-neutral-400" />
-                                  <span>{clean}</span>
+                                  <Phone className="w-3 h-3 text-emerald-600 dark:text-emerald-400 group-hover/call:scale-110 transition-transform" />
+                                  <span>{num.raw}</span>
                                 </a>
                               )
                             })}
                           </div>
-                        ) : (
-                          <span className="text-neutral-500 italic text-[11px]">{c.phone}</span>
                         )
-                      ) : (
-                        <span className="text-neutral-400">—</span>
-                      )}
+                      })()}
                     </td>
 
-                    {/* Email */}
+                    {/* 3. Notiță Rapidă */}
+                    <td className="py-3.5 px-4 align-top">
+                      <InsuranceCompanyQuickNotePopover
+                        companyId={c.id}
+                        companyName={c.name}
+                        currentNote={c.crm_notes}
+                        onNoteSaved={(newNote) => handleNoteSaved(c.id, newNote)}
+                      />
+                    </td>
+
+                    {/* 4. Email */}
                     <td className="py-3.5 px-4 align-top">
                       {c.email ? (
                         isActualEmail(c.email) ? (
@@ -435,7 +487,7 @@ export function FirmeMasterTable({ initialCompanies, initialMetrics }: FirmeMast
                                 <a
                                   key={idx}
                                   href={`mailto:${clean}`}
-                                  className="text-neutral-800 dark:text-neutral-200 hover:text-blue-600 flex items-center gap-1 text-[11px] truncate max-w-[200px]"
+                                  className="text-neutral-800 dark:text-neutral-200 hover:text-indigo-600 dark:hover:text-indigo-400 flex items-center gap-1 text-[11px] truncate max-w-[180px]"
                                 >
                                   <Mail className="w-2.5 h-2.5 text-neutral-400 shrink-0" />
                                   <span className="truncate">{clean}</span>
@@ -451,15 +503,7 @@ export function FirmeMasterTable({ initialCompanies, initialMetrics }: FirmeMast
                       )}
                     </td>
 
-                    {/* City */}
-                    <td className="py-3.5 px-4 align-top text-neutral-700 dark:text-neutral-300">
-                      <div className="flex items-center gap-1">
-                        <MapPin className="w-3 h-3 text-neutral-400 shrink-0" />
-                        <span>{c.city || '—'}</span>
-                      </div>
-                    </td>
-
-                    {/* Prospect Status Dropdown */}
+                    {/* 5. Activitate / Status */}
                     <td className="py-3.5 px-4 align-top">
                       <div className="flex items-center gap-2">
                         <select
@@ -477,7 +521,7 @@ export function FirmeMasterTable({ initialCompanies, initialMetrics }: FirmeMast
                           ))}
                         </select>
                         {updatingId === c.id && (
-                          <span className="w-2 h-2 rounded-full bg-blue-600 animate-ping" />
+                          <span className="w-2 h-2 rounded-full bg-indigo-600 animate-ping" />
                         )}
                       </div>
                       {c.next_follow_up_at && (
@@ -488,7 +532,57 @@ export function FirmeMasterTable({ initialCompanies, initialMetrics }: FirmeMast
                       )}
                     </td>
 
-                    {/* Action button */}
+                    {/* 6. Oraș / Județ */}
+                    <td className="py-3.5 px-4 align-top text-neutral-700 dark:text-neutral-300">
+                      <div className="flex items-center gap-1 text-[11px]">
+                        <MapPin className="w-3 h-3 text-neutral-400 shrink-0" />
+                        <span>{c.city || '—'}</span>
+                      </div>
+                    </td>
+
+                    {/* 7. Tip Activitate */}
+                    <td className="py-3.5 px-4 align-top text-neutral-600 dark:text-neutral-400">
+                      <span className="inline-block bg-neutral-100 dark:bg-neutral-800 px-2 py-0.5 rounded text-[11px]">
+                        {c.activity_type || '—'}
+                      </span>
+                    </td>
+
+                    {/* 8. Website */}
+                    <td className="py-3.5 px-4 align-top">
+                      {c.website ? (
+                        isActualUrl(c.website) ? (
+                          <a
+                            href={c.website.startsWith('http') ? c.website : `https://${c.website}`}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="text-[11px] text-indigo-600 dark:text-indigo-400 hover:underline flex items-center gap-1 inline-flex"
+                          >
+                            <Globe className="w-2.5 h-2.5" />
+                            <span className="truncate max-w-[130px]">{c.website.replace(/^https?:\/\//, '')}</span>
+                          </a>
+                        ) : (
+                          <span className="text-[10px] text-neutral-400 italic">{c.website}</span>
+                        )
+                      ) : (
+                        <span className="text-neutral-400">—</span>
+                      )}
+                    </td>
+
+                    {/* 9. Observații / Sursă */}
+                    <td className="py-3.5 px-4 align-top text-neutral-600 dark:text-neutral-400">
+                      {c.original_observations ? (
+                        <span
+                          className="text-[11px] line-clamp-2 max-w-[220px] block"
+                          title={c.original_observations}
+                        >
+                          {c.original_observations}
+                        </span>
+                      ) : (
+                        <span className="text-neutral-400">—</span>
+                      )}
+                    </td>
+
+                    {/* 10. Acțiuni (Fișă) */}
                     <td className="py-3.5 px-4 align-top text-right">
                       <Link
                         href={`/admin/insurance/firme/${c.id}`}

@@ -3,6 +3,7 @@ import {
   getInsuranceCompanyById,
   updateInsuranceCompany,
   getInsuranceCompanyActivities,
+  addInsuranceCompanyActivity,
 } from '@/lib/db/insurance-companies'
 import { createClient as createServerClient } from '@/lib/supabase/server'
 
@@ -59,6 +60,14 @@ export async function PATCH(
 
     if (!updated) {
       return NextResponse.json({ error: 'Firma nu a fost găsită pentru actualizare' }, { status: 404 })
+    }
+
+    if (body.crm_notes !== undefined && typeof body.crm_notes === 'string' && body.crm_notes.trim()) {
+      await addInsuranceCompanyActivity(id, {
+        activity_type: 'NOTE',
+        content: `Notiță: ${body.crm_notes.trim()}`,
+        created_by: user.email || 'Admin CRM',
+      })
     }
 
     const activities = await getInsuranceCompanyActivities(id)
