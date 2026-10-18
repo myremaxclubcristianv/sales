@@ -54,6 +54,7 @@ export function ExpensesTab({ expenses, onRefresh }: ExpensesTabProps) {
       'ABONAMENT ASISTENȚĂ RUTIERĂ',
       'METROREX ABONAMENT',
       'LAPTOP',
+      'TABLETĂ',
       'ACCESORIU IT',
     ]
     const set = new Set<string>()

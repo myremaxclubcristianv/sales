@@ -75,7 +75,7 @@ export function normalizeExpenseCategory(cat: string): string {
   if (c === 'MASINA' || c === 'MAȘINĂ') return 'MASINA'
   if (c === 'TRANSPORT') return 'TRANSPORT'
   if (c.includes('ACCESORI')) return 'IT / ACCESORII'
-  if (c.includes('IT') || c.includes('ECHIPAMENT')) return 'IT / ECHIPAMENTE'
+  if (c.includes('IT') || c.includes('ECHIPAMENT') || c === 'ASSET' || c === 'ACTIV' || c === 'ACTIVE') return 'IT / ECHIPAMENTE'
   return c
 }
 
@@ -88,6 +88,7 @@ export function inferExpenseType(desc: string, cat?: string): string {
   if (d.includes('asistenta') || d.includes('rutiera') || d.includes('asistență')) return 'ABONAMENT ASISTENȚĂ RUTIERĂ'
   if (d.includes('metrorex')) return 'METROREX ABONAMENT'
   if (d.includes('macbook') || d.includes('laptop')) return 'LAPTOP'
+  if (d.includes('tableta') || d.includes('tablet')) return 'TABLETĂ'
   return cat ? cat.toUpperCase() : 'ALTELE'
 }
 
@@ -113,7 +114,7 @@ export function generateIncomeFingerprint(row: number, date: string, desc: strin
   return crypto.createHash('sha256').update(payload).digest('hex')
 }
 
-// Raw expense rows from source (45 operational records + 2 asset/equipment records)
+// Raw expense rows from source (50 operational records + 3 asset/equipment records)
 const RAW_EXPENSES: Array<{
   row: number
   raw_date: string
@@ -178,7 +179,7 @@ const RAW_EXPENSES: Array<{
   { row: 43, raw_date: '27/09/2026', doc: null, desc: 'motorina', cat: 'masina', supplier: 'omv', net: 160.05, vat: null, total: 160.05, obs: '50%' },
   { row: 44, raw_date: '29/09/2026', doc: null, desc: 'motorina', cat: 'masina', supplier: 'omv', net: 90.01, vat: null, total: 90.01, obs: '50%' },
   { row: 45, raw_date: '02/10/2026', doc: null, desc: 'motorina', cat: 'masina', supplier: 'omv', net: 200.20, vat: null, total: 200.20, obs: '50%' },
-  // Row 46: MacBook (Asset with 3 years amortization, 33% annual rate, June 2026)
+  // Row 46: MacBook M5 (Asset with 3 years amortization, 33% annual rate, June 2026) — EXCLUS DIN IMPORT, PRESERVAT STRICT
   {
     row: 46,
     raw_date: '06/2026',
@@ -198,20 +199,50 @@ const RAW_EXPENSES: Array<{
     monthly_depreciation: 151.22,
     depreciation_method: 'STRAIGHT_LINE',
   },
-  // Row 47: Cooler laptop (IT Accessory, direct expense, June 2026)
+  // Row 47: Cooler Laptop Myria (Active — bunuri, direct purchase, 21/06/2026, 50% din sursă)
   {
     row: 47,
-    raw_date: '06/2026',
+    raw_date: '21/06/2026',
     doc: null,
-    desc: 'Cooler laptop',
+    desc: 'Cooler Laptop Myria',
     cat: 'IT / Accesorii',
     supplier: 'ALTEX',
     net: 109.90,
     vat: null,
     total: 109.90,
-    obs: null,
-    is_asset: false,
-    asset_name: null,
+    obs: '50%',
+    is_asset: true,
+    asset_name: 'Cooler Laptop Myria',
+    depreciation_years: null,
+    annual_depreciation_rate: null,
+    annual_depreciation: null,
+    monthly_depreciation: null,
+    depreciation_method: null,
+  },
+  // Row 48: motorina 04/10/2026 (Cheltuieli auto — motorină, 50% din sursă)
+  { row: 48, raw_date: '04/10/2026', doc: null, desc: 'motorina', cat: 'masina', supplier: 'OMV', net: 100.05, vat: null, total: 100.05, obs: '50%' },
+  // Row 49: motorina 05/10/2026 (Cheltuieli auto — motorină, 50% din sursă)
+  { row: 49, raw_date: '05/10/2026', doc: null, desc: 'motorina', cat: 'masina', supplier: 'OMV', net: 120.01, vat: null, total: 120.01, obs: '50%' },
+  // Row 50: motorina 09/10/2026 (Cheltuieli auto — motorină, 50% din sursă)
+  { row: 50, raw_date: '09/10/2026', doc: null, desc: 'motorina', cat: 'masina', supplier: 'OMV', net: 200.04, vat: null, total: 200.04, obs: '50%' },
+  // Row 51: motorina 11/10/2026 (Cheltuieli auto — motorină, 50% din sursă)
+  { row: 51, raw_date: '11/10/2026', doc: null, desc: 'motorina', cat: 'masina', supplier: 'OMV', net: 200.04, vat: null, total: 200.04, obs: '50%' },
+  // Row 52: motorina 13/10/2026 (Cheltuieli auto — motorină, 50% din sursă)
+  { row: 52, raw_date: '13/10/2026', doc: null, desc: 'motorina', cat: 'masina', supplier: 'MOL', net: 100.01, vat: null, total: 100.01, obs: '50%' },
+  // Row 53: Tableta Honor 14/10/2026 (Active — bunuri, 50% din sursă)
+  {
+    row: 53,
+    raw_date: '14/10/2026',
+    doc: null,
+    desc: 'Tableta Honor',
+    cat: 'IT / Echipamente',
+    supplier: 'ALTEX',
+    net: 899.99,
+    vat: null,
+    total: 899.99,
+    obs: '50%',
+    is_asset: true,
+    asset_name: 'Tableta Honor',
     depreciation_years: null,
     annual_depreciation_rate: null,
     annual_depreciation: null,

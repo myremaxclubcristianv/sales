@@ -40,10 +40,10 @@ export function FinancialOverviewTab({ overview, onSelectTab }: FinancialOvervie
           </div>
           <div>
             <p className="text-2xl sm:text-3xl font-bold font-mono text-neutral-900 dark:text-neutral-100">
-              {formatCurrencyRo(overview.totalOperationalExpenses || 5740.17)}
+              {formatCurrencyRo(overview.totalOperationalExpenses)}
             </p>
             <p className="text-xs text-neutral-500 dark:text-neutral-400 mt-1">
-              {overview.operationalExpenseCount || 45} plăți curente (Masina & Transport)
+              {overview.operationalExpenseCount} plăți curente (Masina & Transport)
             </p>
           </div>
           <button
@@ -67,14 +67,14 @@ export function FinancialOverviewTab({ overview, onSelectTab }: FinancialOvervie
           </div>
           <div>
             <p className="text-2xl sm:text-3xl font-bold font-mono text-neutral-900 dark:text-neutral-100">
-              {formatCurrencyRo(overview.totalAssetPurchases || 5608.89)}
+              {formatCurrencyRo(overview.totalAssetPurchases)}
             </p>
             <p className="text-xs text-neutral-500 dark:text-neutral-400 mt-1">
-              {overview.assetCount || 2} achiziții IT (MacBook + Cooler)
+              {overview.assetCount} active / bunuri IT
             </p>
           </div>
           <div className="text-[11px] text-purple-700 dark:text-purple-300 font-mono font-semibold pt-1">
-            Amortizare: {formatCurrencyRo(overview.totalAnnualDepreciation || 1814.67)} / an (33%)
+            Amortizare: {formatCurrencyRo(overview.totalAnnualDepreciation)} / an (33%)
           </div>
         </div>
 
@@ -147,7 +147,7 @@ export function FinancialOverviewTab({ overview, onSelectTab }: FinancialOvervie
           <div className="flex items-center gap-2">
             <Building2 className="w-4 h-4 text-purple-600" />
             <h3 className="font-bold text-sm text-neutral-900 dark:text-white">
-              Evidență Active &amp; Amortizare Contabilă (3 Ani / 33% Anual)
+              Evidență Active &amp; Echipamente (Amortizare Contabilă &amp; Achiziții)
             </h3>
           </div>
           <span className="text-xs text-purple-600 dark:text-purple-400 font-mono font-bold">
@@ -155,7 +155,7 @@ export function FinancialOverviewTab({ overview, onSelectTab }: FinancialOvervie
           </span>
         </div>
 
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 text-xs">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 text-xs">
           <div className="p-4 rounded-xl bg-purple-50/50 dark:bg-purple-950/20 border border-purple-100 dark:border-purple-900/40 space-y-1.5">
             <div className="flex items-center justify-between">
               <span className="font-bold text-neutral-900 dark:text-white text-sm">LAPTOP MACBOOK M5</span>
@@ -169,15 +169,32 @@ export function FinancialOverviewTab({ overview, onSelectTab }: FinancialOvervie
               <p>Durată Amortizare: <strong>3 ANI</strong> (Cotă: 33%/an)</p>
               <p>Amortizare Anuală: <strong className="text-purple-600">1.814,67 RON/an</strong></p>
               <p>Amortizare Lunară: <strong>151,22 RON/lună</strong></p>
-              <p className="text-[11px] text-amber-600 dark:text-amber-400 font-semibold pt-1">
-                Data Achiziție: NECOMPLETATĂ
+              <p className="text-[11px] text-purple-700 dark:text-purple-400 font-semibold pt-1">
+                Data: 06/2026 (33% din sursă)
+              </p>
+            </div>
+          </div>
+
+          <div className="p-4 rounded-xl bg-blue-50/50 dark:bg-blue-950/20 border border-blue-100 dark:border-blue-900/40 space-y-1.5">
+            <div className="flex items-center justify-between">
+              <span className="font-bold text-neutral-900 dark:text-white text-sm">TABLETA HONOR</span>
+              <span className="px-2 py-0.5 rounded bg-blue-100 dark:bg-blue-900 text-blue-700 dark:text-blue-300 font-bold font-mono text-[10px]">
+                ACTIV IT
+              </span>
+            </div>
+            <div className="space-y-1 font-mono text-neutral-600 dark:text-neutral-300 pt-1">
+              <p>Furnizor: <strong>ALTEX</strong></p>
+              <p>Valoare Achiziție: <strong>899,99 RON</strong></p>
+              <p>Tratament: <strong>Active — bunuri (50%)</strong></p>
+              <p className="text-[11px] text-blue-700 dark:text-blue-400 font-semibold pt-1">
+                Data Achiziție: 14/10/2026
               </p>
             </div>
           </div>
 
           <div className="p-4 rounded-xl bg-neutral-50 dark:bg-neutral-800/40 border border-neutral-200 dark:border-neutral-700/60 space-y-1.5">
             <div className="flex items-center justify-between">
-              <span className="font-bold text-neutral-900 dark:text-white text-sm">COOLER LAPTOP</span>
+              <span className="font-bold text-neutral-900 dark:text-white text-sm">COOLER LAPTOP MYRIA</span>
               <span className="px-2 py-0.5 rounded bg-neutral-200 dark:bg-neutral-700 text-neutral-700 dark:text-neutral-300 font-bold font-mono text-[10px]">
                 ACCESORIU IT
               </span>
@@ -185,9 +202,9 @@ export function FinancialOverviewTab({ overview, onSelectTab }: FinancialOvervie
             <div className="space-y-1 font-mono text-neutral-600 dark:text-neutral-300 pt-1">
               <p>Furnizor: <strong>ALTEX</strong></p>
               <p>Valoare Achiziție: <strong>109,90 RON</strong></p>
-              <p>Tratament: <strong>Cheltuială Echipament / Accesoriu</strong></p>
-              <p className="text-[11px] text-amber-600 dark:text-amber-400 font-semibold pt-1">
-                Data Achiziție: NECOMPLETATĂ
+              <p>Tratament: <strong>Active — bunuri (50%)</strong></p>
+              <p className="text-[11px] text-neutral-600 dark:text-neutral-400 font-semibold pt-1">
+                Data Achiziție: 21/06/2026
               </p>
             </div>
           </div>
@@ -196,9 +213,9 @@ export function FinancialOverviewTab({ overview, onSelectTab }: FinancialOvervie
             <div>
               <span className="font-bold text-neutral-900 dark:text-white text-sm">Sinteză Active &amp; Echipamente</span>
               <div className="space-y-1.5 font-mono text-neutral-600 dark:text-neutral-300 pt-2">
-                <p>Total Achiziții IT: <strong>5.608,89 RON</strong></p>
-                <p>Amortizare Anuală Totală: <strong>1.814,67 RON</strong></p>
-                <p>Impact Contabil Net 2026: <strong>-5.409,41 RON</strong></p>
+                <p>Total Achiziții IT: <strong>{formatCurrencyRo(overview.totalAssetPurchases)}</strong></p>
+                <p>Amortizare Anuală: <strong>{formatCurrencyRo(overview.totalAnnualDepreciation)}</strong></p>
+                <p>Total Bunuri: <strong>{overview.assetCount} active</strong></p>
               </div>
             </div>
             <p className="text-[10px] text-neutral-400 pt-2">
