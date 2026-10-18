@@ -8,17 +8,22 @@ import {
   AlertTriangle, 
   ArrowUpRight, 
   Plus,
-  Wallet
+  Wallet,
+  Building2
 } from 'lucide-react'
 import { getInsuranceMetrics, getInsuranceClients, getAllInsurancePolicies } from '@/lib/db/insurance-isolated'
+import { getInsuranceCompaniesMetrics } from '@/lib/db/insurance-companies'
 import { calculateExpiration } from '@/lib/utils/insurance-expiration'
 
 export const dynamic = 'force-dynamic'
 
 export default async function InsuranceDashboardPage() {
-  const metrics = await getInsuranceMetrics()
-  const { clients } = await getInsuranceClients()
-  const allPolicies = await getAllInsurancePolicies()
+  const [metrics, { clients }, allPolicies, companiesMetrics] = await Promise.all([
+    getInsuranceMetrics(),
+    getInsuranceClients(),
+    getAllInsurancePolicies(),
+    getInsuranceCompaniesMetrics(),
+  ])
 
   // Get urgent expiring policies for prompt action banner
   const urgentExpiring = allPolicies.filter((p) => {
@@ -42,6 +47,14 @@ export default async function InsuranceDashboardPage() {
           </div>
 
           <div className="flex flex-wrap items-center gap-2.5">
+            <Link
+              href="/admin/insurance/firme"
+              className="inline-flex items-center gap-2 px-3.5 py-2.5 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl font-bold text-xs transition active:scale-95 shadow-sm"
+            >
+              <Building2 className="w-4 h-4 text-indigo-200" />
+              <span>Firme ({companiesMetrics?.total || 107} Prospecte)</span>
+            </Link>
+
             <Link
               href="/admin/insurance/financial"
               className="inline-flex items-center gap-2 px-3.5 py-2.5 bg-neutral-900 hover:bg-neutral-800 dark:bg-white dark:hover:bg-neutral-100 text-white dark:text-neutral-900 rounded-xl font-bold text-xs transition active:scale-95 shadow-sm"
@@ -161,7 +174,7 @@ export default async function InsuranceDashboardPage() {
         )}
 
         {/* Quick Navigation Sections */}
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
           <Link
             href="/admin/insurance/clients"
             className="group bg-white dark:bg-neutral-900 p-5 rounded-2xl border border-neutral-200/80 dark:border-neutral-800 shadow-2xs hover:border-blue-500/50 transition space-y-2"
@@ -177,6 +190,24 @@ export default async function InsuranceDashboardPage() {
             </h3>
             <p className="text-xs text-neutral-500 dark:text-neutral-400">
               Vizualizează toți cei {metrics.totalClients} clienți cu polițe, contacte, vehicule și adrese.
+            </p>
+          </Link>
+
+          <Link
+            href="/admin/insurance/firme"
+            className="group bg-white dark:bg-neutral-900 p-5 rounded-2xl border border-neutral-200/80 dark:border-neutral-800 shadow-2xs hover:border-indigo-500/50 transition space-y-2"
+          >
+            <div className="flex items-center justify-between">
+              <div className="w-10 h-10 rounded-xl bg-indigo-50 dark:bg-indigo-950/60 text-indigo-600 dark:text-indigo-400 flex items-center justify-center">
+                <Building2 className="w-5 h-5" />
+              </div>
+              <ArrowUpRight className="w-4 h-4 text-neutral-400 group-hover:text-indigo-600 transition" />
+            </div>
+            <h3 className="font-bold text-sm text-neutral-900 dark:text-neutral-100">
+              Firme ({companiesMetrics?.total || 107} Prospecte)
+            </h3>
+            <p className="text-xs text-neutral-500 dark:text-neutral-400">
+              Companii flote &amp; rent-a-car (4 tabele). Workflow comercial dedicat ofertării B2B.
             </p>
           </Link>
 
