@@ -135,7 +135,7 @@ interface RawDbClientRecord {
  */
 function buildVerifiedDatasetItems(): InsuranceClientDetailItem[] {
   return VERIFIED_INSURANCE_CLIENTS.map((c, index) => {
-    const clientId = `verified-${c.import_source_id}`
+    const clientId = c.id || `verified-${c.import_source_id}`
     const policies: InsurancePolicyItem[] = c.policies.map((p) => ({
       id: `verified-pol-${p.import_source_id}`,
       insurance_client_id: clientId,
