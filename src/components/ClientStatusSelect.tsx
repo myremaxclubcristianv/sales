@@ -12,6 +12,7 @@ interface ClientStatusSelectProps {
   onStatusChange?: (newStatus: ClientStatus) => void
   disabled?: boolean
   className?: string
+  align?: 'left' | 'right' | 'auto'
 }
 
 export function ClientStatusSelect({
@@ -21,13 +22,17 @@ export function ClientStatusSelect({
   onStatusChange,
   disabled = false,
   className = '',
+  align = 'auto',
 }: ClientStatusSelectProps) {
   const [status, setStatus] = useState<ClientStatus>((currentStatus as ClientStatus) || 'NOT_CONTACTED')
   const [prevStatus, setPrevStatus] = useState(currentStatus)
   const [isOpen, setIsOpen] = useState(false)
+  const [autoAlign, setAutoAlign] = useState<'left' | 'right'>('left')
   const [saving, setSaving] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const dropdownRef = useRef<HTMLDivElement>(null)
+
+  const effectiveAlign = align !== 'auto' ? align : autoAlign
 
   // Sync with prop if it changes externally
   if (currentStatus !== prevStatus) {
@@ -64,6 +69,22 @@ export function ClientStatusSelect({
       document.removeEventListener('keydown', handleKeyDown)
     }
   }, [isOpen])
+
+  const toggleDropdown = () => {
+    setIsOpen((prev) => {
+      const next = !prev
+      if (next && align === 'auto' && dropdownRef.current && typeof window !== 'undefined') {
+        const rect = dropdownRef.current.getBoundingClientRect()
+        const spaceRight = window.innerWidth - rect.left
+        if (spaceRight < 270 || rect.left > window.innerWidth * 0.5) {
+          setAutoAlign('right')
+        } else {
+          setAutoAlign('left')
+        }
+      }
+      return next
+    })
+  }
 
   const handleSelect = async (newStatus: ClientStatus) => {
     if (newStatus === status || saving || disabled) {
@@ -120,7 +141,7 @@ export function ClientStatusSelect({
       <button
         type="button"
         disabled={disabled || saving}
-        onClick={() => setIsOpen((prev) => !prev)}
+        onClick={toggleDropdown}
         aria-haspopup="true"
         aria-expanded={isOpen}
         aria-label={`Schimbă status client: curent ${currentMeta.label}`}
@@ -144,7 +165,7 @@ export function ClientStatusSelect({
 
       {/* Error state tooltip */}
       {error && (
-        <div className="absolute top-full mt-1 left-0 z-50 p-2 bg-rose-50 border border-rose-200 text-rose-700 text-xs rounded-lg shadow-md flex items-center gap-1 min-w-[200px]">
+        <div className={`absolute top-full mt-1 ${effectiveAlign === 'right' ? 'right-0' : 'left-0'} z-50 p-2 bg-rose-50 border border-rose-200 text-rose-700 text-xs rounded-lg shadow-md flex items-center gap-1 min-w-[200px] max-w-[calc(100vw-2rem)]`}>
           <AlertCircle className="w-3.5 h-3.5 shrink-0" />
           <span>{error}</span>
         </div>
@@ -152,7 +173,9 @@ export function ClientStatusSelect({
 
       {/* Dropdown Menu */}
       {isOpen && (
-        <div className="absolute z-50 mt-1.5 w-64 max-h-80 overflow-y-auto bg-white rounded-2xl shadow-xl border border-slate-200 py-1.5 focus:outline-hidden animate-in fade-in zoom-in-95 duration-100 divide-y divide-slate-100">
+        <div className={`absolute z-50 mt-1.5 w-64 max-w-[calc(100vw-2rem)] max-h-80 overflow-y-auto bg-white rounded-2xl shadow-xl border border-slate-200 py-1.5 focus:outline-hidden animate-in fade-in zoom-in-95 duration-100 divide-y divide-slate-100 ${
+          effectiveAlign === 'right' ? 'right-0' : 'left-0'
+        }`}>
           <div className="px-3 py-1.5 bg-slate-50 border-b border-slate-100 flex items-center justify-between">
             <span className="text-[11px] font-bold uppercase tracking-wider text-slate-500">
               Schimbă Status Client

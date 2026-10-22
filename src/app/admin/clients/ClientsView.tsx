@@ -5,6 +5,8 @@ import Link from 'next/link'
 import { useRouter, useSearchParams } from 'next/navigation'
 import { QuickClientModal } from '@/components/QuickClientModal'
 import { ClientStatusSelect } from '@/components/ClientStatusSelect'
+import { ClientQuickNotePopover } from '@/components/ClientQuickNotePopover'
+import { ClientQuickScheduleModal } from '@/components/ClientQuickScheduleModal'
 import {
   CLIENT_SOURCES,
   CLIENT_STATUSES,
@@ -625,6 +627,18 @@ export function ClientsView({
                       {/* Acțiuni */}
                       <td className="py-3.5 pl-3 pr-6 text-right">
                         <div className="flex items-center justify-end gap-1.5">
+                          <ClientQuickNotePopover
+                            clientId={client.id}
+                            clientName={`${client.first_name || ''} ${client.last_name || ''}`.trim()}
+                            phone={client.phone ? formatPhoneDisplay(client.phone) : null}
+                          />
+                          <ClientQuickScheduleModal
+                            clientId={client.id}
+                            clientName={`${client.first_name || ''} ${client.last_name || ''}`.trim()}
+                            phone={client.phone ? formatPhoneDisplay(client.phone) : null}
+                            className="min-h-[36px] min-w-[36px] p-2"
+                            onScheduled={() => router.refresh()}
+                          />
                           {client.phone && (
                             <a
                               href={getWhatsAppUrl(client.whatsapp || client.phone)}
@@ -653,7 +667,7 @@ export function ClientsView({
           </div>
 
           {/* Mobile Responsive Client Cards View (1-3 taps parity) */}
-          <div className="lg:hidden divide-y divide-slate-100">
+          <div className="lg:hidden divide-y-2 divide-slate-200/90 dark:divide-neutral-800">
             {initialClients.map((client) => {
               const clientCategory = (client.category || 'REAL_ESTATE').toUpperCase()
 
@@ -670,7 +684,7 @@ export function ClientsView({
               )[0]
 
               return (
-                <div key={client.id} className="p-4 space-y-3 bg-white">
+                <div key={client.id} className="p-4 sm:p-5 space-y-3 bg-white dark:bg-neutral-900 border-b-2 border-slate-200/90 dark:border-neutral-800 last:border-b-0">
                   {/* Card Header: Client Name + Category + Status */}
                   <div className="flex items-start justify-between gap-2">
                     <Link href={`/admin/clients/${client.id}`} className="flex items-center gap-3 flex-1 min-w-0">
@@ -711,6 +725,7 @@ export function ClientsView({
                       clientId={client.id}
                       currentStatus={client.status}
                       size="sm"
+                      align="right"
                       onStatusChange={() => router.refresh()}
                     />
                   </div>
@@ -751,7 +766,20 @@ export function ClientsView({
 
                   {/* Mobile Actions Bar (min 44px touch targets) */}
                   <div className="flex items-center justify-between pt-2 border-t border-slate-100 gap-2">
-                    <div className="flex items-center gap-2">
+                    <div className="flex items-center gap-1.5 flex-wrap">
+                      <ClientQuickNotePopover
+                        clientId={client.id}
+                        clientName={`${client.first_name || ''} ${client.last_name || ''}`.trim()}
+                        phone={client.phone ? formatPhoneDisplay(client.phone) : null}
+                        className="min-h-[44px] min-w-[44px] border border-slate-200 bg-slate-100"
+                      />
+                      <ClientQuickScheduleModal
+                        clientId={client.id}
+                        clientName={`${client.first_name || ''} ${client.last_name || ''}`.trim()}
+                        phone={client.phone ? formatPhoneDisplay(client.phone) : null}
+                        className="min-h-[44px] min-w-[44px] border border-slate-200 bg-slate-100"
+                        onScheduled={() => router.refresh()}
+                      />
                       {client.phone && (
                         <a
                           href={getTelUrl(client.phone)}

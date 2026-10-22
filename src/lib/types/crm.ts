@@ -24,6 +24,7 @@ export type ClientStatus =
   | 'INACTIVE'
   | 'LOST'
   | 'ARCHIVED'
+  | 'IDIOT'
 
 export interface ClientStatusMeta {
   id: ClientStatus
@@ -189,6 +190,15 @@ export const CLIENT_STATUSES: ClientStatusMeta[] = [
     badgeText: 'text-neutral-600',
     badgeBorder: 'border-neutral-300',
     dotColor: 'bg-neutral-400',
+  },
+  {
+    id: 'IDIOT',
+    label: 'IDIOT',
+    description: 'Client nepotrivit / necooperant',
+    badgeBg: 'bg-rose-100 dark:bg-rose-950/40',
+    badgeText: 'text-rose-800 dark:text-rose-300 font-extrabold',
+    badgeBorder: 'border-rose-300 dark:border-rose-800',
+    dotColor: 'bg-rose-600',
   },
 ]
 
