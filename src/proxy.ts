@@ -1,6 +1,10 @@
 import { createServerClient } from '@supabase/ssr'
 import { NextResponse, type NextRequest } from 'next/server'
 
+const AUTHORIZED_ADMIN_EMAIL = (
+  process.env.ADMIN_EMAIL || 'cristianvaduva@duck.com'
+).toLowerCase().trim()
+
 export async function proxy(request: NextRequest) {
   let supabaseResponse = NextResponse.next({
     request,
@@ -31,38 +35,54 @@ export async function proxy(request: NextRequest) {
     data: { user },
   } = await supabase.auth.getUser()
 
-  const csp = "default-src 'self'; base-uri 'self'; form-action 'self'; frame-ancestors 'none'; object-src 'none'; script-src 'self' 'unsafe-inline' 'unsafe-eval'; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob: https:; font-src 'self' data: https:; connect-src 'self' https: wss:; frame-src 'self'; manifest-src 'self'; worker-src 'self' blob:;"
+  const isAuthorized = Boolean(
+    user && user.email && user.email.toLowerCase().trim() === AUTHORIZED_ADMIN_EMAIL
+  )
+
+  const csp =
+    "default-src 'self'; base-uri 'self'; form-action 'self'; frame-ancestors 'none'; object-src 'none'; script-src 'self' 'unsafe-inline' 'unsafe-eval'; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob: https:; font-src 'self' data: https:; connect-src 'self' https: wss:; frame-src 'self'; manifest-src 'self'; worker-src 'self' blob:;"
 
   const setSecurityHeaders = (res: NextResponse) => {
     res.headers.set('Strict-Transport-Security', 'max-age=31536000; includeSubDomains')
     res.headers.set('X-Frame-Options', 'DENY')
     res.headers.set('X-Content-Type-Options', 'nosniff')
     res.headers.set('Referrer-Policy', 'strict-origin-when-cross-origin')
-    res.headers.set('Permissions-Policy', 'camera=(), microphone=(), geolocation=(), payment=(), usb=(), fullscreen=(self)')
+    res.headers.set(
+      'Permissions-Policy',
+      'camera=(), microphone=(), geolocation=(), payment=(), usb=(), fullscreen=(self)'
+    )
     res.headers.set('Content-Security-Policy', csp)
     return res
   }
 
-  // Protect admin UI routes
-  if (request.nextUrl.pathname.startsWith('/admin') && !user) {
-    const url = request.nextUrl.clone()
-    url.pathname = '/login'
-    return setSecurityHeaders(NextResponse.redirect(url))
+  const pathname = request.nextUrl.pathname
+  const method = request.method
+
+  // 1. Protect Admin UI Routes
+  if (pathname.startsWith('/admin')) {
+    if (!user || !isAuthorized) {
+      const url = request.nextUrl.clone()
+      url.pathname = '/login'
+      return setSecurityHeaders(NextResponse.redirect(url))
+    }
   }
 
-  // Protect private API routes (Defense-in-Depth)
+  // 2. Explicit Public API Whitelist (strictly limited to inbound leads, analytics and cron reminder check)
   const isPublicApi =
-    request.nextUrl.pathname === '/api/leads' ||
-    request.nextUrl.pathname === '/api/analytics/track' ||
-    request.nextUrl.pathname === '/api/reminders/check' ||
-    (request.nextUrl.pathname === '/api/properties' && request.method === 'GET') ||
-    (request.nextUrl.pathname.startsWith('/api/properties/') && request.method === 'GET' && !request.nextUrl.pathname.includes('/documents') && !request.nextUrl.pathname.includes('/media')) ||
-    (request.nextUrl.pathname === '/api/requests' && request.method === 'GET')
+    pathname === '/api/reminders/check' ||
+    (pathname === '/api/leads' && method === 'POST') ||
+    (pathname === '/api/analytics/track' && method === 'POST')
 
-  if (request.nextUrl.pathname.startsWith('/api/') && !isPublicApi && !user) {
-    return setSecurityHeaders(
-      NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
-    )
+  // 3. Protect all private API routes (Defense-in-Depth)
+  if (pathname.startsWith('/api/') && !isPublicApi) {
+    if (!user || !isAuthorized) {
+      return setSecurityHeaders(
+        NextResponse.json(
+          { error: 'Unauthorized: Sesiune de administrator necesară.' },
+          { status: 401 }
+        )
+      )
+    }
   }
 
   return setSecurityHeaders(supabaseResponse)
