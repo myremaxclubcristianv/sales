@@ -54,6 +54,7 @@ export async function proxy(request: NextRequest) {
   const isPublicApi =
     request.nextUrl.pathname === '/api/leads' ||
     request.nextUrl.pathname === '/api/analytics/track' ||
+    request.nextUrl.pathname === '/api/reminders/check' ||
     (request.nextUrl.pathname === '/api/properties' && request.method === 'GET') ||
     (request.nextUrl.pathname.startsWith('/api/properties/') && request.method === 'GET' && !request.nextUrl.pathname.includes('/documents') && !request.nextUrl.pathname.includes('/media')) ||
     (request.nextUrl.pathname === '/api/requests' && request.method === 'GET')
