@@ -2,21 +2,46 @@ import { createClient as createServerClient } from '@/lib/supabase/server'
 import { createAdminClient } from '@/lib/supabase/admin'
 import { checkAndGenerateReminders } from '@/lib/utils/reminders'
 import { NextResponse } from 'next/server'
+import { createHash, timingSafeEqual } from 'crypto'
+
+/**
+ * Safely compare two secret tokens in constant time to prevent timing attacks.
+ * Normalizes input tokens using SHA-256 before timingSafeEqual to safely handle
+ * differing string lengths without leaking length timing or throwing RangeError.
+ */
+function safeCompareTokens(provided: string | null | undefined, secret: string | null | undefined): boolean {
+  if (!provided || !secret) {
+    return false
+  }
+
+  const cleanProvided = provided.trim()
+  const cleanSecret = secret.trim()
+
+  if (!cleanProvided || !cleanSecret) {
+    return false
+  }
+
+  try {
+    const hashProvided = createHash('sha256').update(cleanProvided).digest()
+    const hashSecret = createHash('sha256').update(cleanSecret).digest()
+    return timingSafeEqual(hashProvided, hashSecret)
+  } catch {
+    return false
+  }
+}
 
 async function handleRemindersCheck(req: Request) {
   try {
     const authHeader = req.headers.get('authorization')
-    const isVercelCron = req.headers.get('x-vercel-cron') === '1'
     const cronSecret = process.env.CRON_SECRET?.trim()
 
-    let isAuthorizedCron = false
+    // Extract Bearer token if present
+    const bearerToken = authHeader?.startsWith('Bearer ') ? authHeader.slice(7).trim() : null
 
-    // Check Vercel Cron Secret / Authorization header
-    if (cronSecret && authHeader === `Bearer ${cronSecret}`) {
-      isAuthorizedCron = true
-    } else if (isVercelCron && (!cronSecret || authHeader === `Bearer ${cronSecret}`)) {
-      isAuthorizedCron = true
-    }
+    // Validate cron authorization strictly via CRON_SECRET and constant-time token comparison.
+    // If CRON_SECRET is not configured or empty, cron authorization is strictly rejected.
+    // The header 'x-vercel-cron' alone NEVER grants access.
+    const isAuthorizedCron = Boolean(cronSecret && bearerToken && safeCompareTokens(bearerToken, cronSecret))
 
     if (isAuthorizedCron) {
       // Execute with Service Role Client for cron automation
@@ -61,4 +86,3 @@ export async function POST(req: Request) {
 export async function GET(req: Request) {
   return handleRemindersCheck(req)
 }
-
