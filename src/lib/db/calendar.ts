@@ -1,5 +1,6 @@
 import { createClient as createServerClient } from '@/lib/supabase/server'
 import { calculateAge } from '@/lib/utils/cnp'
+import { utcToBucharestParts } from '@/lib/utils/timezone'
 import type { SupabaseClient } from '@supabase/supabase-js'
 
 export type CalendarEventType =
@@ -245,13 +246,7 @@ export async function getMasterCalendarEvents(
     const categories = client?.category ? [client.category.toUpperCase().replace('_', ' ')] : ['FOLLOW-UP']
     const catLabel = categories.join(' · ')
 
-    const dueDateObj = new Date(f.due_date)
-    const dateStr = !isNaN(dueDateObj.getTime())
-      ? dueDateObj.toISOString().slice(0, 10)
-      : f.due_date.slice(0, 10)
-    const timeStr = !isNaN(dueDateObj.getTime())
-      ? dueDateObj.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
-      : null
+    const { date: dateStr, time: timeStr } = utcToBucharestParts(f.due_date)
 
     allEvents.push({
       id: `followup-${f.id}`,

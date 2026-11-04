@@ -10,6 +10,7 @@ import { ActivityTimeline } from '@/components/ActivityTimeline'
 import { ActivityForm } from '@/components/ActivityForm'
 import { SecureClientDocumentVault } from '@/components/SecureClientDocumentVault'
 import { EditClientModal } from '@/components/EditClientModal'
+import { AddClientPolicyModal } from '@/components/AddClientPolicyModal'
 import { ClientStatusSelect } from '@/components/ClientStatusSelect'
 import {
   Shield,
@@ -73,7 +74,7 @@ export function ClientWorkspaceTabs({
   activities,
   documents,
   folders,
-  policies,
+  policies: initialPolicies,
   insuranceOpportunities,
   followUps,
   opportunities,
@@ -88,6 +89,14 @@ export function ClientWorkspaceTabs({
   const [activeTab, setActiveTab] = useState<string>(initialTab)
   const [showCnp, setShowCnp] = useState(false)
   const [editModalOpen, setEditModalOpen] = useState(false)
+  const [addPolicyModalOpen, setAddPolicyModalOpen] = useState(false)
+  const [policies, setPolicies] = useState<PolicyRow[]>(initialPolicies)
+
+  const handlePolicyAdded = (newPolicy: PolicyRow) => {
+    setPolicies((prev) => [newPolicy, ...prev])
+    setActiveTab('policies')
+    router.refresh()
+  }
 
   // Follow-up modal & actions state
   const [followUpModalOpen, setFollowUpModalOpen] = useState(false)
@@ -516,12 +525,14 @@ export function ClientWorkspaceTabs({
                 <span>Oportunitate</span>
               </Button>
             </Link>
-            <Link href={`/admin/insurance/new?client_id=${client.id}`}>
-              <Button size="sm" className="gap-1.5 text-xs h-9 bg-neutral-900 text-white">
-                <Shield className="w-3.5 h-3.5 text-blue-400" />
-                <span>Poliță Nouă</span>
-              </Button>
-            </Link>
+            <Button
+              size="sm"
+              onClick={() => setAddPolicyModalOpen(true)}
+              className="gap-1.5 text-xs h-9 bg-neutral-900 text-white hover:bg-neutral-800 cursor-pointer"
+            >
+              <Shield className="w-3.5 h-3.5 text-blue-400" />
+              <span>Poliță Nouă</span>
+            </Button>
           </div>
         </div>
 
@@ -807,21 +818,26 @@ export function ClientWorkspaceTabs({
                       Insurance Policies ({policies.length})
                     </h3>
                   </div>
-                  <Link
-                    href={`/admin/insurance/new?client_id=${client.id}`}
-                    className="text-xs font-semibold text-blue-600 hover:underline inline-flex items-center gap-1"
+                  <button
+                    type="button"
+                    onClick={() => setAddPolicyModalOpen(true)}
+                    className="text-xs font-semibold text-blue-600 hover:underline inline-flex items-center gap-1 cursor-pointer"
                   >
                     <Plus className="w-3.5 h-3.5" />
                     <span>Add Policy</span>
-                  </Link>
+                  </button>
                 </div>
 
                 {policies.length === 0 ? (
                   <p className="text-xs text-neutral-500 py-4 text-center">
                     No insurance policies registered yet.{' '}
-                    <Link href={`/admin/insurance/new?client_id=${client.id}`} className="text-blue-600 underline">
+                    <button
+                      type="button"
+                      onClick={() => setAddPolicyModalOpen(true)}
+                      className="text-blue-600 underline cursor-pointer"
+                    >
                       Add first policy
-                    </Link>
+                    </button>
                   </p>
                 ) : (
                   <div className="space-y-2.5">
@@ -1132,12 +1148,14 @@ export function ClientWorkspaceTabs({
                 RCA, CASCO, Home, Life, Health, and Business Coverage records
               </p>
             </div>
-            <Link href={`/admin/insurance/new?client_id=${client.id}`}>
-              <Button size="sm" className="gap-1.5 text-xs bg-neutral-900 text-white">
-                <Plus className="w-3.5 h-3.5" />
-                <span>Add New Policy</span>
-              </Button>
-            </Link>
+            <Button
+              size="sm"
+              onClick={() => setAddPolicyModalOpen(true)}
+              className="gap-1.5 text-xs bg-neutral-900 text-white hover:bg-neutral-800 cursor-pointer"
+            >
+              <Plus className="w-3.5 h-3.5" />
+              <span>Add New Policy</span>
+            </Button>
           </div>
 
           {policies.length === 0 ? (
@@ -1150,12 +1168,14 @@ export function ClientWorkspaceTabs({
                 Track client coverage policies, renewal dates, and automated renewal alerts.
               </p>
               <div className="pt-2">
-                <Link href={`/admin/insurance/new?client_id=${client.id}`}>
-                  <Button size="sm" className="gap-1.5 text-xs">
-                    <Plus className="w-3.5 h-3.5" />
-                    <span>Create Policy</span>
-                  </Button>
-                </Link>
+                <Button
+                  size="sm"
+                  onClick={() => setAddPolicyModalOpen(true)}
+                  className="gap-1.5 text-xs cursor-pointer"
+                >
+                  <Plus className="w-3.5 h-3.5" />
+                  <span>Create Policy</span>
+                </Button>
               </div>
             </div>
           ) : (
@@ -1782,6 +1802,14 @@ export function ClientWorkspaceTabs({
         onClose={() => setEditModalOpen(false)}
         client={client}
         onClientUpdated={() => router.refresh()}
+      />
+
+      {/* MODAL ADĂUGARE POLIȚĂ CLIENT */}
+      <AddClientPolicyModal
+        isOpen={addPolicyModalOpen}
+        onClose={() => setAddPolicyModalOpen(false)}
+        client={client}
+        onPolicyAdded={handlePolicyAdded}
       />
     </div>
   )

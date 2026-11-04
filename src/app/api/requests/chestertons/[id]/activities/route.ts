@@ -3,7 +3,7 @@ import {
   getChestertonsRequestById,
   addChestertonsActivity,
 } from '@/lib/db/chestertons-requests'
-import { createClient } from '@/lib/supabase/server'
+import { requireAdminSession } from '@/lib/auth/admin-auth'
 import type { ChestertonsActivityType } from '@/lib/types/chestertons-workflow'
 
 export const dynamic = 'force-dynamic'
@@ -14,14 +14,8 @@ interface Params {
 
 export async function GET(request: Request, props: Params) {
   try {
-    const supabase = await createClient()
-    const {
-      data: { user },
-    } = await supabase.auth.getUser()
-
-    if (!user) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
-    }
+    const auth = await requireAdminSession()
+    if (!auth.success) return auth.response
 
     const { id } = await props.params
     const reqData = await getChestertonsRequestById(id)
@@ -39,14 +33,9 @@ export async function GET(request: Request, props: Params) {
 
 export async function POST(request: Request, props: Params) {
   try {
-    const supabase = await createClient()
-    const {
-      data: { user },
-    } = await supabase.auth.getUser()
-
-    if (!user) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
-    }
+    const auth = await requireAdminSession()
+    if (!auth.success) return auth.response
+    const user = auth.user
 
     const { id } = await props.params
     const body = await request.json()

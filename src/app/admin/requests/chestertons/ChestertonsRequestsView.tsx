@@ -677,10 +677,19 @@ export function ChestertonsRequestsView({
                       <td className="py-3.5 px-4 align-top whitespace-nowrap">
                         <ChestertonsQuickNotePopover
                           requestId={req.import_source_id}
+                          currentNote={req.crm_notes}
                           onNoteSaved={(noteText) =>
                             handleQuickNoteSaved(req.import_source_id, noteText)
                           }
                         />
+                        {req.crm_notes && (
+                          <div
+                            className="text-[11px] text-slate-500 dark:text-slate-400 mt-1 max-w-[200px] truncate font-normal"
+                            title={req.crm_notes}
+                          >
+                            {req.crm_notes}
+                          </div>
+                        )}
                       </td>
 
                       {/* Col 5: Lead Type & Criteria */}
