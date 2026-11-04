@@ -1,7 +1,7 @@
 'use client'
 
 import React, { useState, useMemo } from 'react'
-import { useRouter } from 'next/navigation'
+import { useRouter, useSearchParams } from 'next/navigation'
 import { Button } from '@/components/ui/Button'
 import { Input } from '@/components/ui/Input'
 import { Select } from '@/components/ui/Select'
@@ -85,6 +85,8 @@ type FormTab =
 
 export function NewInsuranceClientForm() {
   const router = useRouter()
+  const searchParams = useSearchParams()
+  const clientId = searchParams.get('client_id')
   const [activeTab, setActiveTab] = useState<FormTab>('client')
   const [submitting, setSubmitting] = useState(false)
   const [errorMsg, setErrorMsg] = useState<string | null>(null)
@@ -322,6 +324,27 @@ export function NewInsuranceClientForm() {
           </Button>
         </div>
       </div>
+
+      {/* Client ID guidance banner */}
+      {clientId && (
+        <div className="p-4 bg-amber-50 dark:bg-amber-950/40 border border-amber-200 dark:border-amber-900 rounded-2xl flex flex-col sm:flex-row sm:items-center justify-between gap-3 text-xs text-amber-900 dark:text-amber-200">
+          <div className="flex items-center gap-2.5">
+            <Shield className="w-5 h-5 text-amber-600 shrink-0" />
+            <div>
+              <p className="font-bold">Adăugare poliță pentru client existent</p>
+              <p className="text-amber-800 dark:text-amber-300 text-[11px]">
+                Ai selectat un client deja existent în CRM. Pentru a adăuga o poliță nouă direct pe profilul său, accesează fișa clientului.
+              </p>
+            </div>
+          </div>
+          <Link
+            href={`/admin/clients/${clientId}?tab=policies`}
+            className="px-3.5 py-1.5 bg-amber-600 text-white rounded-xl text-xs font-semibold hover:bg-amber-700 transition shrink-0 text-center"
+          >
+            Deschide Profil Client
+          </Link>
+        </div>
+      )}
 
       {/* Error Alert */}
       {errorMsg && (

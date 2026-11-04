@@ -66,13 +66,15 @@ function getOrCreateWorkflowState(id: string): WorkflowState {
 
 async function getSafeSupabaseClient() {
   try {
+    const admin = createAdminClient()
+    if (admin) return admin
+  } catch {
+    // continue to server client
+  }
+  try {
     return await createServerClient()
   } catch {
-    try {
-      return createAdminClient()
-    } catch {
-      return null
-    }
+    return null
   }
 }
 
@@ -235,40 +237,51 @@ export async function getChestertonsRequests(filters: ChestertonsFilterParams = 
  */
 export async function getChestertonsRequestById(id: string): Promise<ChestertonsRequest | null> {
   const normId = id.trim()
+  const isUuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(normId)
   const wf = getOrCreateWorkflowState(normId)
 
   try {
     const supabase = await getSafeSupabaseClient()
     if (supabase) {
-      const { data, error } = await supabase
-        .from('chestertons_requests')
-        .select('*')
-        .or(`id.eq.${normId},import_source_id.eq.${normId}`)
-        .maybeSingle()
-
-      // Fetch activities from DB
-      const { data: dbActivities } = await supabase
-        .from('chestertons_request_activities')
-        .select('*')
-        .eq('request_id', normId)
-        .order('created_at', { ascending: false })
+      let query = supabase.from('chestertons_requests').select('*')
+      if (isUuid) {
+        query = query.eq('id', normId)
+      } else {
+        query = query.eq('import_source_id', normId)
+      }
+      const { data, error } = await query.maybeSingle()
 
       if (!error && data) {
+        // Fetch activities from DB using both import_source_id and id for zero data loss
+        const { data: dbActivities } = await supabase
+          .from('chestertons_request_activities')
+          .select('*')
+          .or(`request_id.eq.${data.import_source_id},request_id.eq.${data.id}`)
+          .order('created_at', { ascending: false })
+
+        const reqWf = getOrCreateWorkflowState(data.import_source_id)
+
         const mergedActivities = [
           ...(dbActivities || []),
-          ...wf.activities.filter(
+          ...reqWf.activities.filter(
             (wa) => !(dbActivities || []).some((da: { id: string }) => da.id === wa.id)
+          ),
+          ...wf.activities.filter(
+            (wa) => !(dbActivities || []).some((da: { id: string }) => da.id === wa.id) &&
+                    !reqWf.activities.some((ra) => ra.id === wa.id)
           ),
         ].sort(
           (a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime()
         )
 
+        const latestNote = mergedActivities.find((a) => a.note && a.note.trim())?.note ?? null
+
         return {
           ...(data as ChestertonsRequest),
-          crm_status: data.crm_status || wf.crm_status || 'NESUNAT',
-          last_contact_at: data.last_contact_at || wf.last_contact_at || null,
-          next_follow_up_at: data.next_follow_up_at || wf.next_follow_up_at || null,
-          crm_notes: data.crm_notes || wf.crm_notes || null,
+          crm_status: data.crm_status || reqWf.crm_status || wf.crm_status || 'NESUNAT',
+          last_contact_at: data.last_contact_at || reqWf.last_contact_at || wf.last_contact_at || null,
+          next_follow_up_at: data.next_follow_up_at || reqWf.next_follow_up_at || wf.next_follow_up_at || null,
+          crm_notes: data.crm_notes || latestNote || reqWf.crm_notes || wf.crm_notes || null,
           activities: mergedActivities as ChestertonsActivityItem[],
         }
       }
@@ -303,6 +316,7 @@ export async function updateChestertonsRequestStatus(
   userId?: string | null
 ): Promise<{ success: boolean; crm_status: ChestertonsCrmStatus; activity: ChestertonsActivityItem }> {
   const normId = requestId.trim()
+  const isUuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(normId)
   const newStatus = normalizeCrmStatus(newStatusRaw)
   const wf = getOrCreateWorkflowState(normId)
   const oldStatus = wf.crm_status
@@ -329,16 +343,25 @@ export async function updateChestertonsRequestStatus(
 
   wf.activities.unshift(activity)
 
-  // 3. Persist to Supabase if accessible
+  // 3. Persist to Supabase
   try {
     const admin = createAdminClient()
-    await admin
-      .from('chestertons_requests')
-      .update({
-        crm_status: newStatus,
-        updated_at: new Date().toISOString(),
-      })
-      .eq('import_source_id', normId)
+    const updatePayload: Record<string, unknown> = {
+      crm_status: newStatus,
+      updated_at: new Date().toISOString(),
+    }
+    if (note && note.trim()) {
+      updatePayload.crm_notes = note.trim()
+      wf.crm_notes = note.trim()
+    }
+
+    let updateQuery = admin.from('chestertons_requests').update(updatePayload)
+    if (isUuid) {
+      updateQuery = updateQuery.eq('id', normId)
+    } else {
+      updateQuery = updateQuery.eq('import_source_id', normId)
+    }
+    await updateQuery
 
     await admin.from('chestertons_request_activities').insert({
       id: activity.id.startsWith('act-') ? undefined : activity.id,
@@ -369,20 +392,23 @@ export async function addChestertonsActivity(
   userId?: string | null
 ): Promise<ChestertonsActivityItem> {
   const normId = requestId.trim()
+  const isUuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(normId)
   const wf = getOrCreateWorkflowState(normId)
   const nowIso = new Date().toISOString()
+  const cleanNote = note.trim()
 
   // If real contact action, update last_contact_at
   const isContactAction = ['CALL', 'WHATSAPP', 'EMAIL', 'MEETING', 'VIEWING'].includes(activityType)
   if (isContactAction) {
     wf.last_contact_at = nowIso
   }
+  wf.crm_notes = cleanNote
 
   const activity: ChestertonsActivityItem = {
     id: `act-${Date.now()}-${Math.random().toString(36).substring(2, 7)}`,
     request_id: normId,
     activity_type: activityType,
-    note: note.trim(),
+    note: cleanNote,
     created_at: nowIso,
     created_by: authorName,
     user_id: userId || null,
@@ -393,15 +419,21 @@ export async function addChestertonsActivity(
   // Persist to Supabase
   try {
     const admin = createAdminClient()
-    if (isContactAction) {
-      await admin
-        .from('chestertons_requests')
-        .update({
-          last_contact_at: nowIso,
-          updated_at: nowIso,
-        })
-        .eq('import_source_id', normId)
+    const updatePayload: Record<string, unknown> = {
+      crm_notes: cleanNote,
+      updated_at: nowIso,
     }
+    if (isContactAction) {
+      updatePayload.last_contact_at = nowIso
+    }
+
+    let updateQuery = admin.from('chestertons_requests').update(updatePayload)
+    if (isUuid) {
+      updateQuery = updateQuery.eq('id', normId)
+    } else {
+      updateQuery = updateQuery.eq('import_source_id', normId)
+    }
+    await updateQuery
 
     await admin.from('chestertons_request_activities').insert({
       request_id: normId,
@@ -426,18 +458,22 @@ export async function updateChestertonsFollowUp(
   nextFollowUpAt: string | null
 ): Promise<{ success: boolean; next_follow_up_at: string | null }> {
   const normId = requestId.trim()
+  const isUuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(normId)
   const wf = getOrCreateWorkflowState(normId)
   wf.next_follow_up_at = nextFollowUpAt
 
   try {
     const admin = createAdminClient()
-    await admin
-      .from('chestertons_requests')
-      .update({
-        next_follow_up_at: nextFollowUpAt,
-        updated_at: new Date().toISOString(),
-      })
-      .eq('import_source_id', normId)
+    let updateQuery = admin.from('chestertons_requests').update({
+      next_follow_up_at: nextFollowUpAt,
+      updated_at: new Date().toISOString(),
+    })
+    if (isUuid) {
+      updateQuery = updateQuery.eq('id', normId)
+    } else {
+      updateQuery = updateQuery.eq('import_source_id', normId)
+    }
+    await updateQuery
   } catch (err) {
     console.warn('Supabase follow-up update fallback to runtime store:', err)
   }
@@ -449,7 +485,28 @@ export async function updateChestertonsFollowUp(
  * Calculate dataset metrics including dynamic CRM workflow status breakdown
  */
 export async function getChestertonsMetrics(): Promise<ChestertonsMetrics> {
-  const items = VERIFIED_CHESTERTONS_REQUESTS
+  let items: Array<{
+    import_source_id: string
+    parsed_status?: string | null
+    tip_lead?: string | null
+    sursa?: string | null
+    agent?: string | null
+    crm_status?: string | null
+  }> = VERIFIED_CHESTERTONS_REQUESTS
+
+  try {
+    const supabase = await getSafeSupabaseClient()
+    if (supabase) {
+      const { data, error } = await supabase
+        .from('chestertons_requests')
+        .select('import_source_id, parsed_status, tip_lead, sursa, agent, crm_status')
+      if (!error && data && data.length > 0) {
+        items = data
+      }
+    }
+  } catch (err) {
+    console.warn('Falling back to verified dataset for metrics:', err)
+  }
 
   const sourceBreakdown: Record<string, number> = {}
   const agentBreakdown: Record<string, number> = {}

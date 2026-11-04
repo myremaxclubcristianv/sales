@@ -26,6 +26,11 @@ import {
   Search,
   List,
   Grid,
+  CalendarClock,
+  PhoneCall,
+  Save,
+  Check,
+  Loader2,
 } from 'lucide-react'
 import { formatDobDisplay } from '@/lib/utils/cnp'
 import { formatPhoneDisplay, getTelUrl, getWhatsAppUrl } from '@/lib/utils/phone'
@@ -45,6 +50,7 @@ type FilterCategory = 'ALL' | 'BIRTHDAYS' | 'FOLLOW-UPS' | 'INSURANCE' | 'REAL E
 
 export function CalendarView({ initialEvents, initialUpcoming }: CalendarViewProps) {
   const router = useRouter()
+  const [eventsList, setEventsList] = useState<MasterCalendarEvent[]>(initialEvents)
   const [currentDate, setCurrentDate] = useState(() => new Date())
   const [viewMode, setViewMode] = useState<ViewMode>('month')
   const [activeFilter, setActiveFilter] = useState<FilterCategory>('ALL')
@@ -52,6 +58,24 @@ export function CalendarView({ initialEvents, initialUpcoming }: CalendarViewPro
   const [upcomingTab, setUpcomingTab] = useState<'today' | '7days' | '30days'>('today')
   const [selectedEvent, setSelectedEvent] = useState<MasterCalendarEvent | null>(null)
   const [actionLoading, setActionLoading] = useState(false)
+
+  // Reschedule & Call Note state for selectedEvent modal
+  const [editDate, setEditDate] = useState('')
+  const [editTime, setEditTime] = useState('')
+  const [isRescheduling, setIsRescheduling] = useState(false)
+  const [rescheduleMessage, setRescheduleMessage] = useState<string | null>(null)
+  const [callNoteText, setCallNoteText] = useState('')
+  const [isSavingCallNote, setIsSavingCallNote] = useState(false)
+  const [noteSuccessMessage, setNoteSuccessMessage] = useState<string | null>(null)
+
+  const handleOpenEvent = (event: MasterCalendarEvent) => {
+    setSelectedEvent(event)
+    setEditDate(event.date ? event.date.slice(0, 10) : '')
+    setEditTime(event.time || '10:00')
+    setCallNoteText('')
+    setRescheduleMessage(null)
+    setNoteSuccessMessage(null)
+  }
 
   // Follow-up quick create modal inside calendar
   const [quickFollowUpOpen, setQuickFollowUpOpen] = useState(false)
@@ -80,7 +104,7 @@ export function CalendarView({ initialEvents, initialUpcoming }: CalendarViewPro
 
   // Filter events
   const filteredEvents = useMemo(() => {
-    return initialEvents.filter((event) => {
+    return eventsList.filter((event) => {
       // 1. Category / Type filter
       if (activeFilter !== 'ALL') {
         if (activeFilter === 'BIRTHDAYS' && event.type !== 'birthday') return false
@@ -103,7 +127,7 @@ export function CalendarView({ initialEvents, initialUpcoming }: CalendarViewPro
 
       return true
     })
-  }, [initialEvents, activeFilter, searchQuery])
+  }, [eventsList, activeFilter, searchQuery])
 
   // Month calendar grid computation
   const monthDays = useMemo(() => {
@@ -216,6 +240,106 @@ export function CalendarView({ initialEvents, initialUpcoming }: CalendarViewPro
       alert('A apărut o eroare.')
     } finally {
       setActionLoading(false)
+    }
+  }
+
+  // Handle in-modal appointment reschedule
+  const handleRescheduleAppointment = async () => {
+    if (!selectedEvent || !editDate) return
+    setIsRescheduling(true)
+    setRescheduleMessage(null)
+
+    try {
+      if (selectedEvent.follow_up_id) {
+        const res = await fetch('/api/calendar/events/reschedule', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            follow_up_id: selectedEvent.follow_up_id,
+            date: editDate,
+            time: editTime,
+          }),
+        })
+
+        if (!res.ok) {
+          const errData = await res.json().catch(() => ({}))
+          throw new Error(errData.error || 'Eroare la reprogramare')
+        }
+
+        const data = await res.json()
+        const newDate = data.newDate || editDate
+        const newTime = data.newTime || editTime
+
+        // Update selected event in-place without closing modal
+        setSelectedEvent((prev) => (prev ? { ...prev, date: newDate, time: newTime } : null))
+
+        // Update calendar events list in-place (no reload, zero duplicates)
+        setEventsList((prev) =>
+          prev.map((ev) => (ev.id === selectedEvent.id ? { ...ev, date: newDate, time: newTime } : ev))
+        )
+
+        setRescheduleMessage('Programare reprogramată cu succes!')
+        setTimeout(() => setRescheduleMessage(null), 3500)
+        router.refresh()
+      } else {
+        setSelectedEvent((prev) => (prev ? { ...prev, date: editDate, time: editTime } : null))
+        setEventsList((prev) =>
+          prev.map((ev) => (ev.id === selectedEvent.id ? { ...ev, date: editDate, time: editTime } : ev))
+        )
+        setRescheduleMessage('Data actualizată!')
+        setTimeout(() => setRescheduleMessage(null), 3500)
+      }
+    } catch (err: unknown) {
+      const msg = err instanceof Error ? err.message : 'Eroare la reprogramare'
+      alert(msg)
+    } finally {
+      setIsRescheduling(false)
+    }
+  }
+
+  // Handle in-modal post-call note saving
+  const handleSaveCallNote = async () => {
+    if (!selectedEvent || !callNoteText.trim()) return
+    setIsSavingCallNote(true)
+    setNoteSuccessMessage(null)
+
+    try {
+      const res = await fetch('/api/calendar/events/call-note', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          follow_up_id: selectedEvent.follow_up_id || null,
+          client_id: selectedEvent.client_id || null,
+          note: callNoteText.trim(),
+          title: `Notă apel: ${selectedEvent.reason || selectedEvent.title}`,
+        }),
+      })
+
+      if (!res.ok) {
+        const errData = await res.json().catch(() => ({}))
+        throw new Error(errData.error || 'Eroare la salvarea notiței')
+      }
+
+      const data = await res.json()
+      const newNotes = data.updatedNotes || callNoteText.trim()
+
+      // Update selected event notes in-place so it's immediately visible
+      setSelectedEvent((prev) => (prev ? { ...prev, notes: newNotes } : null))
+
+      // Update calendar events list in-place
+      setEventsList((prev) =>
+        prev.map((ev) => (ev.id === selectedEvent.id ? { ...ev, notes: newNotes } : ev))
+      )
+
+      setCallNoteText('')
+      setNoteSuccessMessage('Notiță salvată persistent!')
+      setTimeout(() => setNoteSuccessMessage(null), 3500)
+      router.refresh()
+    } catch (err: unknown) {
+      const msg = err instanceof Error ? err.message : 'Eroare la salvarea notiței'
+      alert(msg)
+    } finally {
+      setIsSavingCallNote(false)
     }
   }
 
@@ -432,7 +556,7 @@ export function CalendarView({ initialEvents, initialUpcoming }: CalendarViewPro
                 return (
                   <div
                     key={item.id}
-                    onClick={() => setSelectedEvent(item)}
+                    onClick={() => handleOpenEvent(item)}
                     className="p-3 bg-slate-800/70 hover:bg-slate-800 rounded-xl border border-slate-700/60 hover:border-slate-600 transition-all cursor-pointer flex items-start justify-between gap-3 text-xs"
                   >
                     <div className="space-y-1 min-w-0">
@@ -564,7 +688,7 @@ export function CalendarView({ initialEvents, initialUpcoming }: CalendarViewPro
                       return (
                         <div
                           key={ev.id}
-                          onClick={() => setSelectedEvent(ev)}
+                          onClick={() => handleOpenEvent(ev)}
                           className={`p-1 sm:p-1.5 rounded-lg text-[10px] sm:text-[11px] font-semibold truncate cursor-pointer transition-all border ${
                             isBirthday
                               ? 'bg-pink-50 text-pink-900 border-pink-200 hover:bg-pink-100'
@@ -591,7 +715,7 @@ export function CalendarView({ initialEvents, initialUpcoming }: CalendarViewPro
                       <button
                         onClick={() => {
                           // Show all events for this day
-                          setSelectedEvent(day.events[0])
+                          handleOpenEvent(day.events[0])
                         }}
                         className="text-[10px] font-bold text-blue-600 hover:underline block text-center w-full"
                       >
@@ -619,7 +743,7 @@ export function CalendarView({ initialEvents, initialUpcoming }: CalendarViewPro
               return (
                 <div
                   key={ev.id}
-                  onClick={() => setSelectedEvent(ev)}
+                  onClick={() => handleOpenEvent(ev)}
                   className="py-3 px-2 hover:bg-slate-50 rounded-xl transition-colors cursor-pointer flex flex-col sm:flex-row sm:items-center justify-between gap-3 text-xs"
                 >
                   <div className="flex items-start gap-3 min-w-0">
@@ -692,7 +816,7 @@ export function CalendarView({ initialEvents, initialUpcoming }: CalendarViewPro
       {/* 6. Event Detail Modal (Clean, Zero CNP, Direct Actions) */}
       {selectedEvent && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-xs">
-          <div className="bg-white rounded-2xl border border-slate-200 shadow-2xl max-w-lg w-full p-6 space-y-5 animate-in fade-in zoom-in-95 duration-150">
+          <div className="bg-white rounded-2xl border border-slate-200 shadow-2xl max-w-xl max-h-[90vh] overflow-y-auto w-full p-6 space-y-5 animate-in fade-in zoom-in-95 duration-150">
             {/* Modal Header */}
             <div className="flex items-start justify-between gap-4 pb-3 border-b border-slate-100">
               <div className="flex items-center gap-3">
@@ -769,33 +893,112 @@ export function CalendarView({ initialEvents, initialUpcoming }: CalendarViewPro
                 </div>
               )}
 
-              {/* Follow-up Details */}
+              {/* Follow-up Details with In-Window Reschedule & Post-Call Notes */}
               {selectedEvent.type === 'follow_up' && (
-                <div className="p-4 bg-amber-50/50 rounded-2xl border border-amber-100 space-y-2">
-                  <div className="flex justify-between items-center">
-                    <span className="text-slate-600">Dată Programată:</span>
-                    <span className="font-bold text-slate-900 font-mono">
-                      {new Date(selectedEvent.date).toLocaleDateString()}
-                    </span>
-                  </div>
-                  {selectedEvent.time && (
-                    <div className="flex justify-between items-center">
-                      <span className="text-slate-600">Ora:</span>
-                      <span className="font-bold text-amber-800 font-mono text-sm">{selectedEvent.time}</span>
-                    </div>
-                  )}
+                <div className="space-y-3">
+                  {/* Appointment Reason Banner */}
                   {selectedEvent.reason && (
-                    <div className="pt-1">
-                      <span className="font-bold text-slate-700 block mb-0.5">Motiv:</span>
-                      <p className="text-slate-800 bg-white p-2.5 rounded-xl border border-amber-200">
+                    <div className="p-3 bg-amber-50/70 dark:bg-amber-950/30 rounded-xl border border-amber-200/80 dark:border-amber-800/60">
+                      <span className="text-[10px] font-bold uppercase tracking-wider text-amber-800 dark:text-amber-400 block mb-0.5">
+                        Motiv / Titlu Programare:
+                      </span>
+                      <p className="text-xs font-semibold text-slate-900 dark:text-slate-100">
                         {selectedEvent.reason}
                       </p>
                     </div>
                   )}
+
+                  {/* A. Reprogramare Dată & Oră */}
+                  <div className="p-3.5 bg-slate-50 dark:bg-slate-800/60 rounded-xl border border-slate-200 dark:border-slate-700 space-y-2">
+                    <div className="flex items-center justify-between">
+                      <span className="text-[11px] font-bold text-slate-700 dark:text-slate-200 uppercase tracking-wider flex items-center gap-1.5">
+                        <CalendarClock className="w-3.5 h-3.5 text-blue-600" />
+                        Reprogramare (Dată & Oră)
+                      </span>
+                      {rescheduleMessage && (
+                        <span className="text-[11px] font-bold text-emerald-600 flex items-center gap-1 animate-in fade-in">
+                          <Check className="w-3.5 h-3.5" /> {rescheduleMessage}
+                        </span>
+                      )}
+                    </div>
+                    <div className="grid grid-cols-1 sm:grid-cols-3 gap-2 pt-1">
+                      <div>
+                        <label className="text-[10px] font-semibold text-slate-400 block mb-0.5">Dată</label>
+                        <input
+                          type="date"
+                          value={editDate}
+                          onChange={(e) => setEditDate(e.target.value)}
+                          className="w-full text-xs p-2 bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-700 rounded-lg text-slate-900 dark:text-white"
+                        />
+                      </div>
+                      <div>
+                        <label className="text-[10px] font-semibold text-slate-400 block mb-0.5">Ora</label>
+                        <input
+                          type="time"
+                          value={editTime}
+                          onChange={(e) => setEditTime(e.target.value)}
+                          className="w-full text-xs p-2 bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-700 rounded-lg text-slate-900 dark:text-white"
+                        />
+                      </div>
+                      <div className="flex items-end">
+                        <Button
+                          size="sm"
+                          type="button"
+                          disabled={isRescheduling || !editDate}
+                          onClick={handleRescheduleAppointment}
+                          className="w-full h-8 text-xs bg-blue-600 hover:bg-blue-700 text-white font-semibold cursor-pointer"
+                        >
+                          {isRescheduling ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : 'Salvează Dată'}
+                        </Button>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* B. Notiță după apel */}
+                  <div className="p-3.5 bg-amber-50/40 dark:bg-amber-950/20 rounded-xl border border-amber-200/80 dark:border-amber-800/60 space-y-2">
+                    <div className="flex items-center justify-between">
+                      <span className="text-[11px] font-bold text-amber-900 dark:text-amber-300 uppercase tracking-wider flex items-center gap-1.5">
+                        <PhoneCall className="w-3.5 h-3.5 text-amber-600" />
+                        Notiță după apel
+                      </span>
+                      {noteSuccessMessage && (
+                        <span className="text-[11px] font-bold text-emerald-600 flex items-center gap-1 animate-in fade-in">
+                          <Check className="w-3.5 h-3.5" /> {noteSuccessMessage}
+                        </span>
+                      )}
+                    </div>
+                    <textarea
+                      rows={2}
+                      value={callNoteText}
+                      onChange={(e) => setCallNoteText(e.target.value)}
+                      placeholder="Scrie o notiță după apel (ex: Am sunat clientul. Nu a răspuns, revin mâine)..."
+                      className="w-full text-xs p-2.5 bg-white dark:bg-slate-900 border border-amber-200/80 dark:border-slate-700 rounded-xl text-slate-900 dark:text-white placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-amber-500 resize-none"
+                    />
+                    <div className="flex justify-end pt-0.5">
+                      <Button
+                        size="sm"
+                        type="button"
+                        disabled={isSavingCallNote || !callNoteText.trim()}
+                        onClick={handleSaveCallNote}
+                        className="text-xs bg-amber-600 hover:bg-amber-700 text-white font-semibold gap-1.5 h-8 px-3 cursor-pointer"
+                      >
+                        {isSavingCallNote ? (
+                          <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                        ) : (
+                          <Save className="w-3.5 h-3.5" />
+                        )}
+                        <span>Salvează Notiță</span>
+                      </Button>
+                    </div>
+                  </div>
+
+                  {/* Istoric Notițe anterioare (Preserved) */}
                   {selectedEvent.notes && (
-                    <div className="pt-1">
-                      <span className="font-bold text-slate-700 block mb-0.5">Notițe:</span>
-                      <p className="text-slate-600 bg-white p-2.5 rounded-xl border border-slate-200 whitespace-pre-wrap">
+                    <div className="p-3 bg-slate-50 dark:bg-slate-800/60 rounded-xl border border-slate-200 dark:border-slate-700 space-y-1">
+                      <span className="text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider block">
+                        Istoric Notițe Programare:
+                      </span>
+                      <p className="text-xs text-slate-700 dark:text-slate-300 whitespace-pre-wrap max-h-36 overflow-y-auto leading-relaxed bg-white dark:bg-slate-900 p-2.5 rounded-lg border border-slate-200/80 dark:border-slate-800">
                         {selectedEvent.notes}
                       </p>
                     </div>

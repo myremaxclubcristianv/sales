@@ -5,6 +5,7 @@ import { Plus, Check, Loader2, MessageSquarePlus, X } from 'lucide-react'
 
 interface ChestertonsQuickNotePopoverProps {
   requestId: string
+  currentNote?: string | null
   onNoteSaved?: (note: string) => void
   disabled?: boolean
   className?: string
@@ -12,6 +13,7 @@ interface ChestertonsQuickNotePopoverProps {
 
 export function ChestertonsQuickNotePopover({
   requestId,
+  currentNote,
   onNoteSaved,
   disabled = false,
   className = '',
@@ -173,6 +175,13 @@ export function ChestertonsQuickNotePopover({
               <X className="w-3.5 h-3.5" />
             </button>
           </div>
+
+          {currentNote && (
+            <div className="mb-2 p-2 bg-slate-50 dark:bg-slate-800/80 rounded-xl border border-slate-200/60 dark:border-slate-700/60 text-[11px] text-slate-600 dark:text-slate-300">
+              <span className="font-bold text-slate-400 block text-[9px] uppercase tracking-wider mb-0.5">Notă anterioară:</span>
+              <p className="line-clamp-2 italic">{currentNote}</p>
+            </div>
+          )}
 
           <textarea
             ref={textareaRef}

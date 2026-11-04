@@ -127,6 +127,20 @@ export async function getInsurancePolicyById(id: string) {
 }
 
 export async function createInsurancePolicy(policy: InsurancePolicyInsert) {
+  try {
+    const admin = createAdminClient()
+    const { data, error } = await admin
+      .from('insurance_policies')
+      .insert(policy)
+      .select()
+      .single()
+
+    if (!error && data) return data
+    if (error) throw error
+  } catch (adminErr) {
+    console.warn('[createInsurancePolicy] Admin client insert fallback:', adminErr)
+  }
+
   const supabase = await createServerClient()
   const { data, error } = await supabase
     .from('insurance_policies')

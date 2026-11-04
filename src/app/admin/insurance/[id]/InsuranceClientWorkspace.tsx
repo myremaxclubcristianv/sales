@@ -26,6 +26,8 @@ import {
 } from 'lucide-react'
 import { formatPhoneDisplay, getTelUrl, getWhatsAppUrl } from '@/lib/utils/phone'
 import Link from 'next/link'
+import { useRouter } from 'next/navigation'
+import { AddClientPolicyModal } from '@/components/AddClientPolicyModal'
 
 export type WorkspaceTab =
   | 'overview'
@@ -177,7 +179,7 @@ interface InsuranceClientWorkspaceProps {
 
 export function InsuranceClientWorkspace({
   client,
-  policies = [],
+  policies: initialPolicies = [],
   vehicles = [],
   properties = [],
   opportunities = [],
@@ -188,7 +190,10 @@ export function InsuranceClientWorkspace({
   folders = [],
   initialTab = 'overview',
 }: InsuranceClientWorkspaceProps) {
+  const router = useRouter()
   const [activeTab, setActiveTab] = useState<WorkspaceTab>(initialTab)
+  const [isAddPolicyOpen, setIsAddPolicyOpen] = useState(false)
+  const [policies, setPolicies] = useState<PolicyItem[]>(initialPolicies)
 
   const now = useMemo(() => new Date(), [])
   const thirtyDaysFromNow = useMemo(() => new Date(now.getTime() + 30 * 24 * 60 * 60 * 1000), [now])
@@ -310,13 +315,14 @@ export function InsuranceClientWorkspace({
                 <span>Email</span>
               </a>
             )}
-            <Link
-              href={`/admin/insurance/new?client_id=${client.id}`}
-              className="inline-flex items-center gap-1.5 px-3.5 py-2 bg-neutral-900 dark:bg-neutral-100 text-white dark:text-neutral-900 rounded-xl text-xs font-semibold hover:opacity-90 transition"
+            <button
+              type="button"
+              onClick={() => setIsAddPolicyOpen(true)}
+              className="inline-flex items-center gap-1.5 px-3.5 py-2 bg-neutral-900 dark:bg-neutral-100 text-white dark:text-neutral-900 rounded-xl text-xs font-semibold hover:opacity-90 transition cursor-pointer"
             >
               <Plus className="w-3.5 h-3.5" />
               <span>Adaugă Poliță</span>
-            </Link>
+            </button>
           </div>
         </div>
 
@@ -609,13 +615,14 @@ export function InsuranceClientWorkspace({
               <Shield className="w-4 h-4 text-blue-600" />
               <span>Polițe de Asigurare Portofoliu ({policies.length})</span>
             </h3>
-            <Link
-              href={`/admin/insurance/new?client_id=${client.id}`}
-              className="inline-flex items-center gap-1 px-3 py-1.5 bg-neutral-900 dark:bg-neutral-100 text-white dark:text-neutral-900 rounded-xl text-xs font-semibold"
+            <button
+              type="button"
+              onClick={() => setIsAddPolicyOpen(true)}
+              className="inline-flex items-center gap-1 px-3 py-1.5 bg-neutral-900 dark:bg-neutral-100 text-white dark:text-neutral-900 rounded-xl text-xs font-semibold cursor-pointer"
             >
               <Plus className="w-3.5 h-3.5" />
               <span>Adaugă Poliță</span>
-            </Link>
+            </button>
           </div>
 
           {policies.length === 0 ? (
@@ -923,6 +930,17 @@ export function InsuranceClientWorkspace({
           </div>
         </Card>
       )}
+      {/* MODAL ADĂUGARE POLIȚĂ CLIENT */}
+      <AddClientPolicyModal
+        isOpen={isAddPolicyOpen}
+        onClose={() => setIsAddPolicyOpen(false)}
+        client={client}
+        onPolicyAdded={(newPol) => {
+          setPolicies((prev) => [newPol as unknown as PolicyItem, ...prev])
+          setActiveTab('policies')
+          router.refresh()
+        }}
+      />
     </div>
   )
 }
